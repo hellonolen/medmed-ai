@@ -9,28 +9,134 @@ export interface MatchedMedication {
   category: string;
   type: string; // Medication type (injection, capsule, etc.)
   source?: string; // Source of the medication data
+  region?: string; // Region/country where medication is available
 }
 
 // External API configuration
 const EXTERNAL_API_ENABLED = true; // Toggle for easier testing/development
 const EXTERNAL_SOURCES = [
   { name: "MedlinePlus", baseUrl: "https://medlineplus.gov/api/search" },
-  { name: "RxNorm", baseUrl: "https://rxnav.nlm.nih.gov/REST/rxcui" }
+  { name: "RxNorm", baseUrl: "https://rxnav.nlm.nih.gov/REST/rxcui" },
+  { name: "WHO Essential Medicines", baseUrl: "https://essential-medicines.who.int" },
+  { name: "Global Medical Database", baseUrl: "https://global-med-db.example.org" }
 ];
+
+// Regions for global search
+const REGIONS = {
+  NORTH_AMERICA: "north-america",
+  EUROPE: "europe",
+  ASIA: "asia",
+  AFRICA: "africa",
+  SOUTH_AMERICA: "south-america",
+  AUSTRALIA: "australia",
+  GLOBAL: "global"
+};
 
 // Cache for external API results to minimize redundant calls
 const apiCache = new Map<string, MatchedMedication[]>();
 
+// AI-enhanced query understanding
+const processQueryWithAI = (query: string): { 
+  enhancedQuery: string; 
+  detectedRegion: string | null;
+  isSpecificMedication: boolean;
+  detectedCondition: string | null;
+} => {
+  const lowerQuery = query.toLowerCase();
+  
+  // Detect regions from the query
+  let detectedRegion = null;
+  if (lowerQuery.includes('europe') || lowerQuery.includes('eu') || 
+      /\b(uk|france|germany|italy|spain)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.EUROPE;
+  } else if (lowerQuery.includes('asia') || 
+            /\b(china|japan|india|korea)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.ASIA;
+  } else if (lowerQuery.includes('africa') || 
+            /\b(nigeria|egypt|kenya|south africa)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.AFRICA;
+  } else if (lowerQuery.includes('north america') || 
+            /\b(usa|us|canada|mexico)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.NORTH_AMERICA;
+  } else if (lowerQuery.includes('south america') || 
+            /\b(brazil|argentina|chile|colombia)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.SOUTH_AMERICA;
+  } else if (lowerQuery.includes('australia') || lowerQuery.includes('oceania') || 
+            /\b(new zealand|pacific)\b/.test(lowerQuery)) {
+    detectedRegion = REGIONS.AUSTRALIA;
+  }
+  
+  // Check if query is likely for a specific medication
+  const isSpecificMedication = /\b(mg|ml|dose|tablet|capsule|injection)\b/.test(lowerQuery) ||
+                              medications.some(cat => 
+                                cat.products.some(p => 
+                                  lowerQuery.includes(p.name.toLowerCase())
+                                )
+                              );
+  
+  // Detect possible medical conditions
+  const detectedCondition = medicalConditions.find(condition => 
+    condition.conditions.some(c => lowerQuery.includes(c.toLowerCase()))
+  )?.category || null;
+  
+  // Create enhanced query by adding context terms
+  let enhancedQuery = query;
+  
+  // If region is specified, we can add regional medical terms
+  if (detectedRegion === REGIONS.EUROPE) {
+    enhancedQuery += " European Medicines Agency approved";
+  } else if (detectedRegion === REGIONS.NORTH_AMERICA) {
+    enhancedQuery += " FDA approved";
+  }
+  
+  // If it's a specific medication, we can enhance with dosage terms
+  if (isSpecificMedication) {
+    enhancedQuery += " medication dosage information";
+  }
+  
+  // If a condition is detected, we can enhance with treatment terms
+  if (detectedCondition) {
+    enhancedQuery += ` treatment for ${detectedCondition}`;
+  }
+  
+  return {
+    enhancedQuery,
+    detectedRegion,
+    isSpecificMedication,
+    detectedCondition
+  };
+};
+
 export const findMedicationsForQuery = async (query: string): Promise<MatchedMedication[]> => {
   if (!query.trim()) return [];
   
+  console.log("Original query:", query);
+  
+  // Process query with AI-enhancement
+  const { 
+    enhancedQuery, 
+    detectedRegion, 
+    isSpecificMedication,
+    detectedCondition 
+  } = processQueryWithAI(query);
+  
+  console.log("AI-enhanced query:", enhancedQuery);
+  console.log("Detected region:", detectedRegion);
+  console.log("Is specific medication:", isSpecificMedication);
+  console.log("Detected condition:", detectedCondition);
+  
   // First try to match symptoms and conditions
-  const matchingSymptoms = findMatchingSymptoms(query);
+  const matchingSymptoms = findMatchingSymptoms(enhancedQuery);
   
   // Get related conditions from matching symptoms
   const relatedConditions = new Set(
     matchingSymptoms.flatMap(symptom => symptom.relatedConditions)
   );
+  
+  // Add detected condition if found
+  if (detectedCondition) {
+    relatedConditions.add(detectedCondition);
+  }
   
   // Build a set of relevant specialists
   const relevantSpecialists = new Set(
@@ -45,7 +151,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
   ];
   
   const isInjectableGelQuery = injectableGelKeywords.some(keyword => 
-    query.toLowerCase().includes(keyword.toLowerCase())
+    enhancedQuery.toLowerCase().includes(keyword.toLowerCase())
   );
   
   if (isInjectableGelQuery) {
@@ -59,7 +165,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
   medications.forEach(category => {
     // Match category
     const matchesCategory = relatedConditions.has(category.category) || 
-                           category.category.toLowerCase().includes(query.toLowerCase());
+                           category.category.toLowerCase().includes(enhancedQuery.toLowerCase());
     
     const categoryRelevance = matchesCategory ? 80 : 0;
     
@@ -77,6 +183,11 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
         relevance += 10;
       }
       
+      // Region relevance boost for global search
+      if (detectedRegion && product.region && product.region === detectedRegion) {
+        relevance += 15;
+      }
+      
       // Don't include products with zero relevance
       if (relevance === 0) return;
       
@@ -92,7 +203,8 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
           relevance: relevance,
           category: category.category,
           type: product.type || "Other", // Add medication type
-          source: "MedMed Database"
+          source: "MedMed Database",
+          region: product.region || "global"
         });
       }
     });
@@ -115,7 +227,8 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
             relevance: relevance,
             category: condition.category,
             type: "Medication", // Default type for generic medications
-            source: "MedMed Database"
+            source: "MedMed Database",
+            region: "global" // These are generally globally available
           });
         });
       }
@@ -134,7 +247,8 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
             relevance: 75,
             category: condition.category,
             type: "Medication", // Default type for generic medications
-            source: "MedMed Database"
+            source: "MedMed Database",
+            region: "global"
           });
         }
       });
@@ -143,18 +257,18 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
   
   // Try to fetch external data if we have fewer than 5 results
   // or if the query is specific enough to warrant external search
-  if (EXTERNAL_API_ENABLED && (matchedMedications.length < 5 || query.length > 4)) {
+  if (EXTERNAL_API_ENABLED && (matchedMedications.length < 5 || enhancedQuery.length > 4)) {
     try {
       // Check if we have cached results
-      if (apiCache.has(query)) {
-        console.log("Using cached external data for:", query);
-        matchedMedications = [...matchedMedications, ...apiCache.get(query)!];
+      if (apiCache.has(enhancedQuery)) {
+        console.log("Using cached external data for:", enhancedQuery);
+        matchedMedications = [...matchedMedications, ...apiCache.get(enhancedQuery)!];
       } else {
-        console.log("Fetching external data for:", query);
-        const externalResults = await fetchExternalMedicationData(query);
+        console.log("Fetching external data for:", enhancedQuery);
+        const externalResults = await fetchExternalMedicationData(enhancedQuery, detectedRegion);
         
         // Cache the results
-        apiCache.set(query, externalResults);
+        apiCache.set(enhancedQuery, externalResults);
         
         // Merge with local results
         matchedMedications = [...matchedMedications, ...externalResults];
@@ -251,121 +365,196 @@ export const groupMedicationsByType = (medications: MatchedMedication[]) => {
 };
 
 // Function to fetch medication data from external APIs
-const fetchExternalMedicationData = async (query: string): Promise<MatchedMedication[]> => {
+const fetchExternalMedicationData = async (query: string, region: string | null): Promise<MatchedMedication[]> => {
   // This is a mockup of what an external API call would look like
   // In a real implementation, this would make actual API calls to medical databases
   
   // For now, we'll simulate external API responses with mock data
-  return await simulateMedicalAPI(query);
+  return await simulateMedicalAPI(query, region);
 };
 
 // Simulate external API calls (in a real app, this would be replaced with actual API requests)
-const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> => {
+const simulateMedicalAPI = async (query: string, region: string | null): Promise<MatchedMedication[]> => {
   // Simulate API latency
   await new Promise(resolve => setTimeout(resolve, 300));
   
   const normalizedQuery = query.toLowerCase();
   const results: MatchedMedication[] = [];
   
-  // Simulated external medication database
+  // Simulated external medication database - enhanced with regional information
   const externalMedications = [
     {
       name: "Atorvastatin",
       details: "Lowers cholesterol and triglycerides in the blood.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
     },
     {
       name: "Levothyroxine",
       details: "Treats hypothyroidism (low thyroid hormone).",
       category: "Endocrine Conditions",
       type: "Tablet",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
     },
     {
       name: "Lisinopril",
       details: "ACE inhibitor that treats high blood pressure and heart failure.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "north-america"
     },
     {
       name: "Metformin",
       details: "Treats type 2 diabetes mellitus by decreasing blood sugar production.",
       category: "Endocrine Conditions",
       type: "Tablet",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
     },
     {
       name: "Amlodipine",
       details: "Calcium channel blocker that treats high blood pressure and chest pain.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "global"
     },
     {
       name: "Metoprolol",
       details: "Beta-blocker that treats high blood pressure, chest pain, and heart failure.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "north-america"
     },
     {
       name: "Albuterol",
       details: "Bronchodilator that treats or prevents bronchospasm in asthma or COPD.",
       category: "Respiratory Conditions",
       type: "Inhaler",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "north-america"
     },
     {
       name: "Omeprazole",
       details: "Proton pump inhibitor that decreases stomach acid production.",
       category: "Gastrointestinal Conditions",
       type: "Capsule",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
     },
     {
       name: "Losartan",
       details: "Angiotensin II receptor blocker that treats high blood pressure.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "global"
     },
     {
       name: "Gabapentin",
       details: "Anticonvulsant that treats seizures and nerve pain.",
       category: "Neurological Conditions",
       type: "Capsule",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "north-america"
     },
     {
       name: "Hydrochlorothiazide",
       details: "Diuretic that treats high blood pressure and fluid retention.",
       category: "Cardiovascular Conditions",
       type: "Tablet",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "global"
     },
     {
       name: "Fluticasone",
       details: "Corticosteroid that treats allergic and non-allergic nasal symptoms.",
       category: "ENT Conditions",
       type: "Spray",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
     },
     {
       name: "Insulin Glargine",
       details: "Long-acting insulin analogue for diabetes management.",
       category: "Endocrine Conditions",
       type: "Injection",
-      source: "RxNorm"
+      source: "RxNorm",
+      region: "global"
     },
     {
       name: "Mupirocin",
       details: "Antibiotic ointment for bacterial skin infections.",
       category: "Dermatological Conditions",
       type: "Ointment",
-      source: "MedlinePlus"
+      source: "MedlinePlus",
+      region: "global"
+    },
+    // European-specific medications
+    {
+      name: "Pantoprazole",
+      details: "Proton pump inhibitor widely prescribed in Europe for acid reflux and ulcers.",
+      category: "Gastrointestinal Conditions",
+      type: "Tablet",
+      source: "European Medicines Agency",
+      region: "europe"
+    },
+    {
+      name: "Diclofenac",
+      details: "NSAID commonly used in European countries for pain and inflammation.",
+      category: "Pain Relief",
+      type: "Tablet",
+      source: "European Medicines Agency",
+      region: "europe"
+    },
+    // Asian-specific medications
+    {
+      name: "Tosufloxacin",
+      details: "Fluoroquinolone antibiotic commonly used in Japan and other Asian countries.",
+      category: "Infectious Disease",
+      type: "Tablet",
+      source: "Asian Medical Database",
+      region: "asia"
+    },
+    {
+      name: "Lianhua Qingwen",
+      details: "Traditional Chinese medicine used for respiratory infections.",
+      category: "Respiratory Conditions",
+      type: "Capsule",
+      source: "Traditional Medicine Database",
+      region: "asia"
+    },
+    // African-specific medications
+    {
+      name: "Artesunate-Amodiaquine",
+      details: "Antimalarial combination therapy common in African countries.",
+      category: "Infectious Disease",
+      type: "Tablet",
+      source: "WHO Essential Medicines",
+      region: "africa"
+    },
+    // South American medications
+    {
+      name: "Benznidazole",
+      details: "Antiparasitic medication used in South America for Chagas disease.",
+      category: "Infectious Disease",
+      type: "Tablet",
+      source: "PAHO Database",
+      region: "south-america"
+    },
+    // Australian/Oceania medications
+    {
+      name: "Tiotropium",
+      details: "Bronchodilator commonly prescribed in Australia for COPD management.",
+      category: "Respiratory Conditions",
+      type: "Inhaler",
+      source: "Australian PBS",
+      region: "australia"
     }
   ];
   
@@ -394,8 +583,13 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
     }
   ];
   
+  // Apply regional filtering if a region is specified
+  const regionFilteredMedications = region && region !== "global"
+    ? externalMedications.filter(med => med.region === "global" || med.region === region)
+    : externalMedications;
+  
   // Search through the external medications
-  externalMedications.forEach(med => {
+  regionFilteredMedications.forEach(med => {
     const medString = `${med.name} ${med.details} ${med.category}`.toLowerCase();
     
     if (medString.includes(normalizedQuery)) {
@@ -408,7 +602,8 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
         relevance: 70, // External results get a slightly lower base relevance
         category: med.category,
         type: med.type,
-        source: med.source
+        source: med.source,
+        region: med.region
       });
     }
   });
@@ -433,7 +628,8 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
         relevance: 90,
         category: gel.category,
         type: gel.type,
-        source: gel.source
+        source: gel.source,
+        region: "global" // Injectable gels are generally available globally
       });
     });
   }

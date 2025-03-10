@@ -5,7 +5,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck, BarChart3 } from "lucide-react";
+import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck, BarChart3, Globe } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -69,9 +69,12 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
         <div className="container px-4 py-8 mx-auto">
           <div className="text-center mb-12 animate-fadeIn">
-            <h1 className="text-4xl font-bold text-primary mb-4">MedMed.AI</h1>
+            <h1 className="text-4xl font-bold text-primary mb-4 flex items-center justify-center">
+              MedMed.AI
+              <Globe className="ml-2 h-6 w-6 text-primary/70" />
+            </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Search medications, find specialists, and get personalized healthcare recommendations
+              Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide
             </p>
             <div className="mt-4 flex justify-center gap-2">
               <Link to="/admin">
@@ -102,7 +105,7 @@ const Index = () => {
               <Link to="/pharmacy-finder">
                 <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Map className="h-4 w-4 text-primary" />
-                  <span>Pharmacy Finder</span>
+                  <span>Global Pharmacy Finder</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
@@ -124,8 +127,12 @@ const Index = () => {
             <div className="max-w-4xl mx-auto">
               {searchResults.length > 0 && (
                 <div className="mb-12 animate-fadeIn">
-                  <div className="md:col-span-2 mb-4">
-                    <h2 className="text-2xl font-semibold text-gray-800">Medication Results</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-semibold text-gray-800">Global Medication Results</h2>
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-gray-600">Worldwide search</span>
+                    </div>
                   </div>
                   
                   {/* Display results grouped by type in specific order */}
@@ -183,6 +190,7 @@ const Index = () => {
           <footer className="mt-16 text-center text-gray-500 text-sm">
             <p>© {currentYear} MedMed.AI. All rights reserved.</p>
             <p className="mt-2">This is a demo application. Not for actual medical use.</p>
+            <p className="mt-1">Providing global healthcare information and resources</p>
           </footer>
         </div>
       </div>
