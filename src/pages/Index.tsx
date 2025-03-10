@@ -1,23 +1,32 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck } from "lucide-react";
+import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck, BarChart3 } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
+import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const { isAdmin, setIsAdmin } = useAdmin();
+  const { addSearchToHistory } = useSearchHistory();
 
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string }>) => {
     setSearchQuery(query);
     setSearchResults(results);
     setSearchPerformed(query !== '');
+    
+    // Track search in history if it's not an empty search
+    if (query.trim()) {
+      addSearchToHistory(query, results.length);
+    }
   };
 
   const removeResult = (index: number) => {
@@ -45,7 +54,7 @@ const Index = () => {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Search medications, find specialists, and get personalized healthcare recommendations
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex justify-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -55,6 +64,26 @@ const Index = () => {
                 <ShieldCheck className="h-4 w-4" />
                 {isAdmin ? "Admin Mode: ON" : "Admin Mode: OFF"}
               </Button>
+              
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/admin">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        Admin Dashboard
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View visitor and search statistics</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
 
@@ -104,7 +133,7 @@ const Index = () => {
                         <MedicationCardWrapper
                           name={result.name}
                           details={result.details}
-                          price={result.price}
+                          price={isAdmin ? result.price : "Login to see pricing"}
                         />
                       </Link>
                       <Button 
