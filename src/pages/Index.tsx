@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, BookOpen, Bell, User } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,7 +12,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
 import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 import { RecommendationSystem } from "@/components/RecommendationSystem";
-import { AIChatbot } from "@/components/AIChatbot";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -84,29 +82,6 @@ const Index = () => {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               {t("app.tagline", "Search medications, find specialists, and get personalized recommendations.")}
             </p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Link to="/admin">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-2"
-                >
-                  <Globe className="h-4 w-4" />
-                  {t("menu.admin", "Admin Dashboard")}
-                </Button>
-              </Link>
-              
-              <Link to="/health-hub">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-2"
-                >
-                  <User className="h-4 w-4" />
-                  Personal Health Hub
-                </Button>
-              </Link>
-            </div>
           </div>
 
           <div className="mb-8 max-w-2xl mx-auto">
@@ -114,7 +89,7 @@ const Index = () => {
           </div>
           
           <div className="mb-8 max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Clipboard className="h-4 w-4 text-primary" />
@@ -139,26 +114,14 @@ const Index = () => {
                   <span>{t("menu.favorites", "My Favorites")}</span>
                 </Button>
               </Link>
-              <Link to="/health-hub">
+              <Link to="/admin">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Bell className="h-4 w-4 text-primary" />
-                  <span>Medication Reminders</span>
-                </Button>
-              </Link>
-              <Link to="/health-hub?tab=education">
-                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                  <span>Education Hub</span>
+                  <Globe className="h-4 w-4 text-primary" />
+                  <span>{t("menu.admin", "Admin Dashboard")}</span>
                 </Button>
               </Link>
             </div>
           </div>
-
-          {!searchPerformed && searchHistory && searchHistory.length > 0 && (
-            <div className="max-w-4xl mx-auto">
-              <RecommendationSystem />
-            </div>
-          )}
 
           {searchPerformed && (
             <div className="max-w-4xl mx-auto">
@@ -172,14 +135,12 @@ const Index = () => {
                     </div>
                   </div>
                   
-                  {/* Display results grouped by type in specific order */}
                   {displayOrder.map(type => 
                     groupedResults[type] && groupedResults[type].length > 0 && (
                       <div key={type} className="mb-8">
                         <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {groupedResults[type].map((result, index) => {
-                            // Find overall index in searchResults for removal
                             const overallIndex = searchResults.findIndex(r => r.name === result.name);
                             
                             return (
@@ -232,9 +193,6 @@ const Index = () => {
           </footer>
         </div>
       </div>
-      
-      {/* Add AI Chatbot */}
-      <AIChatbot />
     </TooltipProvider>
   );
 };
