@@ -60,6 +60,7 @@ const PharmacyFinder = () => {
   const [zipCode, setZipCode] = useState("");
   const [results, setResults] = useState<typeof pharmacies>([]);
   const [searching, setSearching] = useState(false);
+  const [searched, setSearched] = useState(false);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +71,16 @@ const PharmacyFinder = () => {
     }
     
     setSearching(true);
+    setSearched(true);
     
     // Simulate API call delay
     setTimeout(() => {
-      setResults(pharmacies);
+      // Add the zipCode to the pharmacy addresses
+      const pharmaciesWithUpdatedAddresses = pharmacies.map(pharmacy => ({
+        ...pharmacy,
+        address: pharmacy.address.replace(/Anytown, CA 12345/, `Anytown, ${zipCode.slice(0, 5)}`)
+      }));
+      setResults(pharmaciesWithUpdatedAddresses);
       setSearching(false);
     }, 1000);
   };
@@ -178,6 +185,12 @@ const PharmacyFinder = () => {
           {searching && (
             <div className="text-center py-12">
               <p className="text-gray-500">Searching for pharmacies...</p>
+            </div>
+          )}
+          
+          {searched && results.length === 0 && !searching && (
+            <div className="text-center py-12">
+              <p className="text-gray-500">No pharmacies found for ZIP code {zipCode}</p>
             </div>
           )}
         </div>

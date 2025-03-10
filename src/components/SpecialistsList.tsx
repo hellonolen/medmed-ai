@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 import { specialistsInfo } from "@/data/specialists";
@@ -8,7 +8,8 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Filter } from "lucide-react";
+import { MapPin, Users, Filter, Stethoscope } from "lucide-react";
+import { toast } from "sonner";
 
 interface SpecialistsListProps {
   searchQuery: string;
@@ -48,44 +49,64 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
   const { isAdmin } = useAdmin();
   const [locationFilter, setLocationFilter] = useState("");
   const [showLocationFilter, setShowLocationFilter] = useState(false);
+  const [allSpecialists, setAllSpecialists] = useState<string[]>([]);
   
-  // Get specialists from symptom mappings first
-  const matchingSymptoms = findMatchingSymptoms(searchQuery);
-  const specialistsFromSymptoms = new Set(
-    matchingSymptoms.flatMap(symptom => symptom.specialists)
-  );
-  
-  // Get specialists directly from medical conditions
-  const conditionSpecialists = new Set<string>();
-  medicalConditions.forEach(condition => {
-    // Check if condition name matches
-    const conditionMatches = condition.conditions.some(c => 
-      c.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    // Check if medication matches
-    const medicationMatches = condition.medications.some(m => 
-      m.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    if (conditionMatches || medicationMatches) {
-      condition.specialists.forEach(s => conditionSpecialists.add(s));
+  useEffect(() => {
+    if (!searchQuery) {
+      setAllSpecialists([]);
+      return;
     }
-  });
-  
-  // Also filter specialists by direct name match
-  const directMatchedSpecialists = specialists.filter(specialist => 
-    specialist.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  
-  // Combine all sources, with priority: direct matches, condition matches, symptom matches
-  const allSpecialists = [
-    ...directMatchedSpecialists,
-    ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
-    ...Array.from(specialistsFromSymptoms).filter(spec => 
-      !directMatchedSpecialists.includes(spec) && !conditionSpecialists.has(spec)
-    )
-  ];
+    
+    // Get specialists from symptom mappings first
+    const matchingSymptoms = findMatchingSymptoms(searchQuery);
+    const specialistsFromSymptoms = new Set(
+      matchingSymptoms.flatMap(symptom => symptom.specialists)
+    );
+    
+    // Get specialists directly from medical conditions
+    const conditionSpecialists = new Set<string>();
+    medicalConditions.forEach(condition => {
+      // Check if condition name matches
+      const conditionMatches = condition.conditions.some(c => 
+        c.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      
+      // Check if medication matches
+      const medicationMatches = condition.medications.some(m => 
+        m.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      
+      if (conditionMatches || medicationMatches) {
+        condition.specialists.forEach(s => conditionSpecialists.add(s));
+      }
+    });
+    
+    // Also filter specialists by direct name match
+    const directMatchedSpecialists = specialists.filter(specialist => 
+      specialist.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    // If no specialists found through exact matches, consider it a general search
+    const foundSpecialists = [
+      ...directMatchedSpecialists,
+      ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
+      ...Array.from(specialistsFromSymptoms).filter(spec => 
+        !directMatchedSpecialists.includes(spec) && !conditionSpecialists.has(spec)
+      )
+    ];
+    
+    // If no specialists found and it's a non-empty search, show some default specialists
+    const specialistsToDisplay = foundSpecialists.length > 0 
+      ? foundSpecialists 
+      : searchQuery.trim() !== "" ? specialists.slice(0, 6) : [];
+    
+    setAllSpecialists(specialistsToDisplay);
+    
+    // If we're showing default specialists because none matched, notify the user
+    if (searchQuery.trim() !== "" && foundSpecialists.length === 0 && specialistsToDisplay.length > 0) {
+      toast.info("Showing available specialists. Try more specific symptoms or conditions for better matches.");
+    }
+  }, [searchQuery]);
   
   // Apply location filter if active
   const filteredByLocation = locationFilter.trim() === "" 
@@ -217,10 +238,13 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
                         className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"
                         data-specialist-found="true"
                       >
-                        <CardHeader>
-                          <CardTitle className="text-base font-medium text-primary">{specialist}</CardTitle>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-2">
+                            <Stethoscope className="h-4 w-4 text-primary" />
+                            <CardTitle className="text-base font-medium text-primary">{specialist}</CardTitle>
+                          </div>
                         </CardHeader>
-                        <CardContent className="pt-0">
+                        <CardContent>
                           {specialistInfo.locations && specialistInfo.locations.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               <div className="flex items-center text-xs text-gray-500">

@@ -4,7 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Pill, DollarSign, Heart, Globe, MapPin } from "lucide-react";
+import { ArrowLeft, Clock, Pill, DollarSign, Heart, Globe, MapPin, Stethoscope } from "lucide-react";
 import { medications } from "@/data/medications";
 import { specialistsInfo } from "@/data/specialists";
 import { toast } from "sonner";

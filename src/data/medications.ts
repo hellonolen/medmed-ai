@@ -125,5 +125,28 @@ export const medications: Medication[] = [
         price: "50 capsules $8-12"
       }
     ]
+  },
+  {
+    category: "Injectable Medications",
+    products: [
+      {
+        name: "Insulin Glargine",
+        type: "Injection",
+        details: "100 units/mL, long-acting insulin\nRecommended Specialist: Endocrinology",
+        price: "10mL vial $150-300"
+      },
+      {
+        name: "Adalimumab",
+        type: "Injection",
+        details: "40mg/0.4mL, for rheumatoid arthritis, psoriasis, and other autoimmune conditions\nRecommended Specialist: Rheumatology",
+        price: "2 pens $5,000-6,000"
+      },
+      {
+        name: "Vitamin B12",
+        type: "Injection",
+        details: "1000mcg/mL, for B12 deficiency\nRecommended Specialist: Primary Care",
+        price: "10mL vial $30-50"
+      }
+    ]
   }
 ];
