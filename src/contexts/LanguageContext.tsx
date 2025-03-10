@@ -21,7 +21,7 @@ export type LanguageCode = keyof typeof supportedLanguages;
 const defaultTranslations = {
   en: {
     "app.name": "MedMed.AI",
-    "app.tagline": "Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide",
+    "app.tagline": "Search medications, find specialists, and get personalized recommendations.",
     "app.footer.rights": "All rights reserved.",
     "app.footer.demo": "This is a demo application. Not for actual medical use.",
     "app.footer.global": "Providing global healthcare information and resources",
