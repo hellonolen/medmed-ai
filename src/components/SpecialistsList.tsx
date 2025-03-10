@@ -1,6 +1,9 @@
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
+import { specialistsInfo } from "@/data/specialists";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface SpecialistsListProps {
   searchQuery: string;
@@ -37,6 +40,8 @@ const specialists = [
 ];
 
 export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
+  const { isAdmin } = useAdmin();
+  
   // Get specialists from symptom mappings first
   const matchingSymptoms = findMatchingSymptoms(searchQuery);
   const specialistsFromSymptoms = new Set(
@@ -75,7 +80,10 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
     )
   ];
   
-  if (allSpecialists.length === 0) {
+  // Limit to 3 specialists maximum
+  const limitedSpecialists = allSpecialists.slice(0, 3);
+  
+  if (limitedSpecialists.length === 0) {
     return null;
   }
   
@@ -83,19 +91,37 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
     <div className="space-y-4 animate-fadeIn">
       <div className="mb-2">
         <h2 className="text-2xl font-semibold text-gray-800">Specialist Results</h2>
+        {limitedSpecialists.length < allSpecialists.length && (
+          <p className="text-sm text-gray-500">
+            Showing top {limitedSpecialists.length} of {allSpecialists.length} specialists
+          </p>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allSpecialists.map((specialist) => (
-          <Card 
-            key={specialist} 
-            className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"
-            data-specialist-found="true"
-          >
-            <CardHeader>
-              <CardTitle className="text-base font-medium text-primary">{specialist}</CardTitle>
-            </CardHeader>
-          </Card>
-        ))}
+        {limitedSpecialists.map((specialist) => {
+          const specialistInfo = specialistsInfo[specialist] || { 
+            name: specialist, 
+            description: "Healthcare specialist focused on specific medical conditions and treatments."
+          };
+          
+          return (
+            <Tooltip key={specialist}>
+              <TooltipTrigger asChild>
+                <Card 
+                  className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"
+                  data-specialist-found="true"
+                >
+                  <CardHeader>
+                    <CardTitle className="text-base font-medium text-primary">{specialist}</CardTitle>
+                  </CardHeader>
+                </Card>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>{specialistInfo.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
     </div>
   );

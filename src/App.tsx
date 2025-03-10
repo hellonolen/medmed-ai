@@ -11,27 +11,30 @@ import Favorites from "./pages/Favorites";
 import SymptomChecker from "./pages/SymptomChecker";
 import PharmacyFinder from "./pages/PharmacyFinder";
 import InteractionChecker from "./pages/InteractionChecker";
+import { AdminProvider } from "./contexts/AdminContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/medication/:id" element={<MedicationDetail />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/symptom-checker" element={<SymptomChecker />} />
-          <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
-          <Route path="/interaction-checker" element={<InteractionChecker />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <AdminProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/medication/:id" element={<MedicationDetail />} />
+            <Route path="/favorites" element={<Favorites />} />
+            <Route path="/symptom-checker" element={<SymptomChecker />} />
+            <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
+            <Route path="/interaction-checker" element={<InteractionChecker />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AdminProvider>
   </QueryClientProvider>
 );
 
