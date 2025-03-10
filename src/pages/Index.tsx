@@ -18,7 +18,7 @@ const Index = () => {
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string }>) => {
     setSearchQuery(query);
     setSearchResults(results);
-    setSearchPerformed(true);
+    setSearchPerformed(query !== '');
   };
 
   const removeResult = (index: number) => {
