@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -9,7 +10,7 @@ interface SubscriptionContextType {
   features: {
     detailedMedicationInfo: boolean;
     internationalSearch: boolean;
-    prioritySupport: boolean;
+    aiSupport: boolean;
     exclusiveContent: boolean;
     detailedReports: boolean;
     specialistContact: boolean;
@@ -31,7 +32,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return {
           detailedMedicationInfo: false,
           internationalSearch: true, // Keep the existing global search free
-          prioritySupport: false,
+          aiSupport: true, // Basic AI support available for all users
           exclusiveContent: false,
           detailedReports: false,
           specialistContact: false,
@@ -40,7 +41,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return {
           detailedMedicationInfo: true,
           internationalSearch: true,
-          prioritySupport: true,
+          aiSupport: true, // Enhanced AI support
           exclusiveContent: true,
           detailedReports: true,
           specialistContact: false,
@@ -49,7 +50,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return {
           detailedMedicationInfo: true,
           internationalSearch: true,
-          prioritySupport: true,
+          aiSupport: true, // Priority AI support
           exclusiveContent: true,
           detailedReports: true,
           specialistContact: true,
@@ -58,7 +59,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return {
           detailedMedicationInfo: false,
           internationalSearch: true,
-          prioritySupport: false,
+          aiSupport: true,
           exclusiveContent: false,
           detailedReports: false,
           specialistContact: false,

@@ -35,19 +35,19 @@ const Subscription = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex flex-col gap-2">
               <h3 className="text-lg font-medium">Detailed Information</h3>
-              <p className="text-gray-600">Access comprehensive details about medications, including pricing, side effects, and interactions.</p>
+              <p className="text-gray-600">Access comprehensive details about medications, including side effects and interactions.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <h3 className="text-lg font-medium">Priority Support</h3>
-              <p className="text-gray-600">Get faster responses from our healthcare experts when you have questions.</p>
+              <h3 className="text-lg font-medium">Advanced AI Support</h3>
+              <p className="text-gray-600">Get more detailed responses from our AI system for your health questions.</p>
             </div>
             <div className="flex flex-col gap-2">
               <h3 className="text-lg font-medium">Exclusive Content</h3>
-              <p className="text-gray-600">Access premium articles and guides written by medical professionals.</p>
+              <p className="text-gray-600">Access premium articles and guides about healthcare topics.</p>
             </div>
             <div className="flex flex-col gap-2">
-              <h3 className="text-lg font-medium">Ad-Free Experience</h3>
-              <p className="text-gray-600">Enjoy a clean interface without sponsored content or advertisements.</p>
+              <h3 className="text-lg font-medium">Detailed Reports</h3>
+              <p className="text-gray-600">Generate comprehensive reports about medications and health conditions.</p>
             </div>
           </div>
         </div>
