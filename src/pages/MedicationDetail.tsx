@@ -4,8 +4,9 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Clock, Pill, DollarSign, Heart, HeartOff } from "lucide-react";
+import { ArrowLeft, Clock, Pill, DollarSign, Heart, Globe, MapPin } from "lucide-react";
 import { medications } from "@/data/medications";
+import { specialistsInfo } from "@/data/specialists";
 import { toast } from "sonner";
 
 interface MedicationDetailProps {}
@@ -15,6 +16,7 @@ const MedicationDetail = () => {
   const [medication, setMedication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [specialist, setSpecialist] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -26,6 +28,16 @@ const MedicationDetail = () => {
           medications[categoryIndex].products[productIndex]) {
         const category = medications[categoryIndex];
         const product = category.products[productIndex];
+        
+        // Extract specialist information if available
+        let specialistName = null;
+        if (product.details.includes("Recommended Specialist:")) {
+          const parts = product.details.split("Recommended Specialist:");
+          if (parts.length > 1) {
+            specialistName = parts[1].trim();
+            setSpecialist(specialistName);
+          }
+        }
         
         setMedication({
           ...product,
@@ -58,6 +70,10 @@ const MedicationDetail = () => {
       toast.success("Added to favorites");
     }
   };
+
+  // Get specialist info if available
+  const specialistInfo = specialist ? specialistsInfo[specialist] : null;
+  const hasTopTreatmentLocations = specialistInfo?.topTreatmentLocations && specialistInfo.topTreatmentLocations.length > 0;
 
   if (loading) {
     return (
@@ -116,8 +132,40 @@ const MedicationDetail = () => {
               <CardContent className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">Details</h3>
-                  <p className="text-gray-700">{medication.details}</p>
+                  <p className="text-gray-700">{medication.details.split('\nRecommended Specialist:')[0]}</p>
                 </div>
+
+                {specialist && (
+                  <div className="flex items-start gap-2">
+                    <Stethoscope className="h-5 w-5 text-primary mt-0.5" />
+                    <div>
+                      <h3 className="text-lg font-semibold">Recommended Specialist</h3>
+                      <p className="text-gray-700">{specialist}</p>
+                    </div>
+                  </div>
+                )}
+
+                {hasTopTreatmentLocations && (
+                  <div className="border border-gray-100 rounded-lg p-4 bg-primary/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Globe className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Best Places for Treatment</h3>
+                    </div>
+                    <div className="space-y-3">
+                      {specialistInfo.topTreatmentLocations.map((location, index) => (
+                        <div key={index} className="flex items-start">
+                          <MapPin className="h-4 w-4 text-primary mt-1 mr-2 flex-shrink-0" />
+                          <div>
+                            <p className="font-medium text-primary">{location.city}, {location.country}</p>
+                            {location.reason && (
+                              <p className="text-sm text-gray-600">{location.reason}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {medication.dosage && (
                   <div className="flex items-start gap-2">

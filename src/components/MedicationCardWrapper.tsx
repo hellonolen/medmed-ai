@@ -6,10 +6,11 @@ interface MedicationCardWrapperProps {
   name: string;
   details: string;
   price: string;
+  type?: string;
   source?: string;
 }
 
-export const MedicationCardWrapper = ({ name, details, price, source }: MedicationCardWrapperProps) => {
+export const MedicationCardWrapper = ({ name, details, price, type, source }: MedicationCardWrapperProps) => {
   const { isAdmin } = useAdmin();
   
   // Filter out price information for non-admin users
@@ -20,6 +21,7 @@ export const MedicationCardWrapper = ({ name, details, price, source }: Medicati
       name={name}
       details={details}
       price={displayPrice}
+      type={type}
       source={source}
     />
   );

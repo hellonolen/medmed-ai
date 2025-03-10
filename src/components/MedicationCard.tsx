@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Stethoscope, Database, MapPin, Pill } from "lucide-react";
+import { Stethoscope, Database, MapPin, Pill, Globe } from "lucide-react";
 import { specialistsInfo } from "@/data/specialists";
 
 interface MedicationCardProps {
@@ -24,6 +24,7 @@ export const MedicationCard = ({
   // Find the specialist location information if available
   const specialistInfo = specialist ? specialistsInfo[specialist] : null;
   const hasLocations = specialistInfo?.locations && specialistInfo.locations.length > 0;
+  const hasTopTreatmentLocations = specialistInfo?.topTreatmentLocations && specialistInfo.topTreatmentLocations.length > 0;
 
   return (
     <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -63,6 +64,27 @@ export const MedicationCard = ({
                   {specialistInfo.locations.length > 2 && (
                     <Badge variant="outline" className="text-xs">
                       +{specialistInfo.locations.length - 2} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {hasTopTreatmentLocations && (
+              <div className="flex flex-col gap-1 pl-6 mt-2">
+                <div className="flex items-center text-xs text-gray-500">
+                  <Globe className="h-3 w-3 mr-1" />
+                  <span>Best places for treatment:</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {specialistInfo.topTreatmentLocations.slice(0, 2).map((location, index) => (
+                    <Badge key={index} variant="secondary" className="text-xs">
+                      {location.city}, {location.country}
+                    </Badge>
+                  ))}
+                  {specialistInfo.topTreatmentLocations.length > 2 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{specialistInfo.topTreatmentLocations.length - 2} more
                     </Badge>
                   )}
                 </div>
