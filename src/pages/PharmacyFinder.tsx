@@ -139,7 +139,7 @@ const PharmacyFinder = () => {
             </CardContent>
           </Card>
           
-          {results.length > 0 && (
+          {!searching && results.length > 0 && (
             <div className="space-y-4 mb-8">
               <h2 className="text-xl font-semibold mb-4">Pharmacies Near {zipCode}</h2>
               

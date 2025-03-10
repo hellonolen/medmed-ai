@@ -1,4 +1,3 @@
-
 import { medications } from "@/data/medications";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 
@@ -38,6 +37,21 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
     matchingSymptoms.flatMap(symptom => symptom.specialists)
   );
   
+  // Check if query is related to injectable gels
+  const injectableGelKeywords = [
+    "injectable gel", "hydrogel", "gel injection", "tissue engineering", 
+    "drug delivery", "shear-thinning", "stimuli-responsive", "alginate", 
+    "chitosan", "hyaluronan", "cross-linked gel", "long-acting"
+  ];
+  
+  const isInjectableGelQuery = injectableGelKeywords.some(keyword => 
+    query.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  if (isInjectableGelQuery) {
+    relatedConditions.add("Injectable Gels");
+  }
+  
   // Collect potentially relevant medications
   let matchedMedications: MatchedMedication[] = [];
   
@@ -57,6 +71,11 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
       
       // Calculate relevance score
       let relevance = Math.max(categoryRelevance, directMatchScore);
+      
+      // Boost injectable gels if query is related
+      if (isInjectableGelQuery && category.category === "Injectable Gels") {
+        relevance += 10;
+      }
       
       // Don't include products with zero relevance
       if (relevance === 0) return;
@@ -167,8 +186,22 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
 export const groupMedicationsByType = (medications: MatchedMedication[]) => {
   const groups: Record<string, MatchedMedication[]> = {};
   
-  // Define standard medication types for grouping
-  const standardTypes = ["Injection", "Capsule", "Tablet", "Spray", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Inhaler", "Patch", "Other"];
+  // Define standard medication types for grouping in order of display
+  const standardTypes = [
+    "Injection", 
+    "Injectable Gel", 
+    "Capsule", 
+    "Tablet", 
+    "Spray", 
+    "Inhaler", 
+    "Ointment", 
+    "Cream", 
+    "Gel", 
+    "Liquid", 
+    "Powder", 
+    "Patch", 
+    "Other"
+  ];
   
   // Initialize groups
   standardTypes.forEach(type => {
@@ -184,16 +217,19 @@ export const groupMedicationsByType = (medications: MatchedMedication[]) => {
     const actualType = med.type || "";
     
     // Map to standard types based on substring matching
-    if (actualType.toLowerCase().includes("inject")) normalizedType = "Injection";
+    if (actualType.toLowerCase().includes("inject") && actualType.toLowerCase().includes("gel")) {
+      normalizedType = "Injectable Gel";
+    }
+    else if (actualType.toLowerCase().includes("inject")) normalizedType = "Injection";
     else if (actualType.toLowerCase().includes("capsule")) normalizedType = "Capsule";
     else if (actualType.toLowerCase().includes("tablet")) normalizedType = "Tablet";
     else if (actualType.toLowerCase().includes("spray")) normalizedType = "Spray";
+    else if (actualType.toLowerCase().includes("inhaler")) normalizedType = "Inhaler";
     else if (actualType.toLowerCase().includes("ointment")) normalizedType = "Ointment";
     else if (actualType.toLowerCase().includes("cream")) normalizedType = "Cream";
     else if (actualType.toLowerCase().includes("gel")) normalizedType = "Gel";
     else if (actualType.toLowerCase().includes("liquid")) normalizedType = "Liquid";
     else if (actualType.toLowerCase().includes("powder")) normalizedType = "Powder";
-    else if (actualType.toLowerCase().includes("inhaler")) normalizedType = "Inhaler";
     else if (actualType.toLowerCase().includes("patch")) normalizedType = "Patch";
     
     // Add to appropriate group
@@ -333,6 +369,31 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
     }
   ];
   
+  // Add injectable gel mock data
+  const externalInjectableGels = [
+    {
+      name: "Hyaluronic Acid Dermal Filler",
+      details: "Injectable gel used for soft tissue augmentation. Adds volume to facial wrinkles and folds.",
+      category: "Dermatological Conditions",
+      type: "Injectable Gel",
+      source: "MedlinePlus"
+    },
+    {
+      name: "PRP Injectable Gel",
+      details: "Platelet-rich plasma gel for tissue regeneration and wound healing.",
+      category: "Regenerative Medicine",
+      type: "Injectable Gel",
+      source: "RxNorm"
+    },
+    {
+      name: "PLGA Microsphere Gel",
+      details: "Biodegradable gel containing poly(lactic-co-glycolic acid) microspheres for extended drug delivery.",
+      category: "Drug Delivery Systems",
+      type: "Injectable Gel",
+      source: "MedlinePlus"
+    }
+  ];
+  
   // Search through the external medications
   externalMedications.forEach(med => {
     const medString = `${med.name} ${med.details} ${med.category}`.toLowerCase();
@@ -352,10 +413,34 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
     }
   });
   
+  // Check if query is related to injectable gels and add the mock data to results
+  const injectableGelKeywords = [
+    "injectable gel", "hydrogel", "gel injection", "tissue engineering", 
+    "drug delivery", "shear-thinning", "stimuli-responsive", "alginate", 
+    "chitosan", "hyaluronan", "cross-linked gel", "long-acting"
+  ];
+  
+  const isInjectableGelQuery = injectableGelKeywords.some(keyword => 
+    query.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  if (isInjectableGelQuery) {
+    externalInjectableGels.forEach(gel => {
+      results.push({
+        name: gel.name,
+        details: `${gel.details}\nRecommended Specialist: ${getSpecialistForCategory(gel.category)}`,
+        price: "Price varies by provider",
+        relevance: 90,
+        category: gel.category,
+        type: gel.type,
+        source: gel.source
+      });
+    });
+  }
+  
   return results;
 };
 
-// Helper to get specialists by category for external data
 const getSpecialistForCategory = (category: string): string => {
   for (const condition of medicalConditions) {
     if (condition.category === category) {
@@ -378,7 +463,6 @@ const getSpecialistForCategory = (category: string): string => {
   return specialistMap[category] || 'Primary Care';
 };
 
-// Helper to get the appropriate specialist
 const getRecommendedSpecialist = (
   category: string, 
   matchingSymptoms: any[],
@@ -403,7 +487,9 @@ const getRecommendedSpecialist = (
     'Respiratory Conditions': 'Pulmonology or ENT & Allergy',
     'Gastrointestinal Conditions': 'Gastroenterology',
     'Pain Relief': 'Primary Care',
-    'Allergy Relief': 'ENT & Allergy'
+    'Allergy Relief': 'ENT & Allergy',
+    'Injectable Gels': 'Regenerative Medicine or Orthopedics',
+    'Injectable Medications': 'Specialist depends on medication'
   };
   
   return specialistMap[category] || 'Primary Care';

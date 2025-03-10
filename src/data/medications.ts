@@ -18,19 +18,19 @@ export const medications: Medication[] = [
       {
         name: "Tretinoin Cream",
         type: "Cream",
-        details: "USP 0.033% or 0.09%, Ascorbic Acid USP (Vit C)",
+        details: "USP 0.033% or 0.09%, Ascorbic Acid USP (Vit C). For topical application only, not for use in eyes.",
         price: "30g $45 / 60g $75"
       },
       {
         name: "Tretinoin Gel",
         type: "Gel (Anhydrous)",
-        details: "USP 0.06% or 0.09%, Ascorbic Acid USP (Vit C)",
+        details: "USP 0.06% or 0.09%, Ascorbic Acid USP (Vit C). For topical application only, not for use in eyes.",
         price: "30g $45 / 60g $75"
       },
       {
         name: "Azelaic Acid",
         type: "Cream",
-        details: "15%, for rosacea and acne",
+        details: "15%, for rosacea and acne. For topical application only, not for use in eyes.",
         price: "30g $35"
       }
     ]
@@ -41,7 +41,7 @@ export const medications: Medication[] = [
       {
         name: "Peptide Cream",
         type: "Cream",
-        details: "DMAE 3%, Estriol USP 0.3%, GHK-Cu 0.2%, Hyaluronic Acid USP 1.5%",
+        details: "DMAE 3%, Estriol USP 0.3%, GHK-Cu 0.2%, Hyaluronic Acid USP 1.5%. For topical application only, not for use in eyes.",
         price: "30g $135",
         benefits: [
           "Improves skin moisture",
@@ -53,7 +53,7 @@ export const medications: Medication[] = [
       {
         name: "Retinol Complex",
         type: "Serum",
-        details: "Retinol 0.5%, Vitamin E, Hyaluronic Acid",
+        details: "Retinol 0.5%, Vitamin E, Hyaluronic Acid. For topical application only, not for use in eyes.",
         price: "30ml $85"
       }
     ]
@@ -146,6 +146,47 @@ export const medications: Medication[] = [
         type: "Injection",
         details: "1000mcg/mL, for B12 deficiency\nRecommended Specialist: Primary Care",
         price: "10mL vial $30-50"
+      }
+    ]
+  },
+  {
+    category: "Injectable Gels",
+    products: [
+      {
+        name: "Shear-Thinning Hydrogel",
+        type: "Injectable Gel",
+        details: "Advanced biomaterial that becomes less viscous under stress, allowing for easy injection. Forms stable network for drug delivery and tissue regeneration.\nRecommended Specialist: Orthopedics",
+        price: "Per treatment $200-500"
+      },
+      {
+        name: "Temperature-Responsive Gel",
+        type: "Injectable Gel",
+        details: "Smart stimuli-responsive hydrogel that solidifies at body temperature. Used for controlled drug delivery and tissue engineering.\nRecommended Specialist: Regenerative Medicine",
+        price: "Per treatment $300-700"
+      },
+      {
+        name: "Alginate Injectable System",
+        type: "Injectable Gel",
+        details: "Forms gel in situ at physiological conditions. Widely used in tissue engineering to support cell growth and tissue regeneration.\nRecommended Specialist: Orthopedics",
+        price: "Per treatment $250-450"
+      },
+      {
+        name: "Chitosan-Based Gel",
+        type: "Injectable Gel",
+        details: "Features reversible sol-gel transition behavior, ideal for minimally invasive procedures to fill complex defects.\nRecommended Specialist: Reconstructive Surgery",
+        price: "Per treatment $350-600"
+      },
+      {
+        name: "Cross-Linked CNS Delivery Gel",
+        type: "Injectable Gel",
+        details: "Designed for drug delivery to the central nervous system, offering treatment for neurological disorders.\nRecommended Specialist: Neurology",
+        price: "Per treatment $500-1000"
+      },
+      {
+        name: "Long-Acting Drug Delivery Gel",
+        type: "Injectable Gel",
+        details: "Engineered to dissolve over time, releasing medications gradually. Reduces frequency of injections for chronic conditions.\nRecommended Specialist: Pain Management",
+        price: "Per treatment $400-800"
       }
     ]
   }

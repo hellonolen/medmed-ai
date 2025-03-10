@@ -1,4 +1,3 @@
-
 interface SymptomMapping {
   symptom: string;
   specialists: string[];
@@ -118,7 +117,14 @@ export const medicalConditions: MedicalCondition[] = [
     symptoms: ["Hyperactivity", "Wheezing", "Fever", "Ear pain", "Difficulty focusing", "Rash"],
     medications: ["Bronchodilators", "Antihistamines", "Acetaminophen", "Stimulants"],
     specialists: ["Pediatrics", "Adolescent Pediatrics"]
-  }
+  },
+  {
+    category: "Injectable Gels",
+    conditions: ["Tissue Engineering", "Drug Delivery Systems", "Wound Healing", "Joint Pain Management", "Aesthetic Medicine"],
+    symptoms: ["Joint pain", "Tissue damage", "Chronic wounds", "Drug delivery needs", "Regenerative needs", "Facial wrinkles"],
+    medications: ["Shear-Thinning Hydrogel", "Temperature-Responsive Gel", "Alginate Injectable System", "Chitosan-Based Gel", "Cross-Linked CNS Delivery Gel", "Long-Acting Drug Delivery Gel"],
+    specialists: ["Regenerative Medicine", "Orthopedics", "Dermatology", "Plastic Surgery"]
+  },
 ];
 
 // Convert the comprehensive data to our symptom mapping format
@@ -160,6 +166,16 @@ antiAgingSymptoms.forEach(symptom => {
   const mapping = uniqueSymptoms.get(symptom);
   if (mapping) {
     mapping.relatedConditions.push("Anti-Aging");
+  }
+});
+
+// Add specific injectable gel mappings
+const injectableGelSymptoms = ["joint pain", "tissue damage", "chronic wounds", "drug delivery needs", "regenerative needs", "facial wrinkles"];
+
+injectableGelSymptoms.forEach(symptom => {
+  const mapping = uniqueSymptoms.get(symptom);
+  if (mapping) {
+    mapping.relatedConditions.push("Injectable Gels");
   }
 });
 

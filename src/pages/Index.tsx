@@ -46,6 +46,23 @@ const Index = () => {
 
   // Group medications by type for display
   const groupedResults = groupMedicationsByType(searchResults as MatchedMedication[]);
+  
+  // Define preferred display order for medication types
+  const displayOrder = [
+    "Injection",
+    "Injectable Gel",
+    "Capsule",
+    "Tablet",
+    "Spray",
+    "Inhaler",
+    "Ointment",
+    "Cream",
+    "Gel",
+    "Liquid",
+    "Powder",
+    "Patch",
+    "Other"
+  ];
 
   return (
     <TooltipProvider>
@@ -111,13 +128,13 @@ const Index = () => {
                     <h2 className="text-2xl font-semibold text-gray-800">Medication Results</h2>
                   </div>
                   
-                  {/* Display results grouped by type */}
-                  {Object.entries(groupedResults).map(([type, medications]) => (
-                    medications.length > 0 && (
+                  {/* Display results grouped by type in specific order */}
+                  {displayOrder.map(type => 
+                    groupedResults[type] && groupedResults[type].length > 0 && (
                       <div key={type} className="mb-8">
                         <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {medications.map((result, index) => {
+                          {groupedResults[type].map((result, index) => {
                             // Find overall index in searchResults for removal
                             const overallIndex = searchResults.findIndex(r => r.name === result.name);
                             
@@ -149,7 +166,7 @@ const Index = () => {
                         </div>
                       </div>
                     )
-                  ))}
+                  )}
                 </div>
               )}
               
