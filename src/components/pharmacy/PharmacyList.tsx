@@ -2,7 +2,7 @@
 import { Pharmacy } from "@/data/pharmacies";
 import { PharmacyCard } from "./PharmacyCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, MapPinIcon } from "lucide-react";
 
 interface PharmacyListProps {
   pharmacies: Pharmacy[];
@@ -48,7 +48,7 @@ export const PharmacyList = ({
     return null;
   }
 
-  // Group pharmacies by country/state for better organization
+  // Group pharmacies by country/region for better organization
   const groupedPharmacies: { [key: string]: Pharmacy[] } = {};
   pharmacies.forEach(pharmacy => {
     const key = pharmacy.state;
@@ -58,8 +58,15 @@ export const PharmacyList = ({
     groupedPharmacies[key].push(pharmacy);
   });
 
+  // Sort countries/regions by name for consistent display
+  const sortedRegions = Object.keys(groupedPharmacies).sort();
+  
   // Check if we have international results
   const hasInternationalResults = pharmacies.some(p => p.distance === "International");
+  
+  // Check if we're showing results from multiple countries
+  const countries = [...new Set(pharmacies.map(p => p.state))];
+  const isGlobalSearch = countries.length > 1;
 
   return (
     <div className="space-y-6 mb-8">
@@ -80,9 +87,20 @@ export const PharmacyList = ({
         </Alert>
       )}
       
-      {Object.keys(groupedPharmacies).map((location) => (
+      {isGlobalSearch && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <MapPinIcon className="h-4 w-4 text-primary mt-1" />
+          <p className="text-sm text-gray-600">
+            Showing results from {countries.length} countries/regions: {countries.join(', ')}
+          </p>
+        </div>
+      )}
+      
+      {sortedRegions.map((location) => (
         <div key={location} className="mb-6">
-          <h3 className="text-lg font-medium text-primary mb-3 border-b pb-2">{location}</h3>
+          <h3 className="text-lg font-medium text-primary mb-3 border-b pb-2">
+            {location}
+          </h3>
           <div className="space-y-4">
             {groupedPharmacies[location].map((pharmacy) => (
               <PharmacyCard key={pharmacy.id} pharmacy={pharmacy} />
@@ -93,3 +111,4 @@ export const PharmacyList = ({
     </div>
   );
 };
+

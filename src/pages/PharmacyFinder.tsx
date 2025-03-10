@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { Pharmacy } from "@/data/pharmacies";
 import { searchPharmaciesByZip, searchPharmaciesByCity, intelligentPharmacySearch } from "@/utils/pharmacySearch";
@@ -48,6 +48,10 @@ const PharmacyFinder = () => {
       
       if (filteredPharmacies.length === 0) {
         toast.info(`No pharmacies found for this search term. Try using the Smart Search for better results.`);
+      } else if (filteredPharmacies.some(p => p.distance === "International")) {
+        toast.success(`Found ${filteredPharmacies.length} pharmacies worldwide including international locations.`);
+      } else {
+        toast.success(`Found ${filteredPharmacies.length} pharmacies matching your search.`);
       }
     }, 1000);
   };
@@ -62,7 +66,10 @@ const PharmacyFinder = () => {
         </Link>
         
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">Global Pharmacy Finder</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">
+            Global Pharmacy Finder
+            <Globe className="inline-block ml-3 h-8 w-8 text-primary/70" />
+          </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Find pharmacies worldwide - including local chains and international locations
           </p>

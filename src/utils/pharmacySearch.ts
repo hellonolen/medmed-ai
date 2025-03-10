@@ -106,28 +106,86 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
 const getInternationalPharmacies = (location: string): Pharmacy[] => {
   console.log("Simulating international search for:", location);
   
-  // Common international cities for demo purposes
+  // Enhanced global locations for worldwide coverage
   const internationalLocations = [
+    // Major cities in North America
+    { city: "new york", country: "USA", count: 4 },
+    { city: "los angeles", country: "USA", count: 3 },
+    { city: "chicago", country: "USA", count: 3 },
+    { city: "toronto", country: "Canada", count: 3 },
+    { city: "mexico city", country: "Mexico", count: 3 },
+    { city: "vancouver", country: "Canada", count: 2 },
+    { city: "montreal", country: "Canada", count: 2 },
+    { city: "tampa", country: "USA", count: 3 },
+    
+    // Europe
     { city: "london", country: "UK", count: 3 },
-    { city: "paris", country: "France", count: 2 },
-    { city: "berlin", country: "Germany", count: 2 },
+    { city: "paris", country: "France", count: 3 },
+    { city: "berlin", country: "Germany", count: 3 },
+    { city: "rome", country: "Italy", count: 2 },
+    { city: "madrid", country: "Spain", count: 2 },
+    { city: "amsterdam", country: "Netherlands", count: 2 },
+    { city: "zurich", country: "Switzerland", count: 2 },
+    { city: "dublin", country: "Ireland", count: 2 },
+    
+    // Asia Pacific
     { city: "tokyo", country: "Japan", count: 3 },
-    { city: "sydney", country: "Australia", count: 2 },
-    { city: "toronto", country: "Canada", count: 2 },
-    { city: "mexico city", country: "Mexico", count: 2 },
-    { city: "sao paulo", country: "Brazil", count: 2 },
+    { city: "sydney", country: "Australia", count: 3 },
+    { city: "singapore", country: "Singapore", count: 3 },
     { city: "mumbai", country: "India", count: 3 },
-    { city: "dubai", country: "UAE", count: 2 }
+    { city: "beijing", country: "China", count: 3 },
+    { city: "seoul", country: "South Korea", count: 2 },
+    { city: "bangkok", country: "Thailand", count: 2 },
+    { city: "auckland", country: "New Zealand", count: 2 },
+    
+    // Middle East & Africa
+    { city: "dubai", country: "UAE", count: 3 },
+    { city: "cape town", country: "South Africa", count: 2 },
+    { city: "istanbul", country: "Turkey", count: 2 },
+    { city: "tel aviv", country: "Israel", count: 2 },
+    { city: "cairo", country: "Egypt", count: 2 },
+    
+    // South America
+    { city: "rio de janeiro", country: "Brazil", count: 2 },
+    { city: "sao paulo", country: "Brazil", count: 2 },
+    { city: "buenos aires", country: "Argentina", count: 2 },
+    { city: "lima", country: "Peru", count: 2 },
+    { city: "santiago", country: "Chile", count: 2 }
   ];
   
   const normalizedLocation = location.toLowerCase().trim();
   
-  // Check if location matches any international city
-  const matchedLocation = internationalLocations.find(loc => 
-    normalizedLocation.includes(loc.city) || 
-    loc.city.includes(normalizedLocation) ||
-    normalizedLocation.includes(loc.country.toLowerCase())
+  // First check exact matches
+  let matchedLocation = internationalLocations.find(loc => 
+    normalizedLocation === loc.city.toLowerCase() || 
+    normalizedLocation === loc.country.toLowerCase()
   );
+  
+  // If no exact match, try partial matches
+  if (!matchedLocation) {
+    matchedLocation = internationalLocations.find(loc => 
+      normalizedLocation.includes(loc.city.toLowerCase()) || 
+      loc.city.toLowerCase().includes(normalizedLocation) ||
+      normalizedLocation.includes(loc.country.toLowerCase()) ||
+      loc.country.toLowerCase().includes(normalizedLocation)
+    );
+  }
+  
+  // Special handling for common country abbreviations
+  if (!matchedLocation) {
+    const countryAbbreviations: {[key: string]: string} = {
+      "us": "USA", "usa": "USA", "uk": "UK", "aus": "Australia", 
+      "ca": "Canada", "jp": "Japan", "fr": "France", "de": "Germany",
+      "it": "Italy", "es": "Spain", "mx": "Mexico", "br": "Brazil"
+    };
+    
+    const expandedCountry = countryAbbreviations[normalizedLocation];
+    if (expandedCountry) {
+      matchedLocation = internationalLocations.find(loc => 
+        loc.country.toLowerCase() === expandedCountry.toLowerCase()
+      );
+    }
+  }
   
   if (matchedLocation) {
     console.log("Found international location match:", matchedLocation);
@@ -136,42 +194,99 @@ const getInternationalPharmacies = (location: string): Pharmacy[] => {
   
   // If no specific match but looks international, generate some generic international results
   if (normalizedLocation.length > 0) {
-    return generateInternationalPharmacies(normalizedLocation, "International", 2);
+    // For generic queries, return a diverse set of global results
+    const randomLocations = internationalLocations
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 4);
+    
+    let results: Pharmacy[] = [];
+    for (const loc of randomLocations) {
+      results = results.concat(
+        generateInternationalPharmacies(loc.city, loc.country, 1)
+      );
+    }
+    
+    return results;
   }
   
   return [];
 };
 
-// Generate mock international pharmacy data
+// Generate mock international pharmacy data with more realistic details
 const generateInternationalPharmacies = (city: string, country: string, count: number): Pharmacy[] => {
-  const pharmacyChains = {
-    "UK": ["Boots", "Superdrug", "Lloyds Pharmacy"],
-    "France": ["Pharmacie Lafayette", "Pharmavance", "Pharmacie Monge"],
-    "Germany": ["Apotheke", "DocMorris", "Europa Apotheek"],
-    "Japan": ["Matsumoto Kiyoshi", "Welcia", "Tsuruha"],
-    "Australia": ["Chemist Warehouse", "Priceline Pharmacy", "Amcal"],
-    "Canada": ["Shoppers Drug Mart", "Rexall", "Jean Coutu"],
-    "Mexico": ["Farmacia San Pablo", "Farmacia Guadalajara", "Farmacias del Ahorro"],
-    "Brazil": ["Drogaria São Paulo", "Drogasil", "Pague Menos"],
-    "India": ["Apollo Pharmacy", "MedPlus", "Netmeds"],
-    "UAE": ["Life Pharmacy", "Aster Pharmacy", "BinSina"],
-    "International": ["Global Pharmacy", "International Drugs", "World Pharma"]
+  const pharmacyChains: {[key: string]: string[]} = {
+    // North America
+    "USA": ["CVS Pharmacy", "Walgreens", "Rite Aid", "Walmart Pharmacy", "Target Pharmacy"],
+    "Canada": ["Shoppers Drug Mart", "Rexall", "Jean Coutu", "London Drugs", "Pharmasave"],
+    "Mexico": ["Farmacia San Pablo", "Farmacia Guadalajara", "Farmacias del Ahorro", "Farmacias Similares"],
+    
+    // Europe
+    "UK": ["Boots", "Superdrug", "Lloyds Pharmacy", "Well Pharmacy", "Rowlands Pharmacy"],
+    "France": ["Pharmacie Lafayette", "Pharmavance", "Pharmacie Monge", "Citypharma", "Pharmacie de la Place"],
+    "Germany": ["Apotheke", "DocMorris", "Europa Apotheek", "Easy Apotheke", "Zur Rose"],
+    "Italy": ["Farmacia Comunale", "Farmacia Igea", "Farmacia San Paolo", "Farmacia Internazionale"],
+    "Spain": ["Farmacia Trébol", "Farmacia Cruz Verde", "Farmacia Internacional", "Farmacia Plaza Mayor"],
+    "Netherlands": ["BENU Apotheek", "Mediq Apotheek", "Service Apotheek", "Alphega Apotheek"],
+    "Switzerland": ["Amavita", "Sun Store", "Zur Rose", "TopPharm Apotheke", "Coop Vitality"],
+    "Ireland": ["Boots Ireland", "McCabe's Pharmacy", "Allcare Pharmacy", "Life Pharmacy"],
+    
+    // Asia Pacific
+    "Japan": ["Matsumoto Kiyoshi", "Welcia", "Tsuruha", "Kirindo", "Sugi Pharmacy"],
+    "Australia": ["Chemist Warehouse", "Priceline Pharmacy", "Amcal", "TerryWhite Chemmart", "Blooms The Chemist"],
+    "Singapore": ["Guardian", "Watsons", "Unity Pharmacy", "Caring Pharmacy", "NHG Pharmacy"],
+    "India": ["Apollo Pharmacy", "MedPlus", "Netmeds", "PharmEasy", "1mg"],
+    "China": ["Nepstar", "Jointown Pharmaceutical", "Yifeng Pharmacy", "Dashenlin Pharmacy"],
+    "South Korea": ["Olive Young", "GS Watsons", "Emart Pharmacy", "Lotte Pharmacy"],
+    "Thailand": ["Boots Thailand", "Watsons Thailand", "Fascino", "P&F Pharmacy"],
+    "New Zealand": ["Unichem", "Life Pharmacy", "Countdown Pharmacy", "Green Cross Health"],
+    
+    // Middle East & Africa
+    "UAE": ["Life Pharmacy", "Aster Pharmacy", "BinSina", "Boots UAE", "Super Care Pharmacy"],
+    "South Africa": ["Clicks Pharmacy", "Dis-Chem", "MediRite", "Link Pharmacy", "Alpha Pharm"],
+    "Turkey": ["Eczane", "Bayer Eczanesi", "Akgün Eczanesi", "Hayat Eczanesi"],
+    "Israel": ["Super-Pharm", "New Pharm", "Be Pharm", "Good Pharm"],
+    "Egypt": ["El Ezaby Pharmacy", "19011 Pharmacy", "Seif Pharmacy", "Pharmacy 19"],
+    
+    // South America
+    "Brazil": ["Drogaria São Paulo", "Drogasil", "Pague Menos", "Pacheco", "Onofre"],
+    "Argentina": ["Farmacity", "Farmacia Líder", "Dr. Ahorro", "Vantage", "Farmacia Modelo"],
+    "Peru": ["InkaFarma", "Mifarma", "Boticas Arcángel", "Boticas Fasa"],
+    "Chile": ["Farmacias Ahumada", "Cruz Verde", "Salcobrand", "Dr. Simi"],
+    
+    // Fallback for other countries
+    "International": ["Global Pharmacy", "International Drugs", "World Pharma", "Universal Pharmacy", "MediGlobal"]
   };
   
   const chains = pharmacyChains[country] || pharmacyChains["International"];
+  const formatted = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
   
+  // Street name templates to make addresses more authentic
+  const streetTemplates = {
+    "USA": ["Main St", "Broadway", "5th Ave", "Market St", "Oak St", "Washington Ave"], 
+    "UK": ["High St", "Station Rd", "London Rd", "Church St", "Victoria Rd", "Queen St"],
+    "France": ["Rue de Paris", "Avenue des Champs-Élysées", "Boulevard Saint-Michel", "Rue de Rivoli"],
+    "Germany": ["Hauptstraße", "Bahnhofstraße", "Schulstraße", "Kirchstraße", "Gartenstraße"],
+    "Japan": ["Sakura-dori", "Ginza", "Shinjuku-dori", "Omotesando"],
+    "default": ["Main St", "Central Ave", "Park Rd", "Market St", "Station Rd", "Hospital Rd", "University Ave"]
+  };
+  
+  const streets = streetTemplates[country] || streetTemplates["default"];
+  
+  // Generate pharmacy ratings that are likely to be good but realistic (3.5-5.0)
   return Array.from({ length: count }, (_, i) => {
     const chainName = chains[i % chains.length];
-    const formatted = city.charAt(0).toUpperCase() + city.slice(1).toLowerCase();
+    const streetNumber = Math.floor(Math.random() * 200) + 1;
+    const streetName = streets[Math.floor(Math.random() * streets.length)];
+    const rating = (3.5 + Math.random() * 1.5);
     
     return {
       id: 1000 + Math.floor(Math.random() * 9000),
       name: chainName,
-      address: `${Math.floor(Math.random() * 200) + 1} ${formatted} St, ${formatted}, ${country}`,
+      address: `${streetNumber} ${streetName}, ${formatted}, ${country}`,
       phone: `+${Math.floor(Math.random() * 90) + 10} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 9000) + 1000}`,
       hours: Math.random() > 0.5 ? "24 hours" : "8am - 10pm",
       distance: "International",
-      rating: (3.5 + Math.random() * 1.5).toFixed(1),
+      rating: rating,
       chain: chainName,
       zipCode: `INT-${Math.floor(Math.random() * 9000) + 1000}`,
       city: formatted,
@@ -180,7 +295,7 @@ const generateInternationalPharmacies = (city: string, country: string, count: n
   });
 };
 
-// AI-enhanced universal search function that can detect what the user is looking for
+// Enhanced AI-powered universal search function
 export const intelligentPharmacySearch = (query: string): Pharmacy[] => {
   if (!query) return [];
   
@@ -208,8 +323,14 @@ export const intelligentPharmacySearch = (query: string): Pharmacy[] => {
       pharmacy.address.toLowerCase().includes(normalizedQuery) ||
       pharmacy.chain.toLowerCase().includes(normalizedQuery)
     );
+    
+    // If still no results, add some global results
+    if (combinedResults.length === 0) {
+      combinedResults = getInternationalPharmacies(normalizedQuery);
+    }
   }
   
   console.log("Total results after AI search:", combinedResults.length);
   return combinedResults;
 };
+

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Building, Search } from "lucide-react";
+import { MapPin, Building, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 interface PharmacySearchFormProps {
@@ -53,7 +53,10 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
   return (
     <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg mb-8">
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">Search for Pharmacies Worldwide</CardTitle>
+        <CardTitle className="text-xl font-semibold flex items-center">
+          <span>Search for Pharmacies Worldwide</span>
+          <Globe className="ml-2 h-4 w-4 text-primary/70" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs 
@@ -62,7 +65,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
           onValueChange={(value) => setActiveTab(value as 'zip' | 'city' | 'smart')}
         >
           <TabsList className="mb-4 grid grid-cols-3">
-            <TabsTrigger value="smart">Smart Search</TabsTrigger>
+            <TabsTrigger value="smart">AI Smart Search</TabsTrigger>
             <TabsTrigger value="zip">Search by Postal Code</TabsTrigger>
             <TabsTrigger value="city">Search by Location</TabsTrigger>
           </TabsList>
@@ -83,6 +86,9 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 {isSearching ? "Searching..." : "Find Pharmacies"}
               </Button>
             </form>
+            <p className="text-xs text-gray-500 mt-2">
+              Our AI-powered search automatically detects what you're looking for and searches globally.
+            </p>
           </TabsContent>
           
           <TabsContent value="zip">
@@ -101,6 +107,9 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 {isSearching ? "Searching..." : "Find Pharmacies"}
               </Button>
             </form>
+            <p className="text-xs text-gray-500 mt-2">
+              Supports international postal code formats including US ZIP, UK postcodes, and more.
+            </p>
           </TabsContent>
           
           <TabsContent value="city">
@@ -119,6 +128,9 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 {isSearching ? "Searching..." : "Find Pharmacies"}
               </Button>
             </form>
+            <p className="text-xs text-gray-500 mt-2">
+              Search by any city, region, or country name worldwide. Try "London", "Tokyo", or "Chicago".
+            </p>
           </TabsContent>
         </Tabs>
       </CardContent>
