@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Stethoscope, Database, MapPin, Pill, Globe, Droplets, Notebook, Activity, Thermometer, Syringe, Capsule } from "lucide-react";
+import { Stethoscope, Database, MapPin, Pill, Globe, Droplets, Notebook, Activity, Thermometer, Syringe, Tablets } from "lucide-react";
 import { specialistsInfo } from "@/data/specialists";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -42,7 +42,7 @@ export const MedicationCard = ({
     if (lowerType.includes('device')) return <Activity className="h-3 w-3" />;
     if (lowerType.includes('diagnostic') || lowerType.includes('thermometer')) return <Thermometer className="h-3 w-3" />;
     if (lowerType.includes('vaccine') || lowerType.includes('injection')) return <Syringe className="h-3 w-3" />;
-    if (lowerType.includes('capsule')) return <Capsule className="h-3 w-3" />;
+    if (lowerType.includes('capsule')) return <Tablets className="h-3 w-3" />; // Changed from Capsule to Tablets
     
     return <Pill className="h-3 w-3" />; // Default icon
   };
