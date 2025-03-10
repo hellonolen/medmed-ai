@@ -21,7 +21,7 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#F97316", // Changed to Bright Orange
+          DEFAULT: "#8B5CF6", // Changed to Vibrant Purple
           foreground: "#FFFFFF",
         },
         secondary: {
@@ -29,12 +29,20 @@ export default {
           foreground: "#0F172A",
         },
         accent: {
-          DEFAULT: "#6366F1",
+          DEFAULT: "#F97316", // Bright Orange as accent
           foreground: "#FFFFFF",
         },
         card: {
           DEFAULT: "rgba(255, 255, 255, 0.8)",
           foreground: "#0F172A",
+        },
+        health: {
+          blue: "#0EA5E9",
+          green: "#10B981",
+          red: "#EF4444",
+          yellow: "#F59E0B",
+          purple: "#8B5CF6",
+          pink: "#EC4899",
         },
       },
       borderRadius: {
@@ -55,11 +63,24 @@ export default {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-500px 0" },
+          "100%": { backgroundPosition: "500px 0" },
+        },
+        pulse: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         fadeIn: "fadeIn 0.5s ease-out",
+        shimmer: "shimmer 2s infinite linear",
+        pulse: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+      },
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
       },
     },
   },

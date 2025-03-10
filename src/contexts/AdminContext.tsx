@@ -18,14 +18,11 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const savedStatus = localStorage.getItem(ADMIN_STORAGE_KEY);
-      // Set isAdmin to true if saved as true, or if no saved status (default owner access)
-      if (savedStatus === "true" || savedStatus === null) {
+      if (savedStatus === "true") {
         setIsAdmin(true);
       }
     } catch (error) {
       console.error("Error loading admin status:", error);
-      // If there's an error loading, default to admin access (owner)
-      setIsAdmin(true);
     }
   }, []);
 
