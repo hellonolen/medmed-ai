@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Search, X, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -91,7 +90,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-20 py-6 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-lg"
-            disabled={isSearching || isListening}
+            disabled={isSearching}
             aria-label={t("search.placeholder.global", "Search medications, symptoms, conditions worldwide")}
           />
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
@@ -109,7 +108,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
                 className="text-gray-400 hover:text-gray-600"
                 onClick={handleClearSearch}
                 aria-label={t("button.clear", "Clear search")}
-                disabled={isSearching || isListening}
+                disabled={isSearching}
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -118,8 +117,8 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         </div>
         <button 
           type="submit" 
-          className={`sr-only ${isSearching || isListening ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={isSearching || isListening}
+          className={`sr-only ${isSearching ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={isSearching}
         >
           {t("button.search", "Search")}
         </button>
