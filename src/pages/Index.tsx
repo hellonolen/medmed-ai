@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string }>>([]);
+  const [searchPerformed, setSearchPerformed] = useState(false);
 
   const handleSearch = (results: Array<{ name: string; details: string; price: string }>) => {
     setSearchResults(results);
+    setSearchPerformed(true);
   };
 
   const removeResult = (index: number) => {
@@ -36,6 +38,9 @@ const Index = () => {
           <div className="lg:col-span-3">
             {searchResults.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 animate-fadeIn">
+                <div className="md:col-span-2 mb-2">
+                  <h2 className="text-2xl font-semibold text-gray-800">Search Results</h2>
+                </div>
                 {searchResults.map((result, index) => (
                   <div key={index} className="relative">
                     <Button 
@@ -56,8 +61,17 @@ const Index = () => {
               </div>
             )}
 
+            {searchPerformed && searchResults.length === 0 && (
+              <div className="text-center py-12 mb-12 bg-card/50 rounded-lg">
+                <p className="text-gray-500">No medications found matching your search.</p>
+                <p className="text-gray-500 mt-2">Try different keywords or check with a specialist below.</p>
+              </div>
+            )}
+
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Available Specialists</h2>
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+                {searchPerformed ? "Recommended Specialists" : "Find Specialists"}
+              </h2>
               <SpecialistsList />
             </div>
           </div>
