@@ -15,19 +15,9 @@ const translations = {
   
   // Search
   "search.placeholder.global": "Search symptoms, conditions, specialists or medications worldwide...",
-  "search.placeholder.region": "Search for healthcare in {region}...",
   "search.results": "Medication Results",
   "search.worldwide": "Worldwide search",
   "search.no_results": "No results found matching your search. Try different keywords.",
-  
-  // Region names
-  "region.global": "Global",
-  "region.north-america": "North America",
-  "region.europe": "Europe",
-  "region.asia": "Asia",
-  "region.africa": "Africa",
-  "region.south-america": "South America",
-  "region.australia": "Australia/Oceania",
   
   // Menu items
   "menu.symptom_checker": "Symptom Checker",

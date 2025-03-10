@@ -5,12 +5,11 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck, BarChart3, Globe } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
 
 const Index = () => {
@@ -18,7 +17,7 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; type?: string; source?: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const { isAdmin, setIsAdmin } = useAdmin();
+  const { isAdmin } = useAdmin();
   const { addSearchToHistory } = useSearchHistory();
   const { t } = useLanguage();
 
@@ -85,7 +84,7 @@ const Index = () => {
                   size="sm" 
                   className="flex items-center gap-2"
                 >
-                  <BarChart3 className="h-4 w-4" />
+                  <Globe className="h-4 w-4" />
                   {t("menu.admin", "Admin Dashboard")}
                 </Button>
               </Link>

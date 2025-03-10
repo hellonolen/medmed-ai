@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { findMedicationsForQuery } from '@/utils/medicationMatcher';
 import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -21,7 +20,6 @@ interface SearchBarProps {
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [region, setRegion] = useState<string>('global');
   const { toast } = useToast();
   const { language, setLanguage, t, autoDetectedLanguage } = useLanguage();
   const [showLanguageNotification, setShowLanguageNotification] = useState(false);
@@ -59,15 +57,13 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     }
     
     setIsSearching(true);
-    console.log("Searching for:", query, "Region:", region, "Language:", language);
+    console.log("Searching for:", query, "Language:", language);
     
     try {
-      // Enhance search query with region context and language
-      const enhancedQuery = region !== 'global' 
-        ? `${query} (${region}, ${language})` 
-        : `${query} (${language})`;
+      // Enhance search query with language context
+      const enhancedQuery = `${query} (${language})`;
         
-      // Use our enhanced medication matcher (now async)
+      // Use our medication matcher
       const matchedMedications = await findMedicationsForQuery(enhancedQuery);
       console.log("Matched medications:", matchedMedications);
       
@@ -85,9 +81,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       if (matchedMedications.some(med => med.source && med.source !== "MedMed Database")) {
         toast({
           title: "Global Data Sources",
-          description: region === 'global' 
-            ? t("search.worldwide", "Results include data from global medical databases")
-            : t("search.region", `Results include data for region: ${region}`),
+          description: t("search.worldwide", "Results include data from global medical databases"),
           duration: 3000,
         });
       }
@@ -110,34 +104,13 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     setQuery('');
     onSearch('', []);
   };
-  
-  const regions = [
-    { value: 'global', label: t('region.global', 'Global') },
-    { value: 'north-america', label: t('region.north-america', 'North America') },
-    { value: 'europe', label: t('region.europe', 'Europe') },
-    { value: 'asia', label: t('region.asia', 'Asia') },
-    { value: 'africa', label: t('region.africa', 'Africa') },
-    { value: 'south-america', label: t('region.south-america', 'South America') },
-    { value: 'australia', label: t('region.australia', 'Australia/Oceania') }
-  ];
 
   return (
     <div className="w-full mx-auto">
       <div className="flex items-center justify-between gap-2 mb-2">
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-primary" />
-          <div className="text-sm flex flex-wrap gap-1">
-            {regions.map((r) => (
-              <Badge 
-                key={r.value}
-                variant={region === r.value ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => setRegion(r.value)}
-              >
-                {r.label}
-              </Badge>
-            ))}
-          </div>
+          <span className="text-sm text-gray-500">{t("search.worldwide", "Worldwide search")}</span>
         </div>
         
         <DropdownMenu>
@@ -166,9 +139,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
-            placeholder={region === 'global' 
-              ? t("search.placeholder.global", "Search symptoms, conditions, specialists or medications worldwide...") 
-              : t("search.placeholder.region", `Search for healthcare in ${regions.find(r => r.value === region)?.label}...`)}
+            placeholder={t("search.placeholder.global", "Search symptoms, conditions, specialists or medications worldwide...")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-12 py-6 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-lg"

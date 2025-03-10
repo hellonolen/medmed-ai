@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Building, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PharmacySearchFormProps {
   onSearch: (searchTerm: string, searchType: 'zip' | 'city' | 'smart') => void;
@@ -17,6 +18,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
   const [city, setCity] = useState("");
   const [smartSearch, setSmartSearch] = useState("");
   const [activeTab, setActiveTab] = useState<'zip' | 'city' | 'smart'>('smart');
+  const { language } = useLanguage();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +48,9 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
         }
         break;
     }
+    
+    // Add language context to search
+    searchTerm = `${searchTerm} (${language})`;
     
     onSearch(searchTerm, activeTab);
   };
