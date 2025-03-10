@@ -10,16 +10,17 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; source?: string }>>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; type?: string; source?: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { isAdmin, setIsAdmin } = useAdmin();
   const { addSearchToHistory } = useSearchHistory();
 
-  const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; source?: string }>) => {
+  const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => {
     setSearchQuery(query);
     setSearchResults(results);
     setSearchPerformed(query !== '');
@@ -42,6 +43,9 @@ const Index = () => {
     // For this demo, we'll use the index in the search results
     return `0-${index}`;
   };
+
+  // Group medications by type for display
+  const groupedResults = groupMedicationsByType(searchResults as MatchedMedication[]);
 
   return (
     <TooltipProvider>
@@ -102,32 +106,49 @@ const Index = () => {
           {searchPerformed && (
             <div className="max-w-4xl mx-auto">
               {searchResults.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 animate-fadeIn">
-                  <div className="md:col-span-2 mb-2">
+                <div className="mb-12 animate-fadeIn">
+                  <div className="md:col-span-2 mb-4">
                     <h2 className="text-2xl font-semibold text-gray-800">Medication Results</h2>
                   </div>
-                  {searchResults.map((result, index) => (
-                    <div key={index} className="relative">
-                      <Link to={`/medication/${getResultId(result, index)}`}>
-                        <MedicationCardWrapper
-                          name={result.name}
-                          details={result.details}
-                          price={isAdmin ? result.price : "Login to see pricing"}
-                          source={result.source}
-                        />
-                      </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          removeResult(index);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  
+                  {/* Display results grouped by type */}
+                  {Object.entries(groupedResults).map(([type, medications]) => (
+                    medications.length > 0 && (
+                      <div key={type} className="mb-8">
+                        <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {medications.map((result, index) => {
+                            // Find overall index in searchResults for removal
+                            const overallIndex = searchResults.findIndex(r => r.name === result.name);
+                            
+                            return (
+                              <div key={`${type}-${index}`} className="relative">
+                                <Link to={`/medication/${getResultId(result, overallIndex)}`}>
+                                  <MedicationCardWrapper
+                                    name={result.name}
+                                    details={result.details}
+                                    price={isAdmin ? result.price : "Login to see pricing"}
+                                    type={result.type}
+                                    source={result.source}
+                                  />
+                                </Link>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    removeResult(overallIndex);
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
                   ))}
                 </div>
               )}

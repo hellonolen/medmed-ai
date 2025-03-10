@@ -8,6 +8,7 @@ export interface MatchedMedication {
   price: string;
   relevance: number; // 0-100 relevance score
   category: string;
+  type: string; // Medication type (injection, capsule, etc.)
   source?: string; // Source of the medication data
 }
 
@@ -71,6 +72,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
           price: product.price,
           relevance: relevance,
           category: category.category,
+          type: product.type || "Other", // Add medication type
           source: "MedMed Database"
         });
       }
@@ -93,6 +95,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
             price: "Price varies",
             relevance: relevance,
             category: condition.category,
+            type: "Medication", // Default type for generic medications
             source: "MedMed Database"
           });
         });
@@ -111,6 +114,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
             price: "Price varies",
             relevance: 75,
             category: condition.category,
+            type: "Medication", // Default type for generic medications
             source: "MedMed Database"
           });
         }
@@ -156,7 +160,58 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
     }
   });
   
-  return uniqueMedications.slice(0, 8); // Limit to top 8
+  return uniqueMedications.slice(0, 10); // Limit to top 10
+};
+
+// Group medications by type
+export const groupMedicationsByType = (medications: MatchedMedication[]) => {
+  const groups: Record<string, MatchedMedication[]> = {};
+  
+  // Define standard medication types for grouping
+  const standardTypes = ["Injection", "Capsule", "Tablet", "Spray", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Inhaler", "Patch", "Other"];
+  
+  // Initialize groups
+  standardTypes.forEach(type => {
+    groups[type] = [];
+  });
+  
+  // Categorize medications
+  medications.forEach(med => {
+    // Normalize the type for consistent grouping
+    let normalizedType = "Other";
+    
+    // Get the actual type from the medication
+    const actualType = med.type || "";
+    
+    // Map to standard types based on substring matching
+    if (actualType.toLowerCase().includes("inject")) normalizedType = "Injection";
+    else if (actualType.toLowerCase().includes("capsule")) normalizedType = "Capsule";
+    else if (actualType.toLowerCase().includes("tablet")) normalizedType = "Tablet";
+    else if (actualType.toLowerCase().includes("spray")) normalizedType = "Spray";
+    else if (actualType.toLowerCase().includes("ointment")) normalizedType = "Ointment";
+    else if (actualType.toLowerCase().includes("cream")) normalizedType = "Cream";
+    else if (actualType.toLowerCase().includes("gel")) normalizedType = "Gel";
+    else if (actualType.toLowerCase().includes("liquid")) normalizedType = "Liquid";
+    else if (actualType.toLowerCase().includes("powder")) normalizedType = "Powder";
+    else if (actualType.toLowerCase().includes("inhaler")) normalizedType = "Inhaler";
+    else if (actualType.toLowerCase().includes("patch")) normalizedType = "Patch";
+    
+    // Add to appropriate group
+    if (groups[normalizedType]) {
+      groups[normalizedType].push({...med, type: normalizedType});
+    } else {
+      groups["Other"].push({...med, type: normalizedType});
+    }
+  });
+  
+  // Remove empty groups
+  Object.keys(groups).forEach(key => {
+    if (groups[key].length === 0) {
+      delete groups[key];
+    }
+  });
+  
+  return groups;
 };
 
 // Function to fetch medication data from external APIs
@@ -182,67 +237,99 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
       name: "Atorvastatin",
       details: "Lowers cholesterol and triglycerides in the blood.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "MedlinePlus"
     },
     {
       name: "Levothyroxine",
       details: "Treats hypothyroidism (low thyroid hormone).",
       category: "Endocrine Conditions",
+      type: "Tablet",
       source: "MedlinePlus"
     },
     {
       name: "Lisinopril",
       details: "ACE inhibitor that treats high blood pressure and heart failure.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "RxNorm"
     },
     {
       name: "Metformin",
       details: "Treats type 2 diabetes mellitus by decreasing blood sugar production.",
       category: "Endocrine Conditions",
+      type: "Tablet",
       source: "MedlinePlus"
     },
     {
       name: "Amlodipine",
       details: "Calcium channel blocker that treats high blood pressure and chest pain.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "RxNorm"
     },
     {
       name: "Metoprolol",
       details: "Beta-blocker that treats high blood pressure, chest pain, and heart failure.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "MedlinePlus"
     },
     {
       name: "Albuterol",
       details: "Bronchodilator that treats or prevents bronchospasm in asthma or COPD.",
       category: "Respiratory Conditions",
+      type: "Inhaler",
       source: "RxNorm"
     },
     {
       name: "Omeprazole",
       details: "Proton pump inhibitor that decreases stomach acid production.",
       category: "Gastrointestinal Conditions",
+      type: "Capsule",
       source: "MedlinePlus"
     },
     {
       name: "Losartan",
       details: "Angiotensin II receptor blocker that treats high blood pressure.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "RxNorm"
     },
     {
       name: "Gabapentin",
       details: "Anticonvulsant that treats seizures and nerve pain.",
       category: "Neurological Conditions",
+      type: "Capsule",
       source: "MedlinePlus"
     },
     {
       name: "Hydrochlorothiazide",
       details: "Diuretic that treats high blood pressure and fluid retention.",
       category: "Cardiovascular Conditions",
+      type: "Tablet",
       source: "RxNorm"
+    },
+    {
+      name: "Fluticasone",
+      details: "Corticosteroid that treats allergic and non-allergic nasal symptoms.",
+      category: "ENT Conditions",
+      type: "Spray",
+      source: "MedlinePlus"
+    },
+    {
+      name: "Insulin Glargine",
+      details: "Long-acting insulin analogue for diabetes management.",
+      category: "Endocrine Conditions",
+      type: "Injection",
+      source: "RxNorm"
+    },
+    {
+      name: "Mupirocin",
+      details: "Antibiotic ointment for bacterial skin infections.",
+      category: "Dermatological Conditions",
+      type: "Ointment",
+      source: "MedlinePlus"
     }
   ];
   
@@ -259,6 +346,7 @@ const simulateMedicalAPI = async (query: string): Promise<MatchedMedication[]> =
         price: "Price varies by pharmacy",
         relevance: 70, // External results get a slightly lower base relevance
         category: med.category,
+        type: med.type,
         source: med.source
       });
     }
@@ -283,7 +371,8 @@ const getSpecialistForCategory = (category: string): string => {
     'Endocrine Conditions': 'Endocrinology',
     'Neurological Conditions': 'Neurology',
     'Musculoskeletal Conditions': 'Orthopedics or Rheumatology',
-    'Dermatological Conditions': 'Dermatology'
+    'Dermatological Conditions': 'Dermatology',
+    'ENT Conditions': 'ENT & Allergy'
   };
   
   return specialistMap[category] || 'Primary Care';

@@ -7,7 +7,7 @@ import { findMedicationsForQuery } from '@/utils/medicationMatcher';
 import { useToast } from '@/components/ui/use-toast';
 
 interface SearchBarProps {
-  onSearch: (query: string, results: Array<{ name: string; details: string; price: string; source?: string }>) => void;
+  onSearch: (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => void;
 }
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
@@ -36,6 +36,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         name: med.name,
         details: med.details,
         price: med.price,
+        type: med.type,
         source: med.source
       }));
 
