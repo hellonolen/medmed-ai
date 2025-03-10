@@ -2,21 +2,34 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { medications } from '@/data/medications';
 
 interface SearchBarProps {
-  onSearch: (query: string) => void;
+  onSearch: (results: Array<{ name: string; details: string; price: string }>) => void;
 }
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(query);
+    
+    const results = medications.flatMap(category => 
+      category.products.filter(product => {
+        const searchString = `${product.name} ${product.details} ${category.category}`.toLowerCase();
+        return searchString.includes(query.toLowerCase());
+      }).map(product => ({
+        name: product.name,
+        details: product.details,
+        price: product.price
+      }))
+    );
+
+    onSearch(results);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto">
+    <form onSubmit={handleSearch} className="w-full max-w-2xl mx-auto relative">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <Input
