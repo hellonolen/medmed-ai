@@ -74,7 +74,7 @@ const Index = () => {
               <Globe className="ml-2 h-6 w-6 text-primary/70" />
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {t("app.tagline", "Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide")}
+              {t("app.tagline", "Healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide")}
             </p>
             <div className="mt-4 flex justify-center gap-2">
               <Link to="/admin">
