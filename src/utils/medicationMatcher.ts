@@ -1,3 +1,4 @@
+
 import { medications } from "@/data/medications";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 
@@ -867,4 +868,20 @@ const getRecommendedSpecialist = (
   }
 
   // Fallback to category mapping
-  const specialistMap: Record<string, string>
+  const specialistMap: Record<string, string> = {
+    'Cardiovascular Conditions': 'Cardiologist',
+    'Respiratory Conditions': 'Pulmonologist',
+    'Gastrointestinal Conditions': 'Gastroenterologist',
+    'Endocrine Conditions': 'Endocrinologist',
+    'Neurological Conditions': 'Neurologist',
+    'Musculoskeletal Conditions': 'Orthopedist',
+    'Dermatological Conditions': 'Dermatologist',
+    'ENT Conditions': 'ENT Specialist',
+    'Ophthalmological Conditions': 'Ophthalmologist',
+    'Injectable Gels': 'Dermatologist or Plastic Surgeon',
+    'Infectious Disease': 'Infectious Disease Specialist',
+    'Infectious Disease Prevention': 'Infectious Disease Specialist'
+  };
+  
+  return specialistMap[category] || 'Primary Care Physician';
+};
