@@ -1,12 +1,13 @@
-
 import { useState } from 'react';
-import { Search, X, Globe } from 'lucide-react';
+import { Search, X, Globe, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { VoiceSearchButton } from '@/components/VoiceSearchButton';
 import { useMedicalSearch } from '@/contexts/MedicalSearchContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { Link } from 'react-router-dom';
 
 interface SearchBarProps {
   onSearch: (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => void;
@@ -16,9 +17,11 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const { toast } = useToast();
+  
   const { t } = useLanguage();
   const { searchWithContext } = useMedicalSearch();
+  const { isSubscribed, tier } = useSubscription();
+  const { toast } = useToast();
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) {
@@ -63,6 +66,19 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         <div className="flex items-center">
           <Globe className="h-5 w-5 text-primary mr-2" />
           <span className="text-sm text-gray-600">Worldwide search</span>
+          
+          {tier !== 'free' && (
+            <div className="ml-2 flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+              <Star className="h-3 w-3 fill-primary" />
+              <span>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
+            </div>
+          )}
+          
+          {!isSubscribed && (
+            <Link to="/subscription" className="ml-2 text-xs text-primary hover:underline hover:text-primary/80">
+              Upgrade for more results
+            </Link>
+          )}
         </div>
         <VoiceSearchButton
           onResult={handleVoiceResult}

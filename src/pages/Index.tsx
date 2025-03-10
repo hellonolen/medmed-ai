@@ -4,7 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,6 +12,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
 import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 import { RecommendationSystem } from "@/components/RecommendationSystem";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { SponsoredContent } from "@/components/SponsoredContent";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -21,6 +23,7 @@ const Index = () => {
   const { isAdmin } = useAdmin();
   const { addSearchToHistory, searchHistory } = useSearchHistory();
   const { t, language } = useLanguage();
+  const { tier, isSubscribed } = useSubscription();
 
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => {
     setSearchQuery(query);
@@ -70,7 +73,24 @@ const Index = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
         <div className="container px-4 py-8 mx-auto">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between mb-4">
+            <div>
+              {!isSubscribed && (
+                <Link to="/subscription">
+                  <Button size="sm" variant="outline" className="bg-card/90 backdrop-blur-md hover:bg-card flex items-center gap-1.5">
+                    <CreditCard className="h-4 w-4 text-primary" />
+                    <span>Upgrade to Premium</span>
+                  </Button>
+                </Link>
+              )}
+              {isSubscribed && (
+                <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
+                  <span className="flex items-center gap-1.5">
+                    Premium {tier.charAt(0).toUpperCase() + tier.slice(1)} Active
+                  </span>
+                </Button>
+              )}
+            </div>
             <AccessibilityPanel />
           </div>
           
@@ -114,10 +134,10 @@ const Index = () => {
                   <span>{t("menu.favorites", "My Favorites")}</span>
                 </Button>
               </Link>
-              <Link to="/admin">
+              <Link to="/subscription">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Globe className="h-4 w-4 text-primary" />
-                  <span>{t("menu.admin", "Admin Dashboard")}</span>
+                  <CreditCard className="h-4 w-4 text-primary" />
+                  <span>{t("menu.premium", "Premium Plans")}</span>
                 </Button>
               </Link>
             </div>
@@ -183,6 +203,12 @@ const Index = () => {
                   <p className="text-gray-500">{t("search.no_results", "No results found matching your search. Try different keywords.")}</p>
                 </div>
               )}
+            </div>
+          )}
+          
+          {!searchPerformed && !isSubscribed && (
+            <div className="mt-16 max-w-4xl mx-auto">
+              <SponsoredContent />
             </div>
           )}
           

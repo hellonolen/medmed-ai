@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,10 +13,12 @@ import SymptomChecker from "./pages/SymptomChecker";
 import PharmacyFinder from "./pages/PharmacyFinder";
 import InteractionChecker from "./pages/InteractionChecker";
 import AdminDashboard from "./pages/AdminDashboard";
+import Subscription from "./pages/Subscription";
 import { AdminProvider } from "./contexts/AdminContext";
 import { SearchHistoryProvider } from "./contexts/SearchHistoryContext";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
 import { MedicalSearchProvider } from './contexts/MedicalSearchContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 
 const queryClient = new QueryClient();
 
@@ -52,24 +55,27 @@ const App = () => (
       <SearchHistoryProvider>
         <LanguageProvider>
           <MedicalSearchProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <LanguageWrapper>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/medication/:id" element={<MedicationDetail />} />
-                    <Route path="/favorites" element={<Favorites />} />
-                    <Route path="/symptom-checker" element={<SymptomChecker />} />
-                    <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
-                    <Route path="/interaction-checker" element={<InteractionChecker />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </LanguageWrapper>
-              </BrowserRouter>
-            </TooltipProvider>
+            <SubscriptionProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <LanguageWrapper>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/medication/:id" element={<MedicationDetail />} />
+                      <Route path="/favorites" element={<Favorites />} />
+                      <Route path="/symptom-checker" element={<SymptomChecker />} />
+                      <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
+                      <Route path="/interaction-checker" element={<InteractionChecker />} />
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/subscription" element={<Subscription />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </LanguageWrapper>
+                </BrowserRouter>
+              </TooltipProvider>
+            </SubscriptionProvider>
           </MedicalSearchProvider>
         </LanguageProvider>
       </SearchHistoryProvider>
