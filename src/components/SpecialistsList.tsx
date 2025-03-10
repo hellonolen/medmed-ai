@@ -1,6 +1,6 @@
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { findMatchingSymptoms } from "@/data/symptoms";
+import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 
 interface SpecialistsListProps {
   searchQuery: string;
@@ -27,7 +27,13 @@ const specialists = [
   "Podiatry",
   "Pulmonology",
   "Rheumatology",
-  "Weight Management"
+  "Weight Management",
+  "Oncology",
+  "Psychiatry",
+  "Orthopedics",
+  "Urology",
+  "Immunology",
+  "Pediatrics"
 ];
 
 export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
@@ -37,15 +43,36 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
     matchingSymptoms.flatMap(symptom => symptom.specialists)
   );
   
+  // Get specialists directly from medical conditions
+  const conditionSpecialists = new Set<string>();
+  medicalConditions.forEach(condition => {
+    // Check if condition name matches
+    const conditionMatches = condition.conditions.some(c => 
+      c.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    // Check if medication matches
+    const medicationMatches = condition.medications.some(m => 
+      m.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    
+    if (conditionMatches || medicationMatches) {
+      condition.specialists.forEach(s => conditionSpecialists.add(s));
+    }
+  });
+  
   // Also filter specialists by direct name match
   const directMatchedSpecialists = specialists.filter(specialist => 
     specialist.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Combine both lists, giving priority to symptom-matched specialists
+  // Combine all sources, with priority: direct matches, condition matches, symptom matches
   const allSpecialists = [
-    ...Array.from(specialistsFromSymptoms),
-    ...directMatchedSpecialists.filter(spec => !specialistsFromSymptoms.has(spec))
+    ...directMatchedSpecialists,
+    ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
+    ...Array.from(specialistsFromSymptoms).filter(spec => 
+      !directMatchedSpecialists.includes(spec) && !conditionSpecialists.has(spec)
+    )
   ];
   
   if (allSpecialists.length === 0) {
