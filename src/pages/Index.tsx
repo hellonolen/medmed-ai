@@ -1,10 +1,11 @@
 
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCard } from "@/components/MedicationCard";
 import { SpecialistsList } from "@/components/SpecialistsList";
-import { useState } from "react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { X, Heart, Clipboard, Map, Pill, Activity } from "lucide-react";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -22,6 +23,12 @@ const Index = () => {
   };
 
   const currentYear = new Date().getFullYear();
+  
+  const getResultId = (result: { name: string; details: string; }, index: number) => {
+    // In a real app, this would be more sophisticated
+    // For this demo, we'll use the index in the search results
+    return `0-${index}`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
@@ -33,8 +40,37 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="mb-12 max-w-2xl mx-auto">
+        <div className="mb-8 max-w-2xl mx-auto">
           <SearchBar onSearch={handleSearch} />
+        </div>
+        
+        <div className="mb-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/symptom-checker">
+              <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Clipboard className="h-6 w-6 text-primary" />
+                <span>Symptom Checker</span>
+              </Button>
+            </Link>
+            <Link to="/pharmacy-finder">
+              <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Map className="h-6 w-6 text-primary" />
+                <span>Pharmacy Finder</span>
+              </Button>
+            </Link>
+            <Link to="/interaction-checker">
+              <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Activity className="h-6 w-6 text-primary" />
+                <span>Interaction Checker</span>
+              </Button>
+            </Link>
+            <Link to="/favorites">
+              <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Heart className="h-6 w-6 text-primary" />
+                <span>My Favorites</span>
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {searchPerformed && (
@@ -46,19 +82,24 @@ const Index = () => {
                 </div>
                 {searchResults.map((result, index) => (
                   <div key={index} className="relative">
+                    <Link to={`/medication/${getResultId(result, index)}`}>
+                      <MedicationCard
+                        name={result.name}
+                        details={result.details}
+                        price={result.price}
+                      />
+                    </Link>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                      onClick={() => removeResult(index)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        removeResult(index);
+                      }}
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                    <MedicationCard
-                      name={result.name}
-                      details={result.details}
-                      price={result.price}
-                    />
                   </div>
                 ))}
               </div>
