@@ -20,12 +20,22 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         return searchString.includes(query.toLowerCase());
       }).map(product => ({
         name: product.name,
-        details: product.details,
+        details: `${product.details}\nRecommended Specialist: ${getRecommendedSpecialist(category.category)}`,
         price: product.price
       }))
     );
 
     onSearch(results);
+  };
+
+  const getRecommendedSpecialist = (category: string): string => {
+    const specialistMap: Record<string, string> = {
+      'ACNE/ROSACEA': 'Dermatology',
+      'Anti-Aging': 'Dermatology',
+      // Add more mappings as needed
+    };
+    
+    return specialistMap[category] || 'Primary Care';
   };
 
   return (

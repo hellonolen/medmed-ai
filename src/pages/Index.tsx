@@ -3,21 +3,18 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCard } from "@/components/MedicationCard";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string }>>([]);
 
-  const handleSearch = (query: string) => {
-    // Mock search results - replace with actual data
-    const results = [
-      {
-        name: "Tretinoin Cream",
-        details: "USP 0.033% or 0.09%, Ascorbic Acid USP (Vit C)",
-        price: "30g $45 / 60g $75"
-      },
-      // Add more results based on the query
-    ];
+  const handleSearch = (results: Array<{ name: string; details: string; price: string }>) => {
     setSearchResults(results);
+  };
+
+  const removeResult = (index: number) => {
+    setSearchResults(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -37,12 +34,21 @@ const Index = () => {
         {searchResults.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 animate-fadeIn">
             {searchResults.map((result, index) => (
-              <MedicationCard
-                key={index}
-                name={result.name}
-                details={result.details}
-                price={result.price}
-              />
+              <div key={index} className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                  onClick={() => removeResult(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <MedicationCard
+                  name={result.name}
+                  details={result.details}
+                  price={result.price}
+                />
+              </div>
             ))}
           </div>
         )}
