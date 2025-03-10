@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -63,29 +62,29 @@ const Index = () => {
             <SearchBar onSearch={handleSearch} />
           </div>
           
-          <div className="mb-8 max-w-5xl mx-auto">
+          <div className="mb-8 max-w-3xl mx-auto">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link to="/symptom-checker">
-                <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Clipboard className="h-6 w-6 text-primary" />
+                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <Clipboard className="h-4 w-4 text-primary" />
                   <span>Symptom Checker</span>
                 </Button>
               </Link>
               <Link to="/pharmacy-finder">
-                <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Map className="h-6 w-6 text-primary" />
+                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <Map className="h-4 w-4 text-primary" />
                   <span>Pharmacy Finder</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
-                <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Activity className="h-6 w-6 text-primary" />
+                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <Activity className="h-4 w-4 text-primary" />
                   <span>Interaction Checker</span>
                 </Button>
               </Link>
               <Link to="/favorites">
-                <Button variant="outline" className="w-full h-24 flex-col space-y-2 bg-card/90 backdrop-blur-md hover:bg-card">
-                  <Heart className="h-6 w-6 text-primary" />
+                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <Heart className="h-4 w-4 text-primary" />
                   <span>My Favorites</span>
                 </Button>
               </Link>
