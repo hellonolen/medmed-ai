@@ -45,21 +45,7 @@ const translations = {
   // Language
   "language.auto_detected": "Language Auto-Detected",
   "language.using_browser_language": "Using your browser language: {0}. You can change it anytime.",
-  "language.change": "Change Language",
-  
-  // Medication Types
-  "medication.type.tablet": "Tablets & Pills",
-  "medication.type.syrup": "Syrups & Liquids",
-  "medication.type.cream": "Creams, Ointments & Gels",
-  "medication.type.patch": "Patches",
-  "medication.type.drops": "Drops",
-  "medication.type.suppository": "Suppositories",
-  "medication.type.inhaler": "Inhalers & Nebulizers",
-  "medication.type.device": "Medical Devices",
-  "medication.type.diagnostic": "Diagnostic Tools",
-  "medication.type.vaccine": "Vaccines",
-  "medication.type.injection": "Injections",
-  "medication.type.capsule": "Capsules",
+  "language.change": "Change Language"
 };
 
 export default translations;

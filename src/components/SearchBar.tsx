@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Search, X, Globe, Languages } from 'lucide-react';
+import { Search, X, Languages } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { findMedicationsForQuery } from '@/utils/medicationMatcher';
@@ -21,32 +21,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
-  const { language, setLanguage, t, autoDetectedLanguage } = useLanguage();
-  const [showLanguageNotification, setShowLanguageNotification] = useState(false);
-
-  // Show notification about auto-detected language on first load
-  useEffect(() => {
-    if (autoDetectedLanguage && !localStorage.getItem('language-notification-shown')) {
-      setShowLanguageNotification(true);
-      
-      // Show notification toast
-      toast({
-        title: t("language.auto_detected", "Language Auto-Detected"),
-        description: t(
-          "language.using_browser_language", 
-          `Using your browser language: ${supportedLanguages[autoDetectedLanguage]}. You can change it anytime.`
-        ),
-        duration: 5000,
-      });
-      
-      // Mark as shown
-      try {
-        localStorage.setItem('language-notification-shown', 'true');
-      } catch (e) {
-        console.error("Could not save notification state to localStorage", e);
-      }
-    }
-  }, [autoDetectedLanguage]);
+  const { language, setLanguage, t } = useLanguage();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,17 +32,10 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     }
     
     setIsSearching(true);
-    console.log("Searching for:", query, "Language:", language);
     
     try {
-      // Enhance search query with language context
-      const enhancedQuery = `${query} (${language})`;
-        
-      // Use our medication matcher
-      const matchedMedications = await findMedicationsForQuery(enhancedQuery);
-      console.log("Matched medications:", matchedMedications);
+      const matchedMedications = await findMedicationsForQuery(query);
       
-      // Convert to format expected by onSearch
       const results = matchedMedications.map(med => ({
         name: med.name,
         details: med.details,
@@ -93,7 +61,6 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         variant: "destructive",
         duration: 3000,
       });
-      // Still call onSearch with empty results to handle the error gracefully
       onSearch(query, []);
     } finally {
       setIsSearching(false);
@@ -107,33 +74,6 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
 
   return (
     <div className="w-full mx-auto">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-primary" />
-          <span className="text-sm text-gray-500">{t("search.worldwide", "Worldwide search")}</span>
-        </div>
-        
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <Languages className="h-4 w-4" />
-              <span>{supportedLanguages[language]}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {Object.entries(supportedLanguages).map(([code, name]) => (
-              <DropdownMenuItem 
-                key={code}
-                onClick={() => setLanguage(code as LanguageCode)}
-                className={language === code ? "bg-accent" : ""}
-              >
-                {name}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      
       <form onSubmit={handleSearch} className="w-full relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />

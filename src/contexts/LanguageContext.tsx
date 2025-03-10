@@ -61,8 +61,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
-  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({
+    // Default English translations to avoid empty screen
+    en: {}
+  });
   const [autoDetectedLanguage, setAutoDetectedLanguage] = useState<LanguageCode | null>(null);
+
+  // Set document language
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   // Auto-detect language on initial load
   useEffect(() => {
@@ -75,32 +83,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
-  // Load translation files
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        // In a real app, this would be a more organized structure with proper language files
-        // For this example, we're using a simple dynamic import
-        const module = await import(`../translations/${language}.ts`);
-        setTranslations(prevTranslations => ({
-          ...prevTranslations,
-          [language]: module.default
-        }));
-      } catch (error) {
-        console.error(`Could not load translations for ${language}`, error);
-        // Fallback to English if translations can't be loaded
-        if (language !== 'en') {
-          const enModule = await import(`../translations/en.ts`);
-          setTranslations(prevTranslations => ({
-            ...prevTranslations,
-            [language]: enModule.default
-          }));
-        }
-      }
-    };
+  // Translation function that works even if translations aren't loaded yet
+  const t = (key: string, fallback: string = key): string => {
+    if (!translations[language] || !translations[language][key]) {
+      return fallback;
+    }
     
-    loadTranslations();
-  }, [language]);
+    return translations[language][key];
+  };
 
   // Update language and save to localStorage
   const setLanguage = (lang: LanguageCode) => {
@@ -110,16 +100,6 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error("Could not save language preference to localStorage", e);
     }
     setLanguageState(lang);
-    document.documentElement.lang = lang;
-  };
-
-  // Translation function
-  const t = (key: string, fallback: string = key): string => {
-    if (!translations[language]) {
-      return fallback;
-    }
-    
-    return translations[language][key] || fallback;
   };
 
   return (
