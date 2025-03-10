@@ -20,7 +20,7 @@ const Index = () => {
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const { isAdmin } = useAdmin();
-  const { addSearchToHistory } = useSearchHistory();
+  const { addSearchToHistory, searchHistory } = useSearchHistory();
   const { t, language } = useLanguage();
 
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => {

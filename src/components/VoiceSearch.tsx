@@ -11,6 +11,17 @@ interface VoiceSearchProps {
   setIsListening: (isListening: boolean) => void;
 }
 
+// Define the SpeechRecognition type for TypeScript
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  error: any;
+}
+
+interface Window {
+  SpeechRecognition?: typeof SpeechRecognition;
+  webkitSpeechRecognition?: typeof SpeechRecognition;
+}
+
 export const VoiceSearch: React.FC<VoiceSearchProps> = ({ 
   onResult, 
   isListening,
@@ -49,7 +60,12 @@ export const VoiceSearch: React.FC<VoiceSearchProps> = ({
     
     try {
       // Use the appropriate speech recognition API
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setError('Speech recognition not supported in this browser');
+        return;
+      }
+      
       const recognition = new SpeechRecognition();
       
       // Configure the recognition
@@ -67,9 +83,9 @@ export const VoiceSearch: React.FC<VoiceSearchProps> = ({
       recognition.interimResults = true;
       
       // Set up listeners
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
+          .map((result: any) => result[0].transcript)
           .join('');
           
         if (event.results[0].isFinal) {
@@ -78,7 +94,7 @@ export const VoiceSearch: React.FC<VoiceSearchProps> = ({
         }
       };
       
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error', event.error);
         setError(event.error);
         setIsListening(false);
