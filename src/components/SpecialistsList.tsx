@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
@@ -8,8 +7,9 @@ import { useAdmin } from "@/contexts/AdminContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Users, Filter, Stethoscope } from "lucide-react";
+import { MapPin, Users, Filter, Stethoscope, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SpecialistsListProps {
   searchQuery: string;
@@ -45,25 +45,88 @@ const specialists = [
   "Pediatrics"
 ];
 
+// Healthcare professionals data (would come from a database in a real application)
+interface HealthcareProfessional {
+  id: string;
+  name: string;
+  type: "doctor" | "nurse";
+  specialization: string;
+  location: string;
+  language?: string[];
+}
+
+const healthcareProfessionals: HealthcareProfessional[] = [
+  { id: "d1", name: "Dr. Sarah Johnson", type: "doctor", specialization: "Cardiology", location: "New York, USA", language: ["English", "Spanish"] },
+  { id: "d2", name: "Dr. Michael Chen", type: "doctor", specialization: "Pediatrics", location: "Toronto, Canada", language: ["English", "Chinese"] },
+  { id: "d3", name: "Dr. Emma Richards", type: "doctor", specialization: "Neurology", location: "London, UK", language: ["English"] },
+  { id: "d4", name: "Dr. Raj Patel", type: "doctor", specialization: "Oncology", location: "Mumbai, India", language: ["Hindi", "English"] },
+  { id: "d5", name: "Dr. Carlos Mendez", type: "doctor", specialization: "Dermatology", location: "Madrid, Spain", language: ["Spanish", "English"] },
+  { id: "n1", name: "Nurse Olivia Smith", type: "nurse", specialization: "Pediatric Care", location: "Boston, USA", language: ["English"] },
+  { id: "n2", name: "Nurse Thomas Weber", type: "nurse", specialization: "Emergency Care", location: "Berlin, Germany", language: ["German", "English"] },
+  { id: "n3", name: "Nurse Yuki Tanaka", type: "nurse", specialization: "Geriatric Care", location: "Tokyo, Japan", language: ["Japanese", "English"] },
+  { id: "n4", name: "Nurse Maria Gonzalez", type: "nurse", specialization: "Maternal Health", location: "Mexico City, Mexico", language: ["Spanish", "English"] },
+  { id: "n5", name: "Nurse James Wilson", type: "nurse", specialization: "Critical Care", location: "Sydney, Australia", language: ["English"] }
+];
+
 export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
   const { isAdmin } = useAdmin();
+  const { t, language } = useLanguage();
   const [locationFilter, setLocationFilter] = useState("");
   const [showLocationFilter, setShowLocationFilter] = useState(false);
   const [allSpecialists, setAllSpecialists] = useState<string[]>([]);
+  const [matchedProfessionals, setMatchedProfessionals] = useState<HealthcareProfessional[]>([]);
   
   useEffect(() => {
     if (!searchQuery) {
       setAllSpecialists([]);
+      setMatchedProfessionals([]);
       return;
     }
     
-    // Get specialists from symptom mappings first
+    // Search for healthcare professionals (doctors and nurses)
+    const queryLower = searchQuery.toLowerCase();
+    const isDoctorSearch = queryLower.includes("doctor") || queryLower.includes("dr") || queryLower.includes("physician");
+    const isNurseSearch = queryLower.includes("nurse") || queryLower.includes("nursing");
+    
+    // Filter professionals based on the search query
+    const professionals = healthcareProfessionals.filter(prof => {
+      // Match by type (doctor/nurse)
+      if ((isDoctorSearch && prof.type === "doctor") || (isNurseSearch && prof.type === "nurse")) {
+        return true;
+      }
+      
+      // Match by name
+      if (prof.name.toLowerCase().includes(queryLower)) {
+        return true;
+      }
+      
+      // Match by specialization
+      if (prof.specialization.toLowerCase().includes(queryLower)) {
+        return true;
+      }
+      
+      // Match by location
+      if (prof.location.toLowerCase().includes(queryLower)) {
+        return true;
+      }
+      
+      // Match by language if available
+      if (prof.language && prof.language.some(lang => lang.toLowerCase().includes(queryLower))) {
+        return true;
+      }
+      
+      return false;
+    });
+    
+    setMatchedProfessionals(professionals);
+    
+    // Get specialists from symptom mappings first (original code)
     const matchingSymptoms = findMatchingSymptoms(searchQuery);
     const specialistsFromSymptoms = new Set(
       matchingSymptoms.flatMap(symptom => symptom.specialists)
     );
     
-    // Get specialists directly from medical conditions
+    // Get specialists directly from medical conditions (original code)
     const conditionSpecialists = new Set<string>();
     medicalConditions.forEach(condition => {
       // Check if condition name matches
@@ -81,12 +144,12 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
       }
     });
     
-    // Also filter specialists by direct name match
+    // Also filter specialists by direct name match (original code)
     const directMatchedSpecialists = specialists.filter(specialist => 
       specialist.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
-    // If no specialists found through exact matches, consider it a general search
+    // If no specialists found through exact matches, consider it a general search (original code)
     const foundSpecialists = [
       ...directMatchedSpecialists,
       ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
@@ -95,20 +158,20 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
       )
     ];
     
-    // If no specialists found and it's a non-empty search, show some default specialists
+    // If no specialists found and it's a non-empty search, show some default specialists (original code)
     const specialistsToDisplay = foundSpecialists.length > 0 
       ? foundSpecialists 
       : searchQuery.trim() !== "" ? specialists.slice(0, 6) : [];
     
     setAllSpecialists(specialistsToDisplay);
     
-    // If we're showing default specialists because none matched, notify the user
-    if (searchQuery.trim() !== "" && foundSpecialists.length === 0 && specialistsToDisplay.length > 0) {
+    // If we're showing default specialists because none matched, notify the user (original code)
+    if (searchQuery.trim() !== "" && foundSpecialists.length === 0 && specialistsToDisplay.length > 0 && professionals.length === 0) {
       toast.info("Showing available specialists. Try more specific symptoms or conditions for better matches.");
     }
   }, [searchQuery]);
   
-  // Apply location filter if active
+  // Apply location filter if active (original code)
   const filteredByLocation = locationFilter.trim() === "" 
     ? allSpecialists 
     : allSpecialists.filter(specialist => {
@@ -119,18 +182,33 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         );
       });
   
-  // Limit to 6 specialists maximum
+  // Filter professionals by location if needed
+  const filteredProfessionals = locationFilter.trim() === ""
+    ? matchedProfessionals
+    : matchedProfessionals.filter(prof => 
+        prof.location.toLowerCase().includes(locationFilter.toLowerCase())
+      );
+  
+  // Limit to 6 specialists maximum (original code)
   const limitedSpecialists = filteredByLocation.slice(0, 6);
   
-  if (allSpecialists.length === 0) {
+  // Group healthcare professionals by type
+  const doctors = filteredProfessionals.filter(prof => prof.type === "doctor");
+  const nurses = filteredProfessionals.filter(prof => prof.type === "nurse");
+  
+  if (allSpecialists.length === 0 && matchedProfessionals.length === 0) {
     return null;
   }
   
-  // Get list of all unique locations from filtered specialists
+  // Get list of all unique locations from filtered specialists and professionals
   const allLocations = new Set<string>();
   filteredByLocation.forEach(specialist => {
     const locations = specialistsInfo[specialist]?.locations || [];
     locations.forEach(location => allLocations.add(location));
+  });
+  
+  filteredProfessionals.forEach(prof => {
+    allLocations.add(prof.location);
   });
   
   const sortedLocations = Array.from(allLocations).sort();
@@ -138,7 +216,11 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
   return (
     <div className="space-y-4 animate-fadeIn">
       <div className="mb-2 flex justify-between items-center">
-        <h2 className="text-2xl font-semibold text-gray-800">Specialist Results</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">
+          {matchedProfessionals.length > 0 
+            ? t("search.healthcare_professionals", "Healthcare Professionals") 
+            : "Specialist Results"}
+        </h2>
         <Button 
           variant="outline" 
           size="sm"
@@ -195,25 +277,127 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         </div>
       )}
       
-      {limitedSpecialists.length === 0 ? (
-        <div className="p-6 text-center bg-card/90 backdrop-blur-sm rounded-lg border border-border">
-          <Users className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-          <h3 className="text-lg font-medium">No specialists found</h3>
-          <p className="text-sm text-gray-500 mt-1">
-            {locationFilter ? 
-              `No specialists matching "${searchQuery}" available in "${locationFilter}".` : 
-              `No specialists matching "${searchQuery}" found.`}
-          </p>
-          {locationFilter && (
-            <Button 
-              variant="link" 
-              onClick={() => setLocationFilter("")} 
-              className="mt-2"
-            >
-              Clear location filter
-            </Button>
+      {/* Healthcare Professionals Section */}
+      {(doctors.length > 0 || nurses.length > 0) && (
+        <div className="mb-8">
+          {/* Doctors Section */}
+          {doctors.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-medium text-primary mb-4">
+                {t("search.doctors", "Doctors")}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {doctors.map((doctor) => (
+                  <Card 
+                    key={doctor.id}
+                    className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <UserCog className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base font-medium text-primary">
+                          {doctor.name}
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-gray-600">{t("professional.specialization", "Specialization")}:</span>
+                          <span>{doctor.specialization}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-gray-600">{t("professional.location", "Practice Location")}:</span>
+                          <span>{doctor.location}</span>
+                        </div>
+                        {doctor.language && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {doctor.language.map(lang => (
+                              <Badge key={lang} variant="outline" className="text-xs">
+                                {lang}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {/* Nurses Section */}
+          {nurses.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-medium text-primary mb-4">
+                {t("search.nurses", "Nurses")}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {nurses.map((nurse) => (
+                  <Card 
+                    key={nurse.id}
+                    className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4 text-primary" />
+                        <CardTitle className="text-base font-medium text-primary">
+                          {nurse.name}
+                        </CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-gray-600">{t("professional.specialization", "Specialization")}:</span>
+                          <span>{nurse.specialization}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="font-medium text-gray-600">{t("professional.location", "Practice Location")}:</span>
+                          <span>{nurse.location}</span>
+                        </div>
+                        {nurse.language && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {nurse.language.map(lang => (
+                              <Badge key={lang} variant="outline" className="text-xs">
+                                {lang}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           )}
         </div>
+      )}
+      
+      {/* Original Specialists Section - keep if there are any specialists matched */}
+      {limitedSpecialists.length === 0 ? (
+        (!doctors.length && !nurses.length) && (
+          <div className="p-6 text-center bg-card/90 backdrop-blur-sm rounded-lg border border-border">
+            <Users className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+            <h3 className="text-lg font-medium">No specialists found</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              {locationFilter ? 
+                `No specialists matching "${searchQuery}" available in "${locationFilter}".` : 
+                `No specialists matching "${searchQuery}" found.`}
+            </p>
+            {locationFilter && (
+              <Button 
+                variant="link" 
+                onClick={() => setLocationFilter("")} 
+                className="mt-2"
+              >
+                Clear location filter
+              </Button>
+            )}
+          </div>
+        )
       ) : (
         <>
           {limitedSpecialists.length < filteredByLocation.length && (

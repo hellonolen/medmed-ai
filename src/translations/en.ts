@@ -14,10 +14,13 @@ const translations = {
   "button.clear": "Clear",
   
   // Search
-  "search.placeholder.global": "Search symptoms, conditions, specialists or medications worldwide...",
+  "search.placeholder.global": "Search medications, doctors, nurses, symptoms or conditions worldwide...",
   "search.results": "Medication Results",
   "search.worldwide": "Worldwide search",
   "search.no_results": "No results found matching your search. Try different keywords.",
+  "search.healthcare_professionals": "Healthcare Professionals",
+  "search.doctors": "Doctors",
+  "search.nurses": "Nurses",
   
   // Menu items
   "menu.symptom_checker": "Symptom Checker",
@@ -32,6 +35,12 @@ const translations = {
   "medication.available": "Available in:",
   "medication.best_places": "Best places for treatment:",
   "medication.source": "Source:",
+  
+  // Healthcare professionals
+  "professional.doctor": "Doctor",
+  "professional.nurse": "Nurse",
+  "professional.location": "Practice Location",
+  "professional.specialization": "Specialization",
   
   // Language
   "language.auto_detected": "Language Auto-Detected",
