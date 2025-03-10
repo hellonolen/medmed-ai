@@ -96,7 +96,7 @@ export const SubscriptionPlans = () => {
       if (planId !== 'free') {
         toast.success(`You've successfully subscribed to the ${planId} plan!`);
       } else {
-        toast.info('You've switched to the free plan.');
+        toast.info("You've switched to the free plan.");
       }
     }, 1500);
   };
