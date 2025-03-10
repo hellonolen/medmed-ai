@@ -15,6 +15,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import { AdminProvider } from "./contexts/AdminContext";
 import { SearchHistoryProvider } from "./contexts/SearchHistoryContext";
 import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
+import { MedicalSearchProvider } from './contexts/MedicalSearchContext';
 
 const queryClient = new QueryClient();
 
@@ -50,24 +51,26 @@ const App = () => (
     <AdminProvider>
       <SearchHistoryProvider>
         <LanguageProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <LanguageWrapper>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/medication/:id" element={<MedicationDetail />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/symptom-checker" element={<SymptomChecker />} />
-                  <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
-                  <Route path="/interaction-checker" element={<InteractionChecker />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </LanguageWrapper>
-            </BrowserRouter>
-          </TooltipProvider>
+          <MedicalSearchProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <LanguageWrapper>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/medication/:id" element={<MedicationDetail />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/symptom-checker" element={<SymptomChecker />} />
+                    <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
+                    <Route path="/interaction-checker" element={<InteractionChecker />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </LanguageWrapper>
+              </BrowserRouter>
+            </TooltipProvider>
+          </MedicalSearchProvider>
         </LanguageProvider>
       </SearchHistoryProvider>
     </AdminProvider>
