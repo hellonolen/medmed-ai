@@ -2,6 +2,7 @@
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCard } from "@/components/MedicationCard";
 import { SpecialistsList } from "@/components/SpecialistsList";
+import { PharmacyMap } from "@/components/PharmacyMap";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,31 +32,42 @@ const Index = () => {
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        {searchResults.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 animate-fadeIn">
-            {searchResults.map((result, index) => (
-              <div key={index} className="relative">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                  onClick={() => removeResult(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <MedicationCard
-                  name={result.name}
-                  details={result.details}
-                  price={result.price}
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div className="lg:col-span-3">
+            {searchResults.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 animate-fadeIn">
+                {searchResults.map((result, index) => (
+                  <div key={index} className="relative">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                      onClick={() => removeResult(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <MedicationCard
+                      name={result.name}
+                      details={result.details}
+                      price={result.price}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Available Specialists</h2>
-          <SpecialistsList />
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Available Specialists</h2>
+              <SpecialistsList />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="sticky top-4">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Find Pharmacies</h2>
+              <PharmacyMap />
+            </div>
+          </div>
         </div>
       </div>
     </div>
