@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { getPreferredTextSize, getHighContrastMode, setHighContrastMode } from "@/utils/languageUtils";
 
 // Supported languages with their native names
 export const supportedLanguages = {
@@ -90,6 +90,13 @@ const defaultTranslations = {
   }
 };
 
+// Add types for accessibility settings
+export interface AccessibilitySettings {
+  highContrast: boolean;
+  textSize: 'small' | 'medium' | 'large' | 'x-large';
+  screenReaderOptimized: boolean;
+}
+
 interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
@@ -98,6 +105,8 @@ interface LanguageContextType {
   isLoading: boolean;
   error: Error | null;
   supportedLanguages: typeof supportedLanguages;
+  accessibility: AccessibilitySettings;
+  updateAccessibility: (settings: Partial<AccessibilitySettings>) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -143,8 +152,15 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [autoDetectedLanguage, setAutoDetectedLanguage] = useState<LanguageCode | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Add accessibility settings state
+  const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
+    highContrast: getHighContrastMode(),
+    textSize: getPreferredTextSize(),
+    screenReaderOptimized: localStorage.getItem('medmed-accessibility-screen-reader') === 'true'
+  });
 
-  // Set document language
+  // Update document language and direction
   useEffect(() => {
     document.documentElement.lang = language;
     
@@ -155,6 +171,32 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       document.documentElement.dir = 'ltr';
     }
   }, [language]);
+
+  // Apply accessibility settings to the document
+  useEffect(() => {
+    // Apply text size
+    document.documentElement.classList.remove('text-small', 'text-medium', 'text-large', 'text-xlarge');
+    document.documentElement.classList.add(`text-${accessibility.textSize}`);
+    
+    // Apply high contrast
+    if (accessibility.highContrast) {
+      document.documentElement.classList.add('high-contrast');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+    }
+    
+    // Apply screen reader optimizations
+    if (accessibility.screenReaderOptimized) {
+      document.documentElement.classList.add('screen-reader-optimized');
+    } else {
+      document.documentElement.classList.remove('screen-reader-optimized');
+    }
+    
+    // Save settings to localStorage
+    localStorage.setItem('medmed-accessibility-text-size', accessibility.textSize);
+    localStorage.setItem('medmed-accessibility-high-contrast', String(accessibility.highContrast));
+    localStorage.setItem('medmed-accessibility-screen-reader', String(accessibility.screenReaderOptimized));
+  }, [accessibility]);
 
   // Auto-detect language on initial load
   useEffect(() => {
@@ -227,6 +269,20 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     setLanguageState(lang);
   };
+  
+  // Update accessibility settings
+  const updateAccessibility = (settings: Partial<AccessibilitySettings>) => {
+    setAccessibility(prev => {
+      const newSettings = { ...prev, ...settings };
+      
+      // Update high contrast mode in utils for global access
+      if (settings.highContrast !== undefined) {
+        setHighContrastMode(settings.highContrast);
+      }
+      
+      return newSettings;
+    });
+  };
 
   // Provide context value
   const contextValue = {
@@ -236,7 +292,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     autoDetectedLanguage,
     isLoading,
     error,
-    supportedLanguages
+    supportedLanguages,
+    accessibility,
+    updateAccessibility
   };
 
   return (

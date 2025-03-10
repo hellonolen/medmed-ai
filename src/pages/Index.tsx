@@ -11,6 +11,8 @@ import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
+import { AccessibilityPanel } from "@/components/AccessibilityPanel";
+import { RecommendationSystem } from "@/components/RecommendationSystem";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,7 +21,7 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const { isAdmin } = useAdmin();
   const { addSearchToHistory } = useSearchHistory();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => {
     setSearchQuery(query);
@@ -69,6 +71,10 @@ const Index = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
         <div className="container px-4 py-8 mx-auto">
+          <div className="flex justify-end mb-4">
+            <AccessibilityPanel />
+          </div>
+          
           <div className="text-center mb-12 animate-fadeIn">
             <h1 className="text-4xl font-bold text-primary mb-4 flex items-center justify-center">
               {t("app.name", "MedMed.AI")}
@@ -128,6 +134,12 @@ const Index = () => {
             </div>
           </div>
 
+          {!searchPerformed && searchHistory && searchHistory.length > 0 && (
+            <div className="max-w-4xl mx-auto">
+              <RecommendationSystem />
+            </div>
+          )}
+
           {searchPerformed && (
             <div className="max-w-4xl mx-auto">
               {searchResults.length > 0 && (
@@ -169,6 +181,7 @@ const Index = () => {
                                     e.preventDefault();
                                     removeResult(overallIndex);
                                   }}
+                                  aria-label="Remove result"
                                 >
                                   <X className="h-4 w-4" />
                                 </Button>

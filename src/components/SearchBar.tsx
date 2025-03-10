@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { findMedicationsForQuery } from '@/utils/medicationMatcher';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { VoiceSearch } from '@/components/VoiceSearch';
 
 interface SearchBarProps {
   onSearch: (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => void;
@@ -14,11 +15,12 @@ interface SearchBarProps {
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     
     if (!query.trim()) {
       onSearch('', []);
@@ -65,6 +67,14 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     setQuery('');
     onSearch('', []);
   };
+  
+  const handleVoiceResult = (text: string) => {
+    setQuery(text);
+    // Automatically search after getting voice input
+    setTimeout(() => {
+      handleSearch();
+    }, 300);
+  };
 
   return (
     <div className="w-full mx-auto">
@@ -76,27 +86,36 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             placeholder={t("search.placeholder.global", "Search symptoms, conditions, specialists or medications worldwide...")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-12 py-6 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-lg"
-            disabled={isSearching}
+            className="w-full pl-10 pr-20 py-6 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-lg"
+            disabled={isSearching || isListening}
+            aria-label={t("search.placeholder.global", "Search medications, symptoms, conditions worldwide")}
           />
-          {query && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              onClick={handleClearSearch}
-              aria-label={t("button.clear", "Clear search")}
-              disabled={isSearching}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          )}
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1">
+            <VoiceSearch 
+              onResult={handleVoiceResult} 
+              isListening={isListening}
+              setIsListening={setIsListening}
+            />
+            
+            {query && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-gray-600"
+                onClick={handleClearSearch}
+                aria-label={t("button.clear", "Clear search")}
+                disabled={isSearching || isListening}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
         </div>
         <button 
           type="submit" 
-          className={`sr-only ${isSearching ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={isSearching}
+          className={`sr-only ${isSearching || isListening ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={isSearching || isListening}
         >
           {t("button.search", "Search")}
         </button>
