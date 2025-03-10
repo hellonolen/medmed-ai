@@ -15,23 +15,24 @@ interface PharmacySearchFormProps {
 export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchFormProps) => {
   const [zipCode, setZipCode] = useState("");
   const [city, setCity] = useState("");
+  const [activeTab, setActiveTab] = useState<'zip' | 'city'>('zip');
 
-  const handleSearch = (e: React.FormEvent, searchType: 'zip' | 'city') => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const searchTerm = searchType === 'zip' ? zipCode : city;
+    const searchTerm = activeTab === 'zip' ? zipCode : city;
     
     if (!searchTerm) {
-      toast.error(`Please enter a valid ${searchType === 'zip' ? 'ZIP code' : 'city'}`);
+      toast.error(`Please enter a valid ${activeTab === 'zip' ? 'ZIP code' : 'city'}`);
       return;
     }
     
-    if (searchType === 'zip' && zipCode.length < 5) {
+    if (activeTab === 'zip' && zipCode.length < 5) {
       toast.error("Please enter a valid ZIP code");
       return;
     }
     
-    onSearch(searchTerm, searchType);
+    onSearch(searchTerm, activeTab);
   };
 
   return (
@@ -40,14 +41,18 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
         <CardTitle className="text-xl font-semibold">Search for Pharmacies</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="zip" className="w-full">
+        <Tabs 
+          defaultValue="zip" 
+          className="w-full"
+          onValueChange={(value) => setActiveTab(value as 'zip' | 'city')}
+        >
           <TabsList className="mb-4">
             <TabsTrigger value="zip">Search by ZIP Code</TabsTrigger>
             <TabsTrigger value="city">Search by City</TabsTrigger>
           </TabsList>
           
           <TabsContent value="zip">
-            <form onSubmit={(e) => handleSearch(e, 'zip')} className="flex flex-col sm:flex-row gap-3">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -65,7 +70,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
           </TabsContent>
           
           <TabsContent value="city">
-            <form onSubmit={(e) => handleSearch(e, 'city')} className="flex flex-col sm:flex-row gap-3">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input

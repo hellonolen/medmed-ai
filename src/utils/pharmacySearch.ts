@@ -1,3 +1,4 @@
+
 import { Pharmacy, pharmacies } from "@/data/pharmacies";
 
 // Calculate a realistic distance based on ZIP code comparison
@@ -46,14 +47,18 @@ export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
 export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   if (!city) return [];
   
+  console.log("Searching city:", city);
+  
   // Filter by city name (case-insensitive)
   const matchedPharmacies = pharmacies.filter(pharmacy => 
     pharmacy.city.toLowerCase().includes(city.toLowerCase())
   );
   
+  console.log("Found pharmacies:", matchedPharmacies.length);
+  
   // Return pharmacies with randomized distances
   return matchedPharmacies.map(pharmacy => ({
     ...pharmacy,
-    distance: (Math.random() * 5).toFixed(1) + ' miles'
+    distance: (1 + Math.random() * 5).toFixed(1) + ' miles'
   }));
 };

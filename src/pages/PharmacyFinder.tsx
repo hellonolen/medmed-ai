@@ -26,12 +26,15 @@ const PharmacyFinder = () => {
     setTimeout(() => {
       let filteredPharmacies: Pharmacy[] = [];
       
+      console.log(`Searching by ${type}:`, term);
+      
       if (type === 'zip') {
         filteredPharmacies = searchPharmaciesByZip(term);
       } else {
         filteredPharmacies = searchPharmaciesByCity(term);
       }
       
+      console.log("Search results:", filteredPharmacies.length);
       setResults(filteredPharmacies);
       setSearching(false);
       
