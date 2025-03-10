@@ -98,10 +98,6 @@ const Index = () => {
           </div>
 
           <div className="mb-8 max-w-2xl mx-auto">
-            <div className="flex items-center mb-2">
-              <Globe className="h-5 w-5 text-primary mr-2" />
-              <span className="text-sm text-gray-600">{t("search.worldwide", "Worldwide search")}</span>
-            </div>
             <SearchBar onSearch={handleSearch} />
           </div>
           

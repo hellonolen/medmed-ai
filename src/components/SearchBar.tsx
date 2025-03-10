@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { findMedicationsForQuery } from '@/utils/medicationMatcher';
@@ -78,6 +78,10 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
 
   return (
     <div className="w-full mx-auto">
+      <div className="flex items-center justify-center mb-2">
+        <Globe className="h-5 w-5 text-primary mr-2" />
+        <span className="text-sm text-gray-600">{t("search.worldwide", "Worldwide search")}</span>
+      </div>
       <form onSubmit={handleSearch} className="w-full relative">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />

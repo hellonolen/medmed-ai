@@ -11,17 +11,6 @@ interface VoiceSearchProps {
   setIsListening: (isListening: boolean) => void;
 }
 
-// Define the SpeechRecognition type for TypeScript
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  error: any;
-}
-
-interface Window {
-  SpeechRecognition?: typeof SpeechRecognition;
-  webkitSpeechRecognition?: typeof SpeechRecognition;
-}
-
 export const VoiceSearch: React.FC<VoiceSearchProps> = ({ 
   onResult, 
   isListening,
