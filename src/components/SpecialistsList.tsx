@@ -1,5 +1,6 @@
 
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { findMatchingSymptoms } from "@/data/symptoms";
 
 interface SpecialistsListProps {
   searchQuery: string;
@@ -21,6 +22,7 @@ const specialists = [
   "Infectious Disease",
   "Nephrology",
   "Neurology",
+  "Ophthalmology",
   "Physical Therapy",
   "Podiatry",
   "Pulmonology",
@@ -29,13 +31,24 @@ const specialists = [
 ];
 
 export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
-  const filteredSpecialists = specialists.filter(specialist => 
+  // Get specialists from symptom mappings first
+  const matchingSymptoms = findMatchingSymptoms(searchQuery);
+  const specialistsFromSymptoms = new Set(
+    matchingSymptoms.flatMap(symptom => symptom.specialists)
+  );
+  
+  // Also filter specialists by direct name match
+  const directMatchedSpecialists = specialists.filter(specialist => 
     specialist.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  const displaySpecialists = filteredSpecialists.length > 0 ? filteredSpecialists : [];
-
-  if (displaySpecialists.length === 0) {
+  // Combine both lists, giving priority to symptom-matched specialists
+  const allSpecialists = [
+    ...Array.from(specialistsFromSymptoms),
+    ...directMatchedSpecialists.filter(spec => !specialistsFromSymptoms.has(spec))
+  ];
+  
+  if (allSpecialists.length === 0) {
     return null;
   }
   
@@ -45,7 +58,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         <h2 className="text-2xl font-semibold text-gray-800">Specialist Results</h2>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displaySpecialists.map((specialist) => (
+        {allSpecialists.map((specialist) => (
           <Card 
             key={specialist} 
             className="backdrop-blur-md bg-card/80 hover:bg-card/90 transition-all duration-300 cursor-pointer hover:scale-105"

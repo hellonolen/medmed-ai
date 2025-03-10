@@ -15,13 +15,17 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("Searching for:", query);
+    
     // Find matching symptoms first
     const matchingSymptoms = findMatchingSymptoms(query);
+    console.log("Matching symptoms:", matchingSymptoms);
     
     // Get related conditions from matching symptoms
     const relatedConditions = new Set(
       matchingSymptoms.flatMap(symptom => symptom.relatedConditions)
     );
+    console.log("Related conditions:", Array.from(relatedConditions));
 
     // Search medications based on symptoms and direct medication matches
     const results = medications.flatMap(category => {
@@ -46,6 +50,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       }));
     });
 
+    console.log("Search results:", results);
     onSearch(query, results);
   };
 
