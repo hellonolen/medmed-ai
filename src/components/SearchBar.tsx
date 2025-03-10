@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Globe } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -61,7 +61,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     <div className="w-full mx-auto">
       <div className="flex items-center mb-2 justify-between">
         <div className="flex items-center">
-          <Search className="h-5 w-5 text-primary mr-2" />
+          <Globe className="h-5 w-5 text-primary mr-2" />
           <span className="text-sm text-gray-600">Worldwide search</span>
         </div>
         <VoiceSearchButton
