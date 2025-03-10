@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -55,35 +54,17 @@ const Index = () => {
               Search medications, find specialists, and get personalized healthcare recommendations
             </p>
             <div className="mt-4 flex justify-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-2" 
-                onClick={toggleAdmin}
-              >
-                <ShieldCheck className="h-4 w-4" />
-                {isAdmin ? "Admin Mode: ON" : "Admin Mode: OFF"}
-              </Button>
-              
-              {isAdmin && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link to="/admin">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center gap-2"
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        Admin Dashboard
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View visitor and search statistics</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              {/* Change this to a direct link to the admin dashboard since you're the owner */}
+              <Link to="/admin">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Admin Dashboard
+                </Button>
+              </Link>
             </div>
           </div>
 
