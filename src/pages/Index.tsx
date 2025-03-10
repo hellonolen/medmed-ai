@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { X, Heart, Clipboard, Map, Pill, Activity, ShieldCheck, BarChart3, Globe } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
@@ -19,6 +20,7 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const { isAdmin, setIsAdmin } = useAdmin();
   const { addSearchToHistory } = useSearchHistory();
+  const { t } = useLanguage();
 
   const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => {
     setSearchQuery(query);
@@ -70,11 +72,11 @@ const Index = () => {
         <div className="container px-4 py-8 mx-auto">
           <div className="text-center mb-12 animate-fadeIn">
             <h1 className="text-4xl font-bold text-primary mb-4 flex items-center justify-center">
-              MedMed.AI
+              {t("app.name", "MedMed.AI")}
               <Globe className="ml-2 h-6 w-6 text-primary/70" />
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide
+              {t("app.tagline", "Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide")}
             </p>
             <div className="mt-4 flex justify-center gap-2">
               <Link to="/admin">
@@ -84,7 +86,7 @@ const Index = () => {
                   className="flex items-center gap-2"
                 >
                   <BarChart3 className="h-4 w-4" />
-                  Admin Dashboard
+                  {t("menu.admin", "Admin Dashboard")}
                 </Button>
               </Link>
             </div>
@@ -99,25 +101,25 @@ const Index = () => {
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Clipboard className="h-4 w-4 text-primary" />
-                  <span>Symptom Checker</span>
+                  <span>{t("menu.symptom_checker", "Symptom Checker")}</span>
                 </Button>
               </Link>
               <Link to="/pharmacy-finder">
                 <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Map className="h-4 w-4 text-primary" />
-                  <span>Global Pharmacy Finder</span>
+                  <span>{t("menu.pharmacy_finder", "Global Pharmacy Finder")}</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
                 <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Activity className="h-4 w-4 text-primary" />
-                  <span>Interaction Checker</span>
+                  <span>{t("menu.interaction_checker", "Interaction Checker")}</span>
                 </Button>
               </Link>
               <Link to="/favorites">
                 <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Heart className="h-4 w-4 text-primary" />
-                  <span>My Favorites</span>
+                  <span>{t("menu.favorites", "My Favorites")}</span>
                 </Button>
               </Link>
             </div>
@@ -128,10 +130,10 @@ const Index = () => {
               {searchResults.length > 0 && (
                 <div className="mb-12 animate-fadeIn">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-semibold text-gray-800">Global Medication Results</h2>
+                    <h2 className="text-2xl font-semibold text-gray-800">{t("search.results", "Global Medication Results")}</h2>
                     <div className="flex items-center gap-2">
                       <Globe className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-gray-600">Worldwide search</span>
+                      <span className="text-sm text-gray-600">{t("search.worldwide", "Worldwide search")}</span>
                     </div>
                   </div>
                   
@@ -151,7 +153,7 @@ const Index = () => {
                                   <MedicationCardWrapper
                                     name={result.name}
                                     details={result.details}
-                                    price={isAdmin ? result.price : "Login to see pricing"}
+                                    price={isAdmin ? result.price : t("medication.price", "Login to see pricing")}
                                     type={result.type}
                                     source={result.source}
                                   />
@@ -181,16 +183,16 @@ const Index = () => {
               
               {searchQuery && !searchResults.length && !document.querySelector('[data-specialist-found="true"]') && (
                 <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
-                  <p className="text-gray-500">No results found matching your search. Try different keywords.</p>
+                  <p className="text-gray-500">{t("search.no_results", "No results found matching your search. Try different keywords.")}</p>
                 </div>
               )}
             </div>
           )}
           
           <footer className="mt-16 text-center text-gray-500 text-sm">
-            <p>© {currentYear} MedMed.AI. All rights reserved.</p>
-            <p className="mt-2">This is a demo application. Not for actual medical use.</p>
-            <p className="mt-1">Providing global healthcare information and resources</p>
+            <p>© {currentYear} MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
+            <p className="mt-2">{t("app.footer.demo", "This is a demo application. Not for actual medical use.")}</p>
+            <p className="mt-1">{t("app.footer.global", "Providing global healthcare information and resources")}</p>
           </footer>
         </div>
       </div>

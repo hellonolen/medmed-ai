@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Stethoscope, Database, MapPin, Pill, Globe } from "lucide-react";
 import { specialistsInfo } from "@/data/specialists";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MedicationCardProps {
   name: string;
@@ -19,6 +20,7 @@ export const MedicationCard = ({
   type = "Medication",
   source = "MedMed Database" 
 }: MedicationCardProps) => {
+  const { t } = useLanguage();
   const [mainDetails, specialist] = details.split('\nRecommended Specialist: ');
 
   // Find the specialist location information if available
@@ -50,7 +52,7 @@ export const MedicationCard = ({
               <div className="flex flex-col gap-1 pl-6">
                 <div className="flex items-center text-xs text-gray-500">
                   <MapPin className="h-3 w-3 mr-1" />
-                  <span>Available in:</span>
+                  <span>{t("medication.available", "Available in:")} </span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {(specialistInfo.locations.length > 2 ? 
@@ -74,7 +76,7 @@ export const MedicationCard = ({
               <div className="flex flex-col gap-1 pl-6 mt-2">
                 <div className="flex items-center text-xs text-gray-500">
                   <Globe className="h-3 w-3 mr-1" />
-                  <span>Best places for treatment:</span>
+                  <span>{t("medication.best_places", "Best places for treatment:")}</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {specialistInfo.topTreatmentLocations.slice(0, 2).map((location, index) => (
@@ -98,7 +100,7 @@ export const MedicationCard = ({
           </Badge>
           <Badge variant="outline" className="text-xs font-normal flex items-center gap-1">
             <Database className="h-3 w-3" />
-            {source}
+            {t("medication.source", "Source:")}: {source}
           </Badge>
         </div>
       </CardContent>
