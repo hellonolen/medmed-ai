@@ -2,7 +2,6 @@
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCard } from "@/components/MedicationCard";
 import { SpecialistsList } from "@/components/SpecialistsList";
-import { PharmacyMap } from "@/components/PharmacyMap";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,8 @@ const Index = () => {
     setSearchResults(prev => prev.filter((_, i) => i !== index));
   };
 
+  const currentYear = new Date().getFullYear();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
       <div className="container px-4 py-8 mx-auto">
@@ -32,12 +33,12 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="mb-12">
+        <div className="mb-12 max-w-2xl mx-auto">
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-3">
+        {searchPerformed && (
+          <div className="max-w-4xl mx-auto">
             {searchResults.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 animate-fadeIn">
                 <div className="md:col-span-2 mb-2">
@@ -62,28 +63,21 @@ const Index = () => {
                 ))}
               </div>
             )}
-
-            {searchPerformed && searchResults.length === 0 && (
+            
+            <SpecialistsList searchQuery={searchQuery} />
+            
+            {searchQuery && !searchResults.length && !document.querySelector('[data-specialist-found="true"]') && (
               <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
-                <p className="text-gray-500">No medications found matching your search.</p>
+                <p className="text-gray-500">No results found matching your search. Try different keywords.</p>
               </div>
             )}
-
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                {searchPerformed ? "Specialists Related to Your Search" : "Popular Specialists"}
-              </h2>
-              <SpecialistsList searchQuery={searchQuery} />
-            </div>
           </div>
-
-          <div className="lg:col-span-1">
-            <div className="sticky top-4">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Find Pharmacies</h2>
-              <PharmacyMap />
-            </div>
-          </div>
-        </div>
+        )}
+        
+        <footer className="mt-16 text-center text-gray-500 text-sm">
+          <p>© {currentYear} MedMed.AI. All rights reserved.</p>
+          <p className="mt-2">This is a demo application. Not for actual medical use.</p>
+        </footer>
       </div>
     </div>
   );

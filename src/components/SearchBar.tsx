@@ -39,7 +39,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   };
 
   return (
-    <form onSubmit={handleSearch} className="w-full max-w-2xl mx-auto relative">
+    <form onSubmit={handleSearch} className="w-full mx-auto relative">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <Input
@@ -47,9 +47,10 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
           placeholder="Search symptoms, conditions, specialists or medications..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+          className="w-full pl-10 pr-4 py-6 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-lg"
         />
       </div>
+      <button type="submit" className="sr-only">Search</button>
     </form>
   );
 };
