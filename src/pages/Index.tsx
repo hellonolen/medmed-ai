@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -12,15 +13,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string }>>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; source?: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const { isAdmin, setIsAdmin } = useAdmin();
   const { addSearchToHistory } = useSearchHistory();
 
-  const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string }>) => {
+  const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string; source?: string }>) => {
     setSearchQuery(query);
     setSearchResults(results);
     setSearchPerformed(query !== '');
+    setIsSearching(false);
     
     // Track search in history if it's not an empty search
     if (query.trim()) {
@@ -40,10 +43,6 @@ const Index = () => {
     return `0-${index}`;
   };
 
-  const toggleAdmin = () => {
-    setIsAdmin(!isAdmin);
-  };
-
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
@@ -54,7 +53,6 @@ const Index = () => {
               Search medications, find specialists, and get personalized healthcare recommendations
             </p>
             <div className="mt-4 flex justify-center gap-2">
-              {/* Change this to a direct link to the admin dashboard since you're the owner */}
               <Link to="/admin">
                 <Button 
                   variant="outline" 
@@ -115,6 +113,7 @@ const Index = () => {
                           name={result.name}
                           details={result.details}
                           price={isAdmin ? result.price : "Login to see pricing"}
+                          source={result.source}
                         />
                       </Link>
                       <Button 

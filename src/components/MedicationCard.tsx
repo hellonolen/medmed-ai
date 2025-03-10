@@ -1,15 +1,16 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Stethoscope } from "lucide-react";
+import { Stethoscope, Database } from "lucide-react";
 
 interface MedicationCardProps {
   name: string;
   details: string;
   price: string;
+  source?: string;
 }
 
-export const MedicationCard = ({ name, details, price }: MedicationCardProps) => {
+export const MedicationCard = ({ name, details, price, source = "MedMed Database" }: MedicationCardProps) => {
   const [mainDetails, specialist] = details.split('\nRecommended Specialist: ');
 
   return (
@@ -25,9 +26,15 @@ export const MedicationCard = ({ name, details, price }: MedicationCardProps) =>
             <span className="text-sm text-primary">{specialist}</span>
           </div>
         )}
-        <Badge variant="secondary" className="text-sm font-medium">
-          {price}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="text-sm font-medium">
+            {price}
+          </Badge>
+          <Badge variant="outline" className="text-xs font-normal flex items-center gap-1">
+            <Database className="h-3 w-3" />
+            {source}
+          </Badge>
+        </div>
       </CardContent>
     </Card>
   );
