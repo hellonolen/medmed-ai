@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Check, X, Shield, Globe, Clock, FileText, MessageSquare, Star } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 interface PlanFeature {
   name: string;
@@ -16,6 +18,7 @@ interface Plan {
   id: string;
   name: string;
   price: string;
+  priceValue: number;
   description: string;
   features: PlanFeature[];
   highlighted?: boolean;
@@ -24,12 +27,15 @@ interface Plan {
 export const SubscriptionPlans = () => {
   const { tier, toggleSubscription } = useSubscription();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   
   const plans: Plan[] = [
     {
       id: 'free',
       name: 'Free',
       price: '$0',
+      priceValue: 0,
       description: 'Basic access to medication information',
       features: [
         { name: 'Basic medication search', included: true, icon: <Globe size={16} /> },
@@ -41,65 +47,110 @@ export const SubscriptionPlans = () => {
       ]
     },
     {
-      id: 'basic',
-      name: 'Basic',
-      price: '$4.99/mo',
-      description: 'Enhanced medication information and features',
+      id: 'premium',
+      name: 'Premium',
+      price: '$9.99/mo',
+      priceValue: 9.99,
+      description: 'Complete access to all features',
+      highlighted: true,
       features: [
         { name: 'All free features', included: true, icon: <Check size={16} /> },
         { name: 'Detailed medication information', included: true, icon: <Shield size={16} /> },
         { name: 'Ad-free experience', included: true, icon: <Shield size={16} /> },
         { name: 'Unlimited search history', included: true, icon: <Clock size={16} /> },
-        { name: 'Priority support', included: false, icon: <MessageSquare size={16} /> },
-        { name: 'Exclusive health content', included: false, icon: <FileText size={16} /> },
-      ]
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: '$9.99/mo',
-      description: 'Complete access to all features',
-      highlighted: true,
-      features: [
-        { name: 'All basic features', included: true, icon: <Check size={16} /> },
         { name: 'Priority support', included: true, icon: <MessageSquare size={16} /> },
         { name: 'Exclusive health content', included: true, icon: <FileText size={16} /> },
-        { name: 'Detailed health reports', included: true, icon: <FileText size={16} /> },
-        { name: 'Medication reminder alerts', included: true, icon: <Clock size={16} /> },
-        { name: 'Personalized recommendations', included: true, icon: <Star size={16} /> },
       ]
     },
     {
-      id: 'enterprise',
-      name: 'Enterprise',
-      price: 'Contact us',
-      description: 'Custom healthcare solutions for organizations',
+      id: 'business',
+      name: 'Business',
+      price: '$39.99/mo',
+      priceValue: 39.99,
+      description: 'Advanced healthcare solutions for professionals',
       features: [
         { name: 'All premium features', included: true, icon: <Check size={16} /> },
-        { name: 'Custom integration', included: true, icon: <Shield size={16} /> },
-        { name: 'API access', included: true, icon: <Globe size={16} /> },
-        { name: 'Dedicated account manager', included: true, icon: <MessageSquare size={16} /> },
-        { name: 'Usage analytics', included: true, icon: <FileText size={16} /> },
+        { name: 'Multiple user accounts', included: true, icon: <Shield size={16} /> },
+        { name: 'Advanced analytics', included: true, icon: <Globe size={16} /> },
+        { name: 'Custom branding', included: true, icon: <MessageSquare size={16} /> },
+        { name: 'Bulk medication lookups', included: true, icon: <FileText size={16} /> },
         { name: 'Specialist contact information', included: true, icon: <Star size={16} /> },
       ]
     }
   ];
 
-  const handleSubscribe = (planId: string) => {
+  const handleSubscribe = (plan: Plan) => {
+    if (plan.id === 'free') {
+      setIsProcessing(true);
+      
+      // Free plan doesn't need payment processing
+      setTimeout(() => {
+        toggleSubscription(plan.id as 'free' | 'premium' | 'business');
+        setIsProcessing(false);
+        toast.info("You've switched to the free plan.");
+      }, 1000);
+    } else {
+      // Show payment dialog for paid plans
+      setSelectedPlan(plan);
+      setShowPaymentDialog(true);
+    }
+  };
+
+  const handlePayment = () => {
+    if (!selectedPlan) return;
+    
     setIsProcessing(true);
     
-    // Simulate payment processing
+    // Simulate payment processing with Stripe/Whop
     setTimeout(() => {
-      toggleSubscription(planId as 'free' | 'basic' | 'premium' | 'enterprise');
+      toggleSubscription(selectedPlan.id as 'free' | 'premium' | 'business');
       setIsProcessing(false);
+      setShowPaymentDialog(false);
       
-      if (planId !== 'free') {
-        toast.success(`You've successfully subscribed to the ${planId} plan!`);
-      } else {
-        toast.info("You've switched to the free plan.");
-      }
+      toast.success(`You've successfully subscribed to the ${selectedPlan.name} plan!`);
     }, 1500);
   };
+
+  const PaymentForm = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Card Information</h3>
+        <div className="border rounded-md p-3 bg-white">
+          <div className="h-10 flex items-center text-gray-400">
+            Enter card details securely with Stripe...
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Billing Information</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="border rounded-md p-3 bg-white">
+            <div className="h-10 flex items-center text-gray-400">
+              Name
+            </div>
+          </div>
+          <div className="border rounded-md p-3 bg-white">
+            <div className="h-10 flex items-center text-gray-400">
+              Email
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Button 
+        className="w-full" 
+        onClick={handlePayment}
+        disabled={isProcessing}
+      >
+        {isProcessing ? "Processing..." : `Pay ${selectedPlan?.price}`}
+      </Button>
+      
+      <div className="text-xs text-center text-gray-500 mt-4">
+        Secure payments processed by Stripe. By subscribing, you agree to our Terms and Conditions.
+      </div>
+    </div>
+  );
 
   return (
     <div className="py-8">
@@ -110,7 +161,7 @@ export const SubscriptionPlans = () => {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto px-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
         {plans.map(plan => (
           <Card 
             key={plan.id}
@@ -130,7 +181,7 @@ export const SubscriptionPlans = () => {
               <CardTitle className="text-xl text-center">{plan.name}</CardTitle>
               <CardDescription className="text-center">
                 <span className="text-2xl font-bold text-primary">{plan.price}</span>
-                {plan.id !== 'enterprise' && <span className="text-gray-500 text-sm"> /month</span>}
+                {plan.priceValue > 0 && <span className="text-gray-500 text-sm"> /month</span>}
               </CardDescription>
             </CardHeader>
             
@@ -158,22 +209,33 @@ export const SubscriptionPlans = () => {
             <CardFooter>
               <Button 
                 variant={plan.id === tier ? "outline" : "default"}
-                className={`w-full ${plan.highlighted ? '' : ''}`}
+                className="w-full"
                 disabled={plan.id === tier || isProcessing}
-                onClick={() => handleSubscribe(plan.id)}
+                onClick={() => handleSubscribe(plan)}
               >
                 {isProcessing 
                   ? "Processing..." 
                   : plan.id === tier 
                     ? "Current Plan" 
-                    : plan.id === 'enterprise' 
-                      ? "Contact Sales" 
-                      : "Subscribe"}
+                    : "Subscribe"}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Subscribe to {selectedPlan?.name}</DialogTitle>
+            <DialogDescription>
+              You will be charged {selectedPlan?.price} monthly
+            </DialogDescription>
+          </DialogHeader>
+          <PaymentForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

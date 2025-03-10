@@ -1,8 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
-type SubscriptionTier = 'free' | 'basic' | 'premium' | 'enterprise';
+type SubscriptionTier = 'free' | 'premium' | 'business';
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
@@ -37,15 +36,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           detailedReports: false,
           specialistContact: false,
         };
-      case 'basic':
-        return {
-          detailedMedicationInfo: true,
-          internationalSearch: true,
-          prioritySupport: false,
-          exclusiveContent: false,
-          detailedReports: false,
-          specialistContact: false,
-        };
       case 'premium':
         return {
           detailedMedicationInfo: true,
@@ -55,7 +45,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           detailedReports: true,
           specialistContact: false,
         };
-      case 'enterprise':
+      case 'business':
         return {
           detailedMedicationInfo: true,
           internationalSearch: true,
