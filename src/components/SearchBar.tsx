@@ -62,7 +62,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       <div className="flex items-center mb-2 justify-between">
         <div className="flex items-center">
           <Search className="h-5 w-5 text-primary mr-2" />
-          <span className="text-sm text-gray-600">{t("search.worldwide", "Worldwide search")}</span>
+          <span className="text-sm text-gray-600">Worldwide search</span>
         </div>
         <VoiceSearchButton
           onResult={handleVoiceResult}
