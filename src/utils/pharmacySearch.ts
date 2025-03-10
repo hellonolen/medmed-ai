@@ -1,4 +1,3 @@
-
 import { Pharmacy, pharmacies } from "@/data/pharmacies";
 
 // Calculate a realistic distance based on ZIP code or location comparison
@@ -295,11 +294,11 @@ const generateInternationalPharmacies = (city: string, country: string, count: n
   });
 };
 
-// Enhanced AI-powered universal search function
-export const intelligentPharmacySearch = (query: string): Pharmacy[] => {
+// Enhanced AI-powered universal search function with language support
+export const intelligentPharmacySearch = (query: string, language: string = 'en'): Pharmacy[] => {
   if (!query) return [];
   
-  console.log("AI-enhanced search for:", query);
+  console.log(`AI-enhanced search for: "${query}" in language: ${language}`);
   const normalizedQuery = query.toLowerCase().trim();
   
   // Try to determine if the query is a ZIP code or a city name
@@ -314,7 +313,7 @@ export const intelligentPharmacySearch = (query: string): Pharmacy[] => {
   // Combine and deduplicate results, prioritizing the more likely search type
   let combinedResults = isZipCode 
     ? [...zipResults, ...cityResults.filter(city => !zipResults.some(zip => zip.id === city.id))]
-    : [...cityResults, ...zipResults.filter(zip => !cityResults.some(city => city.id === zip.id))];
+    : [...cityResults, ...zipResults.filter(zip => !cityResults.some(city => zip.id === city.id))];
   
   // If no results, try a more permissive search as a fallback
   if (combinedResults.length === 0) {
@@ -331,6 +330,11 @@ export const intelligentPharmacySearch = (query: string): Pharmacy[] => {
   }
   
   console.log("Total results after AI search:", combinedResults.length);
+  
+  // Sort by rating unless it's a zip code search (where distance matters more)
+  if (!isZipCode) {
+    combinedResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }
+  
   return combinedResults;
 };
-
