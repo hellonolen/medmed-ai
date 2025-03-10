@@ -385,5 +385,310 @@ export const medications: Medication[] = [
         region: "australia"
       }
     ]
-  }
+  },
+  {
+    category: "Medical Devices",
+    products: [
+      {
+        name: "Continuous Glucose Monitor",
+        type: "Medical Device",
+        details: "Wearable device that tracks glucose levels throughout the day and night",
+        price: "$200-350 device + $60-100/month supplies",
+        region: "global"
+      },
+      {
+        name: "Knee Brace",
+        type: "Medical Device",
+        details: "Supportive device for knee injuries, stability, and pain relief",
+        price: "$30-200 depending on type",
+        region: "global"
+      },
+      {
+        name: "CPAP Machine",
+        type: "Medical Device",
+        details: "Delivers air pressure to keep airways open during sleep for sleep apnea patients",
+        price: "$500-1000 with prescription",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Diagnostic Tools",
+    products: [
+      {
+        name: "Digital Thermometer",
+        type: "Diagnostic Tool",
+        details: "For measuring body temperature with digital display",
+        price: "$10-30",
+        region: "global"
+      },
+      {
+        name: "Blood Pressure Monitor",
+        type: "Diagnostic Tool",
+        details: "Home device for tracking blood pressure and heart rate",
+        price: "$40-100",
+        region: "global"
+      },
+      {
+        name: "Pulse Oximeter",
+        type: "Diagnostic Tool",
+        details: "Measures blood oxygen levels and pulse rate",
+        price: "$20-50",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Droplets",
+    products: [
+      {
+        name: "Artificial Tears",
+        type: "Drops",
+        details: "Lubricating eye drops for dry eyes",
+        price: "$5-15 per bottle",
+        region: "global"
+      },
+      {
+        name: "Antibiotic Ear Drops",
+        type: "Drops",
+        details: "For treating bacterial ear infections",
+        price: "$15-30 with prescription",
+        region: "global"
+      },
+      {
+        name: "Xylometazoline Nasal Drops",
+        type: "Drops",
+        details: "Decongestant for nasal congestion relief",
+        price: "$8-15 per bottle",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Suppositories",
+    products: [
+      {
+        name: "Glycerin Suppositories",
+        type: "Suppository",
+        details: "For relief of occasional constipation",
+        price: "$5-10 for 12-count",
+        region: "global"
+      },
+      {
+        name: "Bisacodyl Suppositories",
+        type: "Suppository",
+        details: "Stimulant laxative for constipation relief",
+        price: "$7-12 for 10-count",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Vaccines",
+    products: [
+      {
+        name: "Influenza Vaccine",
+        type: "Vaccine",
+        details: "Annual vaccine to protect against seasonal flu strains",
+        price: "$0-40 depending on insurance",
+        region: "global"
+      },
+      {
+        name: "Tetanus-Diphtheria-Pertussis Vaccine",
+        type: "Vaccine",
+        details: "Protects against tetanus, diphtheria, and pertussis (whooping cough)",
+        price: "$30-60 without insurance",
+        region: "global"
+      },
+      {
+        name: "Pneumococcal Vaccine",
+        type: "Vaccine",
+        details: "Protects against pneumococcal disease, including pneumonia",
+        price: "$60-120 without insurance",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Patches",
+    products: [
+      {
+        name: "Nicotine Transdermal Patch",
+        type: "Patch",
+        details: "For smoking cessation, delivers nicotine through the skin",
+        price: "$30-50 for 14-day supply",
+        region: "global"
+      },
+      {
+        name: "Lidocaine Patch",
+        type: "Patch",
+        details: "Topical anesthetic for localized pain relief",
+        price: "$10-30 per patch with prescription",
+        region: "global"
+      },
+      {
+        name: "Hormone Replacement Patch",
+        type: "Patch",
+        details: "Delivers hormones through the skin for hormone replacement therapy",
+        price: "$30-80 per month with prescription",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Syrups & Liquids",
+    products: [
+      {
+        name: "Dextromethorphan Syrup",
+        type: "Syrup",
+        details: "Cough suppressant for temporary relief of cough due to minor throat irritations",
+        price: "$5-10 per bottle",
+        region: "global"
+      },
+      {
+        name: "Acetaminophen Liquid",
+        type: "Liquid",
+        details: "For fever reduction and pain relief, especially for children",
+        price: "$4-8 per bottle",
+        region: "global"
+      },
+      {
+        name: "Diphenhydramine Liquid",
+        type: "Liquid",
+        details: "Antihistamine for allergy symptom relief",
+        price: "$6-12 per bottle",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Gastrointestinal Conditions",
+    products: [
+      {
+        name: "Omeprazole",
+        type: "Capsule",
+        details: "20mg, treats heartburn and GERD",
+        price: "30 capsules $15-25",
+        region: "global"
+      },
+      {
+        name: "Loperamide",
+        type: "Tablet",
+        details: "2mg, anti-diarrheal",
+        price: "24 tablets $8-12",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Pain Relief",
+    products: [
+      {
+        name: "Ibuprofen",
+        type: "Tablet",
+        details: "200mg, anti-inflammatory",
+        price: "100 tablets $8-12",
+        region: "global"
+      },
+      {
+        name: "Acetaminophen",
+        type: "Tablet",
+        details: "500mg, pain reliever",
+        price: "100 tablets $6-10",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Allergy Relief",
+    products: [
+      {
+        name: "Loratadine",
+        type: "Tablet",
+        details: "10mg, 24-hour non-drowsy relief",
+        price: "30 tablets $12-18",
+        region: "global"
+      },
+      {
+        name: "Diphenhydramine",
+        type: "Capsule",
+        details: "25mg, antihistamine and sleep aid",
+        price: "50 capsules $8-12",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Injectable Medications",
+    products: [
+      {
+        name: "Insulin Glargine",
+        type: "Injection",
+        details: "100 units/mL, long-acting insulin\nRecommended Specialist: Endocrinology",
+        price: "10mL vial $150-300",
+        region: "global"
+      },
+      {
+        name: "Adalimumab",
+        type: "Injection",
+        details: "40mg/0.4mL, for rheumatoid arthritis, psoriasis, and other autoimmune conditions\nRecommended Specialist: Rheumatology",
+        price: "2 pens $5,000-6,000",
+        region: "global"
+      },
+      {
+        name: "Vitamin B12",
+        type: "Injection",
+        details: "1000mcg/mL, for B12 deficiency\nRecommended Specialist: Primary Care",
+        price: "10mL vial $30-50",
+        region: "global"
+      }
+    ]
+  },
+  {
+    category: "Injectable Gels",
+    products: [
+      {
+        name: "Shear-Thinning Hydrogel",
+        type: "Injectable Gel",
+        details: "Advanced biomaterial that becomes less viscous under stress, allowing for easy injection. Forms stable network for drug delivery and tissue regeneration.\nRecommended Specialist: Orthopedics",
+        price: "Per treatment $200-500",
+        region: "global"
+      },
+      {
+        name: "Temperature-Responsive Gel",
+        type: "Injectable Gel",
+        details: "Smart stimuli-responsive hydrogel that solidifies at body temperature. Used for controlled drug delivery and tissue engineering.\nRecommended Specialist: Regenerative Medicine",
+        price: "Per treatment $300-700",
+        region: "north-america"
+      },
+      {
+        name: "Alginate Injectable System",
+        type: "Injectable Gel",
+        details: "Forms gel in situ at physiological conditions. Widely used in tissue engineering to support cell growth and tissue regeneration.\nRecommended Specialist: Orthopedics",
+        price: "Per treatment $250-450",
+        region: "europe"
+      },
+      {
+        name: "Chitosan-Based Gel",
+        type: "Injectable Gel",
+        details: "Features reversible sol-gel transition behavior, ideal for minimally invasive procedures to fill complex defects.\nRecommended Specialist: Reconstructive Surgery",
+        price: "Per treatment $350-600",
+        region: "asia"
+      },
+      {
+        name: "Cross-Linked CNS Delivery Gel",
+        type: "Injectable Gel",
+        details: "Designed for drug delivery to the central nervous system, offering treatment for neurological disorders.\nRecommended Specialist: Neurology",
+        price: "Per treatment $500-1000",
+        region: "north-america"
+      },
+      {
+        name: "Long-Acting Drug Delivery Gel",
+        type: "Injectable Gel",
+        details: "Engineered to dissolve over time, releasing medications gradually. Reduces frequency of injections for chronic conditions.\nRecommended Specialist: Pain Management",
+        price: "Per treatment $400-800",
+        region: "global"
+      }
+    ]
+  },
 ];

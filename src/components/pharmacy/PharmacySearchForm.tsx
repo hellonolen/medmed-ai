@@ -81,7 +81,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Enter any healthcare professional, pharmacy, symptom, condition, or location"
+                  placeholder="Enter any healthcare professional, pharmacy, symptom, condition, or medication type..."
                   className="pl-9"
                   value={smartSearch}
                   onChange={(e) => setSmartSearch(e.target.value)}
@@ -92,7 +92,8 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Our AI-powered search automatically detects what you're looking for and searches globally.
+              Our AI-powered search automatically detects what you're looking for and searches globally. 
+              Try searching for specific medication types like "tablets", "inhalers", "medical devices", "diagnostic tools", etc.
             </p>
           </TabsContent>
           

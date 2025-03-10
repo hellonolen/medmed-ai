@@ -41,6 +41,7 @@ const processQueryWithAI = (query: string): {
   detectedRegion: string | null;
   isSpecificMedication: boolean;
   detectedCondition: string | null;
+  detectedMedicationType: string | null;
 } => {
   const lowerQuery = query.toLowerCase();
   
@@ -79,6 +80,34 @@ const processQueryWithAI = (query: string): {
     condition.conditions.some(c => lowerQuery.includes(c.toLowerCase()))
   )?.category || null;
   
+  // Detect medication types
+  let detectedMedicationType = null;
+  if (/\b(tablet|pill|pills|tablets)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Tablets & Pills";
+  } else if (/\b(syrup|liquid|solution|oral solution)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Syrups & Liquids";
+  } else if (/\b(cream|ointment|gel|lotion|topical)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Creams, Ointments & Gels";
+  } else if (/\b(patch|patches|transdermal)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Patches";
+  } else if (/\b(drops|eyedrops|ear drops)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Drops";
+  } else if (/\b(suppository|suppositories)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Suppositories";
+  } else if (/\b(inhaler|nebulizer|inhaled|nebulizer|inhale)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Inhalers & Nebulizers";
+  } else if (/\b(device|pump|brace|monitor|machine|equipment)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Medical Devices";
+  } else if (/\b(diagnostic|thermometer|blood pressure|glucose|meter)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Diagnostic Tools";
+  } else if (/\b(vaccine|vaccination|shot|booster)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Vaccines";
+  } else if (/\b(injection|injectable|inject|syringe|shot)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Injections";
+  } else if (/\b(capsule|capsules)\b/.test(lowerQuery)) {
+    detectedMedicationType = "Capsules";
+  }
+  
   // Create enhanced query by adding context terms
   let enhancedQuery = query;
   
@@ -99,11 +128,17 @@ const processQueryWithAI = (query: string): {
     enhancedQuery += ` treatment for ${detectedCondition}`;
   }
   
+  // If medication type is detected, enhance with that type
+  if (detectedMedicationType) {
+    enhancedQuery += ` ${detectedMedicationType}`;
+  }
+  
   return {
     enhancedQuery,
     detectedRegion,
     isSpecificMedication,
-    detectedCondition
+    detectedCondition,
+    detectedMedicationType
   };
 };
 
@@ -117,13 +152,15 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
     enhancedQuery, 
     detectedRegion, 
     isSpecificMedication,
-    detectedCondition 
+    detectedCondition,
+    detectedMedicationType
   } = processQueryWithAI(query);
   
   console.log("AI-enhanced query:", enhancedQuery);
   console.log("Detected region:", detectedRegion);
   console.log("Is specific medication:", isSpecificMedication);
   console.log("Detected condition:", detectedCondition);
+  console.log("Detected medication type:", detectedMedicationType);
   
   // First try to match symptoms and conditions
   const matchingSymptoms = findMatchingSymptoms(enhancedQuery);
@@ -177,6 +214,12 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
       
       // Calculate relevance score
       let relevance = Math.max(categoryRelevance, directMatchScore);
+      
+      // Boost for medication type match if detected
+      if (detectedMedicationType && product.type && 
+          product.type.toLowerCase().includes(detectedMedicationType.toLowerCase())) {
+        relevance += 15;
+      }
       
       // Boost injectable gels if query is related
       if (isInjectableGelQuery && category.category === "Injectable Gels") {
@@ -265,7 +308,7 @@ export const findMedicationsForQuery = async (query: string): Promise<MatchedMed
         matchedMedications = [...matchedMedications, ...apiCache.get(enhancedQuery)!];
       } else {
         console.log("Fetching external data for:", enhancedQuery);
-        const externalResults = await fetchExternalMedicationData(enhancedQuery, detectedRegion);
+        const externalResults = await fetchExternalMedicationData(enhancedQuery, detectedRegion, detectedMedicationType);
         
         // Cache the results
         apiCache.set(enhancedQuery, externalResults);
@@ -306,14 +349,24 @@ export const groupMedicationsByType = (medications: MatchedMedication[]) => {
     "Injectable Gel", 
     "Capsule", 
     "Tablet", 
+    "Tablets & Pills",
+    "Syrups & Liquids",
     "Spray", 
     "Inhaler", 
+    "Inhalers & Nebulizers",
     "Ointment", 
     "Cream", 
     "Gel", 
+    "Creams, Ointments & Gels",
     "Liquid", 
     "Powder", 
-    "Patch", 
+    "Patch",
+    "Patches",
+    "Drops",
+    "Suppositories",
+    "Medical Devices",
+    "Diagnostic Tools",
+    "Vaccines",
     "Other"
   ];
   
@@ -329,22 +382,29 @@ export const groupMedicationsByType = (medications: MatchedMedication[]) => {
     
     // Get the actual type from the medication
     const actualType = med.type || "";
+    const lowerType = actualType.toLowerCase();
     
     // Map to standard types based on substring matching
-    if (actualType.toLowerCase().includes("inject") && actualType.toLowerCase().includes("gel")) {
+    if (lowerType.includes("inject") && lowerType.includes("gel")) {
       normalizedType = "Injectable Gel";
     }
-    else if (actualType.toLowerCase().includes("inject")) normalizedType = "Injection";
-    else if (actualType.toLowerCase().includes("capsule")) normalizedType = "Capsule";
-    else if (actualType.toLowerCase().includes("tablet")) normalizedType = "Tablet";
-    else if (actualType.toLowerCase().includes("spray")) normalizedType = "Spray";
-    else if (actualType.toLowerCase().includes("inhaler")) normalizedType = "Inhaler";
-    else if (actualType.toLowerCase().includes("ointment")) normalizedType = "Ointment";
-    else if (actualType.toLowerCase().includes("cream")) normalizedType = "Cream";
-    else if (actualType.toLowerCase().includes("gel")) normalizedType = "Gel";
-    else if (actualType.toLowerCase().includes("liquid")) normalizedType = "Liquid";
-    else if (actualType.toLowerCase().includes("powder")) normalizedType = "Powder";
-    else if (actualType.toLowerCase().includes("patch")) normalizedType = "Patch";
+    else if (lowerType.includes("inject")) normalizedType = "Injection";
+    else if (lowerType.includes("capsule")) normalizedType = "Capsule";
+    else if (lowerType.includes("tablet") || lowerType.includes("pill")) normalizedType = "Tablets & Pills";
+    else if (lowerType.includes("syrup") || lowerType.includes("liquid solution")) normalizedType = "Syrups & Liquids";
+    else if (lowerType.includes("spray")) normalizedType = "Spray";
+    else if (lowerType.includes("inhaler") || lowerType.includes("nebulizer")) normalizedType = "Inhalers & Nebulizers";
+    else if (lowerType.includes("ointment")) normalizedType = "Creams, Ointments & Gels";
+    else if (lowerType.includes("cream")) normalizedType = "Creams, Ointments & Gels";
+    else if (lowerType.includes("gel")) normalizedType = "Creams, Ointments & Gels";
+    else if (lowerType.includes("liquid")) normalizedType = "Syrups & Liquids";
+    else if (lowerType.includes("powder")) normalizedType = "Powder";
+    else if (lowerType.includes("patch")) normalizedType = "Patches";
+    else if (lowerType.includes("drop")) normalizedType = "Drops";
+    else if (lowerType.includes("suppository")) normalizedType = "Suppositories";
+    else if (lowerType.includes("device") || lowerType.includes("equipment") || lowerType.includes("pump") || lowerType.includes("brace")) normalizedType = "Medical Devices";
+    else if (lowerType.includes("diagnostic") || lowerType.includes("monitor") || lowerType.includes("thermometer")) normalizedType = "Diagnostic Tools";
+    else if (lowerType.includes("vaccine")) normalizedType = "Vaccines";
     
     // Add to appropriate group
     if (groups[normalizedType]) {
@@ -365,21 +425,123 @@ export const groupMedicationsByType = (medications: MatchedMedication[]) => {
 };
 
 // Function to fetch medication data from external APIs
-const fetchExternalMedicationData = async (query: string, region: string | null): Promise<MatchedMedication[]> => {
+const fetchExternalMedicationData = async (
+  query: string, 
+  region: string | null,
+  medicationType: string | null
+): Promise<MatchedMedication[]> => {
   // This is a mockup of what an external API call would look like
   // In a real implementation, this would make actual API calls to medical databases
   
   // For now, we'll simulate external API responses with mock data
-  return await simulateMedicalAPI(query, region);
+  return await simulateMedicalAPI(query, region, medicationType);
 };
 
 // Simulate external API calls (in a real app, this would be replaced with actual API requests)
-const simulateMedicalAPI = async (query: string, region: string | null): Promise<MatchedMedication[]> => {
+const simulateMedicalAPI = async (
+  query: string, 
+  region: string | null,
+  medicationType: string | null
+): Promise<MatchedMedication[]> => {
   // Simulate API latency
   await new Promise(resolve => setTimeout(resolve, 300));
   
   const normalizedQuery = query.toLowerCase();
   const results: MatchedMedication[] = [];
+  
+  // Add additional medication types based on user request
+  const additionalMedications = [
+    // Tablets & Pills
+    {
+      name: "Warfarin",
+      details: "Oral anticoagulant used to prevent blood clots.",
+      category: "Cardiovascular Conditions",
+      type: "Tablets & Pills",
+      source: "MedlinePlus",
+      region: "global"
+    },
+    // Syrups & Liquids
+    {
+      name: "Guaifenesin Syrup",
+      details: "Expectorant that helps loosen congestion in chest and throat.",
+      category: "Respiratory Conditions",
+      type: "Syrups & Liquids",
+      source: "RxNorm",
+      region: "global"
+    },
+    // Creams, Ointments & Gels
+    {
+      name: "Hydrocortisone Cream",
+      details: "Anti-inflammatory steroid that relieves redness, itching, and swelling.",
+      category: "Dermatological Conditions",
+      type: "Creams, Ointments & Gels",
+      source: "MedlinePlus",
+      region: "global"
+    },
+    // Patches
+    {
+      name: "Nicotine Transdermal Patch",
+      details: "Helps people stop smoking by reducing nicotine withdrawal symptoms.",
+      category: "Addiction Treatment",
+      type: "Patches",
+      source: "RxNorm",
+      region: "global"
+    },
+    // Drops
+    {
+      name: "Latanoprost Eye Drops",
+      details: "Reduces pressure inside the eye for glaucoma treatment.",
+      category: "Ophthalmological Conditions",
+      type: "Drops",
+      source: "MedlinePlus",
+      region: "global"
+    },
+    // Suppositories
+    {
+      name: "Glycerin Suppositories",
+      details: "Used to treat constipation by drawing water into the intestines.",
+      category: "Gastrointestinal Conditions",
+      type: "Suppositories",
+      source: "RxNorm",
+      region: "global"
+    },
+    // Inhalers & Nebulizers
+    {
+      name: "Fluticasone Propionate Inhaler",
+      details: "Corticosteroid that prevents inflammation in the airways.",
+      category: "Respiratory Conditions",
+      type: "Inhalers & Nebulizers",
+      source: "MedlinePlus",
+      region: "global"
+    },
+    // Medical Devices
+    {
+      name: "Insulin Pump",
+      details: "Delivers insulin continuously for better diabetes management.",
+      category: "Endocrine Conditions",
+      type: "Medical Devices",
+      source: "Global Medical Database",
+      region: "global"
+    },
+    // Diagnostic Tools
+    {
+      name: "Digital Blood Pressure Monitor",
+      details: "For monitoring hypertension and cardiovascular health at home.",
+      category: "Cardiovascular Conditions",
+      type: "Diagnostic Tools",
+      source: "Global Medical Database",
+      region: "global"
+    },
+    // Vaccines
+    {
+      name: "Influenza Vaccine",
+      details: "Annual vaccine to protect against seasonal flu strains.",
+      category: "Infectious Disease Prevention",
+      type: "Vaccines",
+      source: "WHO Essential Medicines",
+      region: "global"
+    }
+  ];
   
   // Simulated external medication database - enhanced with regional information
   const externalMedications = [
@@ -558,48 +720,49 @@ const simulateMedicalAPI = async (query: string, region: string | null): Promise
     }
   ];
   
-  // Add injectable gel mock data
-  const externalInjectableGels = [
-    {
-      name: "Hyaluronic Acid Dermal Filler",
-      details: "Injectable gel used for soft tissue augmentation. Adds volume to facial wrinkles and folds.",
-      category: "Dermatological Conditions",
-      type: "Injectable Gel",
-      source: "MedlinePlus"
-    },
-    {
-      name: "PRP Injectable Gel",
-      details: "Platelet-rich plasma gel for tissue regeneration and wound healing.",
-      category: "Regenerative Medicine",
-      type: "Injectable Gel",
-      source: "RxNorm"
-    },
-    {
-      name: "PLGA Microsphere Gel",
-      details: "Biodegradable gel containing poly(lactic-co-glycolic acid) microspheres for extended drug delivery.",
-      category: "Drug Delivery Systems",
-      type: "Injectable Gel",
-      source: "MedlinePlus"
-    }
-  ];
+  // Combine with existing medications and add the new ones
+  const combinedMedications = [...externalMedications, ...additionalMedications];
   
   // Apply regional filtering if a region is specified
   const regionFilteredMedications = region && region !== "global"
-    ? externalMedications.filter(med => med.region === "global" || med.region === region)
-    : externalMedications;
+    ? combinedMedications.filter(med => med.region === "global" || med.region === region)
+    : combinedMedications;
+  
+  // Apply medication type filtering if specified
+  const typeFilteredMedications = medicationType
+    ? regionFilteredMedications.filter(med => {
+        const medTypeMatch = med.type.toLowerCase().includes(medicationType.toLowerCase());
+        // For Tablets & Pills, also include just "Tablet" types
+        if (medicationType === "Tablets & Pills" && med.type.toLowerCase().includes("tablet")) {
+          return true;
+        }
+        return medTypeMatch;
+      })
+    : regionFilteredMedications;
   
   // Search through the external medications
-  regionFilteredMedications.forEach(med => {
-    const medString = `${med.name} ${med.details} ${med.category}`.toLowerCase();
+  typeFilteredMedications.forEach(med => {
+    const medString = `${med.name} ${med.details} ${med.category} ${med.type}`.toLowerCase();
     
-    if (medString.includes(normalizedQuery)) {
+    // Increase chances of matching if medication type was detected in query
+    const medicationTypeMatch = medicationType && med.type.toLowerCase().includes(medicationType.toLowerCase());
+    const queryMatch = medString.includes(normalizedQuery);
+    
+    if (queryMatch || medicationTypeMatch) {
       const specialist = getSpecialistForCategory(med.category);
+      
+      let relevance = queryMatch ? 70 : 50; // Base relevance for matching
+      
+      // Boost relevance for medication type matches
+      if (medicationTypeMatch) {
+        relevance += 20;
+      }
       
       results.push({
         name: med.name,
         details: `${med.details}\nRecommended Specialist: ${specialist}`,
         price: "Price varies by pharmacy",
-        relevance: 70, // External results get a slightly lower base relevance
+        relevance: relevance,
         category: med.category,
         type: med.type,
         source: med.source,
@@ -619,7 +782,32 @@ const simulateMedicalAPI = async (query: string, region: string | null): Promise
     query.toLowerCase().includes(keyword.toLowerCase())
   );
   
+  // Add injectable gel results if requested
   if (isInjectableGelQuery) {
+    const externalInjectableGels = [
+      {
+        name: "Hyaluronic Acid Dermal Filler",
+        details: "Injectable gel used for soft tissue augmentation. Adds volume to facial wrinkles and folds.",
+        category: "Dermatological Conditions",
+        type: "Injectable Gel",
+        source: "MedlinePlus"
+      },
+      {
+        name: "PRP Injectable Gel",
+        details: "Platelet-rich plasma gel for tissue regeneration and wound healing.",
+        category: "Regenerative Medicine",
+        type: "Injectable Gel",
+        source: "RxNorm"
+      },
+      {
+        name: "PLGA Microsphere Gel",
+        details: "Biodegradable gel containing poly(lactic-co-glycolic acid) microspheres for extended drug delivery.",
+        category: "Drug Delivery Systems",
+        type: "Injectable Gel",
+        source: "MedlinePlus"
+      }
+    ];
+    
     externalInjectableGels.forEach(gel => {
       results.push({
         name: gel.name,
@@ -653,7 +841,9 @@ const getSpecialistForCategory = (category: string): string => {
     'Neurological Conditions': 'Neurology',
     'Musculoskeletal Conditions': 'Orthopedics or Rheumatology',
     'Dermatological Conditions': 'Dermatology',
-    'ENT Conditions': 'ENT & Allergy'
+    'ENT Conditions': 'ENT & Allergy',
+    'Ophthalmological Conditions': 'Ophthalmology',
+    'Infectious Disease Prevention': 'Infectious Disease'
   };
   
   return specialistMap[category] || 'Primary Care';
@@ -677,16 +867,4 @@ const getRecommendedSpecialist = (
   }
 
   // Fallback to category mapping
-  const specialistMap: Record<string, string> = {
-    'ACNE/ROSACEA': 'Dermatology',
-    'Anti-Aging': 'Dermatology',
-    'Respiratory Conditions': 'Pulmonology or ENT & Allergy',
-    'Gastrointestinal Conditions': 'Gastroenterology',
-    'Pain Relief': 'Primary Care',
-    'Allergy Relief': 'ENT & Allergy',
-    'Injectable Gels': 'Regenerative Medicine or Orthopedics',
-    'Injectable Medications': 'Specialist depends on medication'
-  };
-  
-  return specialistMap[category] || 'Primary Care';
-};
+  const specialistMap: Record<string, string>

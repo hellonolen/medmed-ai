@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Stethoscope, Database, MapPin, Pill, Globe } from "lucide-react";
+import { Stethoscope, Database, MapPin, Pill, Globe, Droplets, Notebook, Activity, Thermometer, Syringe, Capsule } from "lucide-react";
 import { specialistsInfo } from "@/data/specialists";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -28,13 +28,32 @@ export const MedicationCard = ({
   const hasLocations = specialistInfo?.locations && specialistInfo.locations.length > 0;
   const hasTopTreatmentLocations = specialistInfo?.topTreatmentLocations && specialistInfo.topTreatmentLocations.length > 0;
 
+  // Get appropriate icon based on medication type
+  const getMedicationIcon = (type: string) => {
+    const lowerType = type.toLowerCase();
+    
+    if (lowerType.includes('tablet') || lowerType.includes('pill')) return <Pill className="h-3 w-3" />;
+    if (lowerType.includes('syrup') || lowerType.includes('liquid')) return <Droplets className="h-3 w-3" />;
+    if (lowerType.includes('cream') || lowerType.includes('ointment') || lowerType.includes('gel')) return <Droplets className="h-3 w-3" />;
+    if (lowerType.includes('patch')) return <Notebook className="h-3 w-3" />;
+    if (lowerType.includes('drop')) return <Droplets className="h-3 w-3" />;
+    if (lowerType.includes('suppository')) return <Pill className="h-3 w-3" />;
+    if (lowerType.includes('inhaler') || lowerType.includes('nebulizer')) return <Activity className="h-3 w-3" />;
+    if (lowerType.includes('device')) return <Activity className="h-3 w-3" />;
+    if (lowerType.includes('diagnostic') || lowerType.includes('thermometer')) return <Thermometer className="h-3 w-3" />;
+    if (lowerType.includes('vaccine') || lowerType.includes('injection')) return <Syringe className="h-3 w-3" />;
+    if (lowerType.includes('capsule')) return <Capsule className="h-3 w-3" />;
+    
+    return <Pill className="h-3 w-3" />; // Default icon
+  };
+
   return (
     <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg font-semibold text-primary">{name}</CardTitle>
           <Badge variant="outline" className="text-xs flex items-center gap-1">
-            <Pill className="h-3 w-3" />
+            {getMedicationIcon(type)}
             {type}
           </Badge>
         </div>
