@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Pharmacy } from "@/data/pharmacies";
-import { searchPharmaciesByZip, searchPharmaciesByCity } from "@/utils/pharmacySearch";
+import { searchPharmaciesByZip, searchPharmaciesByCity, intelligentPharmacySearch } from "@/utils/pharmacySearch";
 import { PharmacySearchForm } from "@/components/pharmacy/PharmacySearchForm";
 import { PharmacyList } from "@/components/pharmacy/PharmacyList";
 
@@ -14,9 +14,9 @@ const PharmacyFinder = () => {
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<'zip' | 'city'>('zip');
+  const [searchType, setSearchType] = useState<'zip' | 'city' | 'smart'>('smart');
   
-  const handleSearch = (term: string, type: 'zip' | 'city') => {
+  const handleSearch = (term: string, type: 'zip' | 'city' | 'smart') => {
     setSearching(true);
     setSearched(true);
     setSearchTerm(term);
@@ -28,10 +28,18 @@ const PharmacyFinder = () => {
       
       console.log(`Searching by ${type}:`, term);
       
-      if (type === 'zip') {
-        filteredPharmacies = searchPharmaciesByZip(term);
-      } else {
-        filteredPharmacies = searchPharmaciesByCity(term);
+      // Use the appropriate search function based on the search type
+      switch (type) {
+        case 'zip':
+          filteredPharmacies = searchPharmaciesByZip(term);
+          break;
+        case 'city':
+          filteredPharmacies = searchPharmaciesByCity(term);
+          break;
+        case 'smart':
+          filteredPharmacies = intelligentPharmacySearch(term);
+          toast.success(`AI-enhanced search completed for "${term}"`);
+          break;
       }
       
       console.log("Search results:", filteredPharmacies.length);
@@ -39,7 +47,7 @@ const PharmacyFinder = () => {
       setSearching(false);
       
       if (filteredPharmacies.length === 0) {
-        toast.info(`No pharmacies found for this ${type === 'zip' ? 'ZIP code' : 'city'}`);
+        toast.info(`No pharmacies found for this search term. Try using the Smart Search for better results.`);
       }
     }, 1000);
   };
@@ -54,9 +62,9 @@ const PharmacyFinder = () => {
         </Link>
         
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">Pharmacy Finder</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Global Pharmacy Finder</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Find pharmacies nationwide - including CVS, Walgreens, and local pharmacies
+            Find pharmacies worldwide - including local chains and international locations
           </p>
         </div>
         
