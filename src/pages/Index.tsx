@@ -8,10 +8,12 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Index = () => {
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
-  const handleSearch = (results: Array<{ name: string; details: string; price: string }>) => {
+  const handleSearch = (query: string, results: Array<{ name: string; details: string; price: string }>) => {
+    setSearchQuery(query);
     setSearchResults(results);
     setSearchPerformed(true);
   };
@@ -39,7 +41,7 @@ const Index = () => {
             {searchResults.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 animate-fadeIn">
                 <div className="md:col-span-2 mb-2">
-                  <h2 className="text-2xl font-semibold text-gray-800">Search Results</h2>
+                  <h2 className="text-2xl font-semibold text-gray-800">Medication Results</h2>
                 </div>
                 {searchResults.map((result, index) => (
                   <div key={index} className="relative">
@@ -62,17 +64,16 @@ const Index = () => {
             )}
 
             {searchPerformed && searchResults.length === 0 && (
-              <div className="text-center py-12 mb-12 bg-card/50 rounded-lg">
+              <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
                 <p className="text-gray-500">No medications found matching your search.</p>
-                <p className="text-gray-500 mt-2">Try different keywords or check with a specialist below.</p>
               </div>
             )}
 
             <div className="mb-8">
               <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                {searchPerformed ? "Recommended Specialists" : "Find Specialists"}
+                {searchPerformed ? "Specialists Related to Your Search" : "Popular Specialists"}
               </h2>
-              <SpecialistsList />
+              <SpecialistsList searchQuery={searchQuery} />
             </div>
           </div>
 

@@ -1,8 +1,9 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface SpecialistsListProps {
+  searchQuery: string;
+}
 
 const specialists = [
   "Primary Care",
@@ -27,32 +28,15 @@ const specialists = [
   "Weight Management"
 ];
 
-export const SpecialistsList = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAll, setShowAll] = useState(false);
-  
+export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
   const filteredSpecialists = specialists.filter(specialist => 
     specialist.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Show only first 6 results unless "show all" is clicked or there's a search query
-  const displaySpecialists = searchQuery 
-    ? filteredSpecialists 
-    : (showAll ? specialists : specialists.slice(0, 6));
+  const displaySpecialists = filteredSpecialists.length > 0 ? filteredSpecialists : [];
 
   return (
     <div className="space-y-4 animate-fadeIn">
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        <Input
-          type="text"
-          placeholder="Search for a specialist..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
-        />
-      </div>
-      
       {displaySpecialists.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {displaySpecialists.map((specialist) => (
@@ -65,18 +49,7 @@ export const SpecialistsList = () => {
         </div>
       ) : (
         <div className="text-center py-8">
-          <p className="text-gray-500">No specialists found matching "{searchQuery}"</p>
-        </div>
-      )}
-      
-      {!searchQuery && !showAll && specialists.length > 6 && (
-        <div className="text-center mt-4">
-          <button 
-            onClick={() => setShowAll(true)}
-            className="text-primary hover:text-primary/80 font-medium"
-          >
-            Show all {specialists.length} specialists
-          </button>
+          <p className="text-gray-500">No specialists found matching your search criteria.</p>
         </div>
       )}
     </div>

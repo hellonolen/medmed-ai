@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { medications } from '@/data/medications';
 
 interface SearchBarProps {
-  onSearch: (results: Array<{ name: string; details: string; price: string }>) => void;
+  onSearch: (query: string, results: Array<{ name: string; details: string; price: string }>) => void;
 }
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
@@ -25,7 +25,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       }))
     );
 
-    onSearch(results);
+    onSearch(query, results);
   };
 
   const getRecommendedSpecialist = (category: string): string => {
@@ -44,7 +44,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search symptoms, conditions, or medications..."
+          placeholder="Search symptoms, conditions, specialists or medications..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
