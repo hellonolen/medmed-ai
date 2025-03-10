@@ -49,12 +49,16 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   
   console.log("Searching city:", city);
   
-  // Filter by city name (case-insensitive)
+  // Convert to lowercase for case-insensitive comparison
+  const searchTerm = city.toLowerCase().trim();
+  
+  // Filter by city name (case-insensitive partial match)
   const matchedPharmacies = pharmacies.filter(pharmacy => 
-    pharmacy.city.toLowerCase().includes(city.toLowerCase())
+    pharmacy.city.toLowerCase().includes(searchTerm)
   );
   
   console.log("Found pharmacies:", matchedPharmacies.length);
+  console.log("Available cities in data:", [...new Set(pharmacies.map(p => p.city))]);
   
   // Return pharmacies with randomized distances
   return matchedPharmacies.map(pharmacy => ({

@@ -55,6 +55,19 @@ export const pharmacies: Pharmacy[] = [
     city: "Joliet",
     state: "IL"
   },
+  {
+    id: 10,
+    name: "CVS Pharmacy",
+    address: "1001 Boyette Rd, Tampa, FL 33511",
+    phone: "(813) 555-7890",
+    hours: "8am - 10pm",
+    distance: "1.2 miles",
+    rating: 4.1,
+    chain: "CVS",
+    zipCode: "33511",
+    city: "Tampa",
+    state: "FL"
+  },
   // Walgreens Locations
   {
     id: 4,
@@ -95,6 +108,32 @@ export const pharmacies: Pharmacy[] = [
     city: "Joliet",
     state: "IL"
   },
+  {
+    id: 11,
+    name: "Walgreens",
+    address: "555 Dale Mabry Hwy, Tampa, FL 33609",
+    phone: "(813) 555-1212",
+    hours: "24 hours",
+    distance: "0.9 miles",
+    rating: 4.3,
+    chain: "Walgreens",
+    zipCode: "33609",
+    city: "Tampa",
+    state: "FL"
+  },
+  {
+    id: 12,
+    name: "Walgreens",
+    address: "123 Michigan Ave, Chicago, IL 60603",
+    phone: "(312) 555-9999",
+    hours: "7am - 10pm",
+    distance: "0.4 miles",
+    rating: 4.7,
+    chain: "Walgreens",
+    zipCode: "60603",
+    city: "Chicago",
+    state: "IL"
+  },
   // Independent Pharmacies
   {
     id: 7,
@@ -133,6 +172,32 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "60432",
     city: "Joliet",
+    state: "IL"
+  },
+  {
+    id: 13,
+    name: "Tampa Bay Pharmacy",
+    address: "789 Tampa Bay Blvd, Tampa, FL 33614",
+    phone: "(813) 555-8765",
+    hours: "8am - 8pm",
+    distance: "1.1 miles",
+    rating: 4.9,
+    chain: "Independent",
+    zipCode: "33614",
+    city: "Tampa",
+    state: "FL"
+  },
+  {
+    id: 14,
+    name: "Windy City Pharmacy",
+    address: "456 State St, Chicago, IL 60605",
+    phone: "(312) 555-4444",
+    hours: "8am - 7pm",
+    distance: "0.7 miles",
+    rating: 4.8,
+    chain: "Independent",
+    zipCode: "60605",
+    city: "Chicago",
     state: "IL"
   }
 ];
