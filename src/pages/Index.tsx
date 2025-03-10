@@ -5,7 +5,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, BookOpen, Bell, User } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,6 +13,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
 import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 import { RecommendationSystem } from "@/components/RecommendationSystem";
+import { AIChatbot } from "@/components/AIChatbot";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -94,6 +95,17 @@ const Index = () => {
                   {t("menu.admin", "Admin Dashboard")}
                 </Button>
               </Link>
+              
+              <Link to="/health-hub">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Personal Health Hub
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -101,30 +113,42 @@ const Index = () => {
             <SearchBar onSearch={handleSearch} />
           </div>
           
-          <div className="mb-8 max-w-3xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mb-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <Link to="/symptom-checker">
-                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Clipboard className="h-4 w-4 text-primary" />
                   <span>{t("menu.symptom_checker", "Symptom Checker")}</span>
                 </Button>
               </Link>
               <Link to="/pharmacy-finder">
-                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Map className="h-4 w-4 text-primary" />
                   <span>{t("menu.pharmacy_finder", "Global Pharmacy Finder")}</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
-                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Activity className="h-4 w-4 text-primary" />
                   <span>{t("menu.interaction_checker", "Interaction Checker")}</span>
                 </Button>
               </Link>
               <Link to="/favorites">
-                <Button variant="outline" className="w-full h-16 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Heart className="h-4 w-4 text-primary" />
                   <span>{t("menu.favorites", "My Favorites")}</span>
+                </Button>
+              </Link>
+              <Link to="/health-hub">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <Bell className="h-4 w-4 text-primary" />
+                  <span>Medication Reminders</span>
+                </Button>
+              </Link>
+              <Link to="/health-hub?tab=education">
+                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <span>Education Hub</span>
                 </Button>
               </Link>
             </div>
@@ -208,6 +232,9 @@ const Index = () => {
           </footer>
         </div>
       </div>
+      
+      {/* Add AI Chatbot */}
+      <AIChatbot />
     </TooltipProvider>
   );
 };
