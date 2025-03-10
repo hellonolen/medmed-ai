@@ -125,6 +125,20 @@ export const medicalConditions: MedicalCondition[] = [
     medications: ["Shear-Thinning Hydrogel", "Temperature-Responsive Gel", "Alginate Injectable System", "Chitosan-Based Gel", "Cross-Linked CNS Delivery Gel", "Long-Acting Drug Delivery Gel"],
     specialists: ["Regenerative Medicine", "Orthopedics", "Dermatology", "Plastic Surgery"]
   },
+  {
+    category: "Injectable Therapies",
+    conditions: ["Tissue Engineering", "Drug Delivery Systems", "Peptide Therapy", "Regenerative Medicine", "Anti-Aging Treatments"],
+    symptoms: ["Joint pain", "Tissue damage", "Chronic wounds", "Aging concerns", "Energy deficiency", "Skin concerns"],
+    medications: ["BPC-157", "TB-500", "NAD+", "Glutathione", "Vitamin B12", "PT-141"],
+    specialists: ["Regenerative Medicine", "Sports Medicine", "Anti-Aging Medicine"]
+  },
+  {
+    category: "Antiviral Treatments",
+    conditions: ["HIV/AIDS", "Hepatitis B", "Hepatitis C", "Herpes", "Influenza"],
+    symptoms: ["Viral infection", "Immune system concerns", "Chronic viral conditions"],
+    medications: ["Baloxavir Marboxil", "Cabenuva", "Antiretroviral Therapy", "Tenofovir", "Entecavir"],
+    specialists: ["Infectious Disease", "Internal Medicine"]
+  },
 ];
 
 // Convert the comprehensive data to our symptom mapping format

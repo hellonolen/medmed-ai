@@ -1,4 +1,3 @@
-
 export interface Medication {
   category: string;
   products: Array<{
@@ -18,19 +17,19 @@ export const medications: Medication[] = [
       {
         name: "Tretinoin Cream",
         type: "Cream",
-        details: "USP 0.033% or 0.09%, Ascorbic Acid USP (Vit C). For topical application only, not for use in eyes.",
+        details: "USP 0.033% or 0.09%, Ascorbic Acid USP (Vit C). WARNING: For topical application only, NOT FOR USE IN OR NEAR EYES.",
         price: "30g $45 / 60g $75"
       },
       {
         name: "Tretinoin Gel",
         type: "Gel (Anhydrous)",
-        details: "USP 0.06% or 0.09%, Ascorbic Acid USP (Vit C). For topical application only, not for use in eyes.",
+        details: "USP 0.06% or 0.09%, Ascorbic Acid USP (Vit C). WARNING: For topical application only, NOT FOR USE IN OR NEAR EYES.",
         price: "30g $45 / 60g $75"
       },
       {
         name: "Azelaic Acid",
         type: "Cream",
-        details: "15%, for rosacea and acne. For topical application only, not for use in eyes.",
+        details: "15%, for rosacea and acne. WARNING: For topical application only, NOT FOR USE IN OR NEAR EYES.",
         price: "30g $35"
       }
     ]
@@ -189,5 +188,81 @@ export const medications: Medication[] = [
         price: "Per treatment $400-800"
       }
     ]
-  }
+  },
+  {
+    category: "Antiviral Injections",
+    products: [
+      {
+        name: "Baloxavir Marboxil",
+        type: "Injection",
+        details: "Advanced antiviral medication for Influenza treatment.\nRecommended Specialist: Infectious Disease",
+        price: "Per treatment $150-300",
+        benefits: ["Effective against Influenza"]
+      },
+      {
+        name: "Cabenuva",
+        type: "Injectable Medication",
+        details: "Long-acting HIV treatment.\nRecommended Specialist: Infectious Disease",
+        price: "Monthly treatment $3000-4000",
+        benefits: [
+          "Controls HIV Symptoms",
+          "Monthly/bi-monthly dosing available",
+          "Improves treatment adherence",
+          "Maintains viral suppression"
+        ]
+      },
+      {
+        name: "Antiretroviral Therapy (ART)",
+        type: "Injection",
+        details: "Combination of tenofovir, emtricitabine, dolutegravir for HIV/AIDS treatment.\nRecommended Specialist: Infectious Disease",
+        price: "Monthly treatment $2000-3000"
+      }
+    ]
+  },
+  {
+    category: "Peptide Therapies",
+    products: [
+      {
+        name: "BPC-157",
+        type: "Injectable Peptide",
+        details: "Body protection compound for tissue healing and gut health.\nRecommended Specialist: Regenerative Medicine",
+        price: "Per treatment $150-300"
+      },
+      {
+        name: "TB-500",
+        type: "Injectable Peptide",
+        details: "Promotes healing and recovery.\nRecommended Specialist: Sports Medicine",
+        price: "Per treatment $200-400"
+      },
+      {
+        name: "PT-141",
+        type: "Injectable Peptide",
+        details: "For sexual health and function.\nRecommended Specialist: Endocrinology",
+        price: "Per treatment $100-200"
+      }
+    ]
+  },
+  {
+    category: "Wellness Injections",
+    products: [
+      {
+        name: "Glutathione",
+        type: "Injection",
+        details: "Powerful antioxidant for skin health and detoxification.\nRecommended Specialist: Functional Medicine",
+        price: "Per treatment $75-150"
+      },
+      {
+        name: "Vitamin B12",
+        type: "Injection",
+        details: "Energy boost and nervous system support.\nRecommended Specialist: Primary Care",
+        price: "Per treatment $30-60"
+      },
+      {
+        name: "NAD+",
+        type: "Injection",
+        details: "Cellular energy and anti-aging.\nRecommended Specialist: Anti-Aging Medicine",
+        price: "Per treatment $200-500"
+      }
+    ]
+  },
 ];
