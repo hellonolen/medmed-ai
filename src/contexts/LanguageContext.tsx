@@ -21,6 +21,7 @@ interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
   t: (key: string, fallback?: string) => string;
+  autoDetectedLanguage: LanguageCode | null;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -61,6 +62,18 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
   const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({});
+  const [autoDetectedLanguage, setAutoDetectedLanguage] = useState<LanguageCode | null>(null);
+
+  // Auto-detect language on initial load
+  useEffect(() => {
+    const detectedLang = detectBrowserLanguage();
+    setAutoDetectedLanguage(detectedLang);
+    
+    // Only auto-switch if there's no user preference already saved
+    if (!localStorage.getItem('medmed-language')) {
+      setLanguageState(detectedLang);
+    }
+  }, []);
 
   // Load translation files
   useEffect(() => {
@@ -110,7 +123,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, autoDetectedLanguage }}>
       {children}
     </LanguageContext.Provider>
   );

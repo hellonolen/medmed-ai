@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, Globe, Languages } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,32 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [region, setRegion] = useState<string>('global');
   const { toast } = useToast();
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, autoDetectedLanguage } = useLanguage();
+  const [showLanguageNotification, setShowLanguageNotification] = useState(false);
+
+  // Show notification about auto-detected language on first load
+  useEffect(() => {
+    if (autoDetectedLanguage && !localStorage.getItem('language-notification-shown')) {
+      setShowLanguageNotification(true);
+      
+      // Show notification toast
+      toast({
+        title: t("language.auto_detected", "Language Auto-Detected"),
+        description: t(
+          "language.using_browser_language", 
+          `Using your browser language: ${supportedLanguages[autoDetectedLanguage]}. You can change it anytime.`
+        ),
+        duration: 5000,
+      });
+      
+      // Mark as shown
+      try {
+        localStorage.setItem('language-notification-shown', 'true');
+      } catch (e) {
+        console.error("Could not save notification state to localStorage", e);
+      }
+    }
+  }, [autoDetectedLanguage]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

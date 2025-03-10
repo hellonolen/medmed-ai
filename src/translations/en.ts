@@ -42,6 +42,11 @@ const translations = {
   "medication.available": "Available in:",
   "medication.best_places": "Best places for treatment:",
   "medication.source": "Source:",
+  
+  // Language
+  "language.auto_detected": "Language Auto-Detected",
+  "language.using_browser_language": "Using your browser language: {0}. You can change it anytime.",
+  "language.change": "Change Language",
 };
 
 export default translations;
