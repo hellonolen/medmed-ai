@@ -14,7 +14,7 @@ const translations = {
   "button.clear": "Clear",
   
   // Search
-  "search.placeholder.global": "Search medications, doctors, nurses, symptoms or conditions worldwide...",
+  "search.placeholder.global": "Search medications, symptoms, conditions, healthcare professionals worldwide...",
   "search.results": "Medication Results",
   "search.worldwide": "Worldwide search",
   "search.no_results": "No results found matching your search. Try different keywords.",

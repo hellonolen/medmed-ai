@@ -59,7 +59,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
     <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg mb-8">
       <CardHeader>
         <CardTitle className="text-xl font-semibold flex items-center">
-          <span>Search for Pharmacies, Doctors or Nurses Worldwide</span>
+          <span>Search for Pharmacies, Healthcare Professionals, or Specialists Worldwide</span>
           <Globe className="ml-2 h-4 w-4 text-primary/70" />
         </CardTitle>
       </CardHeader>
@@ -81,7 +81,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Enter any location, postal code, healthcare professional or pharmacy name"
+                  placeholder="Enter any healthcare professional, pharmacy, symptom, condition, or location"
                   className="pl-9"
                   value={smartSearch}
                   onChange={(e) => setSmartSearch(e.target.value)}
@@ -109,7 +109,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 />
               </div>
               <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Find Pharmacies"}
+                {isSearching ? "Searching..." : "Find Healthcare"}
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
@@ -130,7 +130,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
                 />
               </div>
               <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Find Pharmacies"}
+                {isSearching ? "Searching..." : "Find Healthcare"}
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
@@ -83,8 +84,55 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
       return;
     }
     
-    // Search for healthcare professionals (doctors and nurses)
+    // First, search for specialists based on symptoms and conditions
     const queryLower = searchQuery.toLowerCase();
+    
+    // Get specialists from symptom mappings
+    const matchingSymptoms = findMatchingSymptoms(searchQuery);
+    const specialistsFromSymptoms = new Set(
+      matchingSymptoms.flatMap(symptom => symptom.specialists)
+    );
+    
+    // Get specialists directly from medical conditions
+    const conditionSpecialists = new Set<string>();
+    medicalConditions.forEach(condition => {
+      // Check if condition name matches
+      const conditionMatches = condition.conditions.some(c => 
+        c.toLowerCase().includes(queryLower)
+      );
+      
+      // Check if medication matches
+      const medicationMatches = condition.medications.some(m => 
+        m.toLowerCase().includes(queryLower)
+      );
+      
+      if (conditionMatches || medicationMatches) {
+        condition.specialists.forEach(s => conditionSpecialists.add(s));
+      }
+    });
+    
+    // Also filter specialists by direct name match
+    const directMatchedSpecialists = specialists.filter(specialist => 
+      specialist.toLowerCase().includes(queryLower)
+    );
+    
+    // If no specialists found through exact matches, consider it a general search
+    const foundSpecialists = [
+      ...directMatchedSpecialists,
+      ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
+      ...Array.from(specialistsFromSymptoms).filter(spec => 
+        !directMatchedSpecialists.includes(spec) && !conditionSpecialists.has(spec)
+      )
+    ];
+    
+    // If no specialists found and it's a non-empty search, show some default specialists
+    const specialistsToDisplay = foundSpecialists.length > 0 
+      ? foundSpecialists 
+      : queryLower.trim() !== "" ? specialists.slice(0, 6) : [];
+    
+    setAllSpecialists(specialistsToDisplay);
+    
+    // Next, search for healthcare professionals (doctors and nurses)
     const isDoctorSearch = queryLower.includes("doctor") || queryLower.includes("dr") || queryLower.includes("physician");
     const isNurseSearch = queryLower.includes("nurse") || queryLower.includes("nursing");
     
@@ -120,58 +168,13 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
     
     setMatchedProfessionals(professionals);
     
-    // Get specialists from symptom mappings first (original code)
-    const matchingSymptoms = findMatchingSymptoms(searchQuery);
-    const specialistsFromSymptoms = new Set(
-      matchingSymptoms.flatMap(symptom => symptom.specialists)
-    );
-    
-    // Get specialists directly from medical conditions (original code)
-    const conditionSpecialists = new Set<string>();
-    medicalConditions.forEach(condition => {
-      // Check if condition name matches
-      const conditionMatches = condition.conditions.some(c => 
-        c.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      // Check if medication matches
-      const medicationMatches = condition.medications.some(m => 
-        m.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      
-      if (conditionMatches || medicationMatches) {
-        condition.specialists.forEach(s => conditionSpecialists.add(s));
-      }
-    });
-    
-    // Also filter specialists by direct name match (original code)
-    const directMatchedSpecialists = specialists.filter(specialist => 
-      specialist.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    
-    // If no specialists found through exact matches, consider it a general search (original code)
-    const foundSpecialists = [
-      ...directMatchedSpecialists,
-      ...Array.from(conditionSpecialists).filter(spec => !directMatchedSpecialists.includes(spec)),
-      ...Array.from(specialistsFromSymptoms).filter(spec => 
-        !directMatchedSpecialists.includes(spec) && !conditionSpecialists.has(spec)
-      )
-    ];
-    
-    // If no specialists found and it's a non-empty search, show some default specialists (original code)
-    const specialistsToDisplay = foundSpecialists.length > 0 
-      ? foundSpecialists 
-      : searchQuery.trim() !== "" ? specialists.slice(0, 6) : [];
-    
-    setAllSpecialists(specialistsToDisplay);
-    
-    // If we're showing default specialists because none matched, notify the user (original code)
-    if (searchQuery.trim() !== "" && foundSpecialists.length === 0 && specialistsToDisplay.length > 0 && professionals.length === 0) {
+    // If we're showing default specialists because none matched, notify the user
+    if (queryLower.trim() !== "" && foundSpecialists.length === 0 && specialistsToDisplay.length > 0 && professionals.length === 0) {
       toast.info("Showing available specialists. Try more specific symptoms or conditions for better matches.");
     }
   }, [searchQuery]);
   
-  // Apply location filter if active (original code)
+  // Apply location filter if active
   const filteredByLocation = locationFilter.trim() === "" 
     ? allSpecialists 
     : allSpecialists.filter(specialist => {
@@ -189,7 +192,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         prof.location.toLowerCase().includes(locationFilter.toLowerCase())
       );
   
-  // Limit to 6 specialists maximum (original code)
+  // Limit to 6 specialists maximum
   const limitedSpecialists = filteredByLocation.slice(0, 6);
   
   // Group healthcare professionals by type
@@ -217,9 +220,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
     <div className="space-y-4 animate-fadeIn">
       <div className="mb-2 flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-gray-800">
-          {matchedProfessionals.length > 0 
-            ? t("search.healthcare_professionals", "Healthcare Professionals") 
-            : "Specialist Results"}
+          {t("search.healthcare_professionals", "Healthcare Professionals")}
         </h2>
         <Button 
           variant="outline" 
@@ -277,7 +278,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         </div>
       )}
       
-      {/* Healthcare Professionals Section */}
+      {/* Healthcare Professionals (Doctors and Nurses) Section */}
       {(doctors.length > 0 || nurses.length > 0) && (
         <div className="mb-8">
           {/* Doctors Section */}
@@ -376,32 +377,13 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         </div>
       )}
       
-      {/* Original Specialists Section - keep if there are any specialists matched */}
-      {limitedSpecialists.length === 0 ? (
-        (!doctors.length && !nurses.length) && (
-          <div className="p-6 text-center bg-card/90 backdrop-blur-sm rounded-lg border border-border">
-            <Users className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-            <h3 className="text-lg font-medium">No specialists found</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              {locationFilter ? 
-                `No specialists matching "${searchQuery}" available in "${locationFilter}".` : 
-                `No specialists matching "${searchQuery}" found.`}
-            </p>
-            {locationFilter && (
-              <Button 
-                variant="link" 
-                onClick={() => setLocationFilter("")} 
-                className="mt-2"
-              >
-                Clear location filter
-              </Button>
-            )}
-          </div>
-        )
-      ) : (
-        <>
+      {/* Medical Specialists Section - show this section regardless of doctor/nurse matches */}
+      {limitedSpecialists.length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-xl font-medium text-primary mb-4">Medical Specialists</h3>
+          
           {limitedSpecialists.length < filteredByLocation.length && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 mb-4">
               Showing top {limitedSpecialists.length} of {filteredByLocation.length} specialists
               {locationFilter && ` in "${locationFilter}"`}
             </p>
@@ -472,7 +454,29 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
               );
             })}
           </div>
-        </>
+        </div>
+      )}
+      
+      {/* No Results Message */}
+      {limitedSpecialists.length === 0 && doctors.length === 0 && nurses.length === 0 && (
+        <div className="p-6 text-center bg-card/90 backdrop-blur-sm rounded-lg border border-border">
+          <Users className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+          <h3 className="text-lg font-medium">No healthcare professionals found</h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {locationFilter ? 
+              `No results matching "${searchQuery}" available in "${locationFilter}".` : 
+              `No results matching "${searchQuery}" found.`}
+          </p>
+          {locationFilter && (
+            <Button 
+              variant="link" 
+              onClick={() => setLocationFilter("")} 
+              className="mt-2"
+            >
+              Clear location filter
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
