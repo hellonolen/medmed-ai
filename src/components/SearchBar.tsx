@@ -1,17 +1,11 @@
 
-import { useState, useEffect } from 'react';
-import { Search, X, Languages } from 'lucide-react';
+import { useState } from 'react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { findMedicationsForQuery } from '@/utils/medicationMatcher';
 import { useToast } from '@/components/ui/use-toast';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { useLanguage, supportedLanguages, LanguageCode } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SearchBarProps {
   onSearch: (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => void;
@@ -21,7 +15,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
-  const { language, setLanguage, t } = useLanguage();
+  const { t } = useLanguage();
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();

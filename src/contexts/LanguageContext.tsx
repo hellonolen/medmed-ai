@@ -17,6 +17,29 @@ export const supportedLanguages = {
 
 export type LanguageCode = keyof typeof supportedLanguages;
 
+// Default translations to avoid empty screen
+const defaultTranslations = {
+  en: {
+    "app.name": "MedMed.AI",
+    "app.tagline": "Global healthcare platform: Search medications, find specialists, and get personalized recommendations worldwide",
+    "app.footer.rights": "All rights reserved.",
+    "app.footer.demo": "This is a demo application. Not for actual medical use.",
+    "app.footer.global": "Providing global healthcare information and resources",
+    "menu.admin": "Admin Dashboard",
+    "menu.symptom_checker": "Symptom Checker",
+    "menu.pharmacy_finder": "Global Pharmacy Finder",
+    "menu.interaction_checker": "Interaction Checker",
+    "menu.favorites": "My Favorites",
+    "search.placeholder.global": "Search symptoms, conditions, specialists or medications worldwide...",
+    "search.results": "Global Medication Results",
+    "search.worldwide": "Worldwide search",
+    "search.no_results": "No results found matching your search. Try different keywords.",
+    "button.search": "Search",
+    "button.clear": "Clear search",
+    "medication.price": "Login to see pricing"
+  }
+};
+
 interface LanguageContextType {
   language: LanguageCode;
   setLanguage: (lang: LanguageCode) => void;
@@ -43,6 +66,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ? (browserLang as LanguageCode) 
         : 'en';
     } catch (e) {
+      console.error("Error detecting browser language:", e);
       return 'en';
     }
   };
@@ -56,15 +80,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       return detectBrowserLanguage();
     } catch (e) {
+      console.error("Error getting initial language:", e);
       return 'en';
     }
   };
 
   const [language, setLanguageState] = useState<LanguageCode>(getInitialLanguage);
-  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>({
-    // Default English translations to avoid empty screen
-    en: {}
-  });
+  const [translations, setTranslations] = useState<Record<string, Record<string, string>>>(defaultTranslations);
   const [autoDetectedLanguage, setAutoDetectedLanguage] = useState<LanguageCode | null>(null);
 
   // Set document language
@@ -86,6 +108,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Translation function that works even if translations aren't loaded yet
   const t = (key: string, fallback: string = key): string => {
     if (!translations[language] || !translations[language][key]) {
+      // Try the default translations as a fallback
+      if (defaultTranslations.en[key]) {
+        return defaultTranslations.en[key];
+      }
       return fallback;
     }
     
@@ -102,8 +128,16 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLanguageState(lang);
   };
 
+  // Provide context value
+  const contextValue = {
+    language,
+    setLanguage,
+    t,
+    autoDetectedLanguage
+  };
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, autoDetectedLanguage }}>
+    <LanguageContext.Provider value={contextValue}>
       {children}
     </LanguageContext.Provider>
   );
