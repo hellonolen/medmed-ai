@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Settings, HelpCircle } from 'lucide-react';
+import { Home, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -59,10 +58,6 @@ const Layout = ({ children }: LayoutProps) => {
               <Link to="/terms" className="text-sm text-gray-500 hover:text-primary">
                 {t("footer.terms", "Terms of Service")}
               </Link>
-              <Button variant="link" size="sm" className="text-sm text-gray-500 hover:text-primary p-0">
-                <HelpCircle className="h-4 w-4 mr-1" />
-                {t("footer.help", "Help")}
-              </Button>
             </div>
           </div>
         </div>
