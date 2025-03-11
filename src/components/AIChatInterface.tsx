@@ -9,6 +9,7 @@ import { aiService } from '@/services/AIService';
 import { VoiceSearchButton } from './VoiceSearchButton';
 import { useNavigate } from 'react-router-dom';
 import { intelligentPharmacySearch } from '@/utils/pharmacySearch';
+import { AccessibilityPanel } from './AccessibilityPanel';
 
 interface Message {
   content: string;
@@ -43,7 +44,7 @@ export const AIChatInterface = ({
   useEffect(() => {
     if (messages.length === 0) {
       const initialMessage = {
-        content: t("ai.greeting", "Hello! I'm your medical assistant. Ask me about medications, symptoms, nearby pharmacies, or any health-related questions. I can help you find what you need globally."),
+        content: "What's going on?",
         type: 'ai' as const,
         timestamp: new Date()
       };
@@ -124,7 +125,7 @@ export const AIChatInterface = ({
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="h-[400px] overflow-y-auto p-4 space-y-4">
+      <div className="h-[300px] overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -175,6 +176,7 @@ export const AIChatInterface = ({
           placeholder={t("ai.input_placeholder", "Ask about medications, symptoms, find pharmacies worldwide...")}
           className="flex-1 px-4 py-2 rounded-lg border border-input bg-background"
         />
+        <AccessibilityPanel />
         <VoiceSearchButton
           onResult={handleVoiceResult}
           isListening={false}
