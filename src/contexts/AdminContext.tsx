@@ -1,51 +1,51 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
-interface AdminContextType {
-  isAdmin: boolean;
-  setIsAdmin: (value: boolean) => void;
+interface OwnerContextType {
+  isOwner: boolean;
+  setIsOwner: (value: boolean) => void;
 }
 
-const AdminContext = createContext<AdminContextType | undefined>(undefined);
+const OwnerContext = createContext<OwnerContextType | undefined>(undefined);
 
-// Local storage key for persisting admin status
-const ADMIN_STORAGE_KEY = "medmed_admin_status";
+// Local storage key for persisting owner status
+const OWNER_STORAGE_KEY = "medmed_owner_status";
 
-export function AdminProvider({ children }: { children: ReactNode }) {
-  const [isAdmin, setIsAdmin] = useState(false);
+export function OwnerProvider({ children }: { children: ReactNode }) {
+  const [isOwner, setIsOwner] = useState(false);
 
-  // Load admin status from localStorage on initial render
+  // Load owner status from localStorage on initial render
   useEffect(() => {
     try {
-      const savedStatus = localStorage.getItem(ADMIN_STORAGE_KEY);
+      const savedStatus = localStorage.getItem(OWNER_STORAGE_KEY);
       if (savedStatus === "true") {
-        setIsAdmin(true);
+        setIsOwner(true);
       }
     } catch (error) {
-      console.error("Error loading admin status:", error);
+      console.error("Error loading owner status:", error);
     }
   }, []);
 
-  // Save to localStorage whenever admin status changes
+  // Save to localStorage whenever owner status changes
   useEffect(() => {
     try {
-      localStorage.setItem(ADMIN_STORAGE_KEY, isAdmin.toString());
+      localStorage.setItem(OWNER_STORAGE_KEY, isOwner.toString());
     } catch (error) {
-      console.error("Error saving admin status:", error);
+      console.error("Error saving owner status:", error);
     }
-  }, [isAdmin]);
+  }, [isOwner]);
 
   return (
-    <AdminContext.Provider value={{ isAdmin, setIsAdmin }}>
+    <OwnerContext.Provider value={{ isOwner, setIsOwner }}>
       {children}
-    </AdminContext.Provider>
+    </OwnerContext.Provider>
   );
 }
 
-export function useAdmin() {
-  const context = useContext(AdminContext);
+export function useOwner() {
+  const context = useContext(OwnerContext);
   if (context === undefined) {
-    throw new Error("useAdmin must be used within an AdminProvider");
+    throw new Error("useOwner must be used within an OwnerProvider");
   }
   return context;
 }
