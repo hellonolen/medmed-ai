@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -92,17 +93,6 @@ const SponsorPortal = () => {
                   </CardFooter>
                 </Card>
               ))}
-            </div>
-            
-            <div className="flex justify-center mt-4">
-              <Button 
-                onClick={() => navigate('/advertiser-enrollment')} 
-                className="flex items-center gap-1 text-sm"
-                size="sm"
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Apply Now
-              </Button>
             </div>
           </TabsContent>
           
