@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { PeriodType } from './PeriodSelector';
 
 // Sample data generator
@@ -74,7 +74,7 @@ const SponsorStatsChart = ({ period }: SponsorStatsChartProps) => {
       <CardContent>
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
+            <LineChart
               data={data}
               margin={{
                 top: 20,
@@ -93,9 +93,25 @@ const SponsorStatsChart = ({ period }: SponsorStatsChartProps) => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="impressions" fill="#8B5CF6" name="Impressions" />
-              <Bar dataKey="clicks" fill="#F97316" name="Clicks" />
-            </BarChart>
+              <Line 
+                type="monotone" 
+                dataKey="impressions" 
+                stroke="#8B5CF6" 
+                strokeWidth={2} 
+                dot={{ r: 4 }} 
+                activeDot={{ r: 6 }} 
+                name="Impressions" 
+              />
+              <Line 
+                type="monotone" 
+                dataKey="clicks" 
+                stroke="#F97316" 
+                strokeWidth={2} 
+                dot={{ r: 4 }} 
+                activeDot={{ r: 6 }} 
+                name="Clicks" 
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
