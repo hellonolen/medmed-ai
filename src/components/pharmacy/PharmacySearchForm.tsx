@@ -1,324 +1,152 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Search, Globe, Sparkles, Building, Phone } from "lucide-react";
-import { toast } from "sonner";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { aiService } from "@/services/AIService";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Search, MapPin, X } from "lucide-react";
+import { useDebounce } from '@/hooks/useDebounce';
+import { searchService, SearchParams } from '@/services/SearchService';
+import { toast } from '@/hooks/use-toast';
 
 interface PharmacySearchFormProps {
-  onSearch: (searchTerm: string, searchType: 'zip' | 'city' | 'smart' | 'phone' | 'name') => void;
-  isSearching: boolean;
-  initialSearchTerm?: string;
+  onSearch: (results: any[]) => void;
+  onSearchStart: () => void;
+  initialSearch?: string;
 }
 
-export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = "" }: PharmacySearchFormProps) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const { language } = useLanguage();
-  const [activeTab, setActiveTab] = useState<string>("all");
-  const [phoneSearch, setPhoneSearch] = useState("");
-
-  // Set initial search term if provided
-  useEffect(() => {
-    if (initialSearchTerm) {
-      setSearchTerm(initialSearchTerm);
-    }
-  }, [initialSearchTerm]);
-
-  // Trigger search when initialSearchTerm is provided
-  useEffect(() => {
-    if (initialSearchTerm && !isSearching) {
-      // Use a small delay to ensure the form has updated
-      const timer = setTimeout(() => {
-        handleSearch(new Event('submit') as any);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [initialSearchTerm]);
-
-  // Generate search suggestions
-  const generateSearchSuggestions = async (query: string) => {
-    if (!query || query.length < 3) return;
-    
-    setLoadingSuggestions(true);
-    
+export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({
+  onSearch,
+  onSearchStart,
+  initialSearch = ""
+}) => {
+  const { t } = useLanguage();
+  const [name, setName] = useState(initialSearch || "");
+  const [location, setLocation] = useState("");
+  const [searchType, setSearchType] = useState<"pharmacy" | "medspa">("pharmacy");
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const debouncedSearch = useDebounce(async (params: SearchParams) => {
     try {
-      const response = await aiService.askAI({
-        query: `Generate 3 pharmacy, med spa, or healthcare provider search suggestions related to: ${query}`,
-        systemPrompt: 'Generate 3 search suggestions related to pharmacies, med spas, and healthcare facilities for the user\'s query. Return only a JSON array of strings with no additional text. For example: ["suggestion 1", "suggestion 2", "suggestion 3"]'
+      const results = await searchService.searchAll(params);
+      
+      // Filter results based on search type
+      const filteredResults = results.filter(result => {
+        if (searchType === "pharmacy") {
+          return result.type === "Pharmacy";
+        } else {
+          return result.type === "Med Spa";
+        }
       });
       
-      if (response.success) {
-        try {
-          let suggestionsArr: string[] = [];
-          const content = response.content;
-          
-          if (content.startsWith('[') && content.endsWith(']')) {
-            suggestionsArr = JSON.parse(content);
-          } else {
-            const match = content.match(/\[(.*)\]/s);
-            if (match) {
-              suggestionsArr = JSON.parse(`[${match[1]}]`);
-            }
-          }
-          
-          if (Array.isArray(suggestionsArr) && suggestionsArr.length > 0) {
-            setSuggestions(suggestionsArr.slice(0, 3));
-          } else {
-            setSuggestions([]);
-          }
-        } catch (error) {
-          console.error("Error parsing suggestions:", error);
-          setSuggestions([]);
-        }
-      }
+      onSearch(filteredResults);
     } catch (error) {
-      console.error("Error generating suggestions:", error);
+      console.error('Search error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to search pharmacies. Please try again.",
+        variant: "destructive",
+      });
     } finally {
-      setLoadingSuggestions(false);
+      setIsSearching(false);
     }
-  };
+  }, 500);
 
-  // Enhanced search
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Determine which search field to use based on active tab
-    let searchTermToUse = searchTerm;
-    let searchTypeToUse: 'zip' | 'city' | 'smart' | 'phone' | 'name' = 'smart';
-    
-    if (activeTab === "phone" && phoneSearch) {
-      searchTermToUse = phoneSearch;
-      searchTypeToUse = 'phone';
-    } else if (!searchTermToUse) {
-      toast.error("Please enter a search term");
+    if (!name && !location) {
+      toast({
+        title: "Search Error",
+        description: "Please enter a name or location to search",
+        variant: "destructive",
+      });
       return;
     }
     
-    // Clean the search term - remove any existing language codes first
-    let cleanedSearchTerm = searchTermToUse.replace(/\s*\([a-z]{2}\)\s*/g, "").trim();
+    setIsSearching(true);
+    onSearchStart();
     
-    // Add language context to search only once
-    let searchQuery = `${cleanedSearchTerm} (${language})`;
+    const searchParams: SearchParams = {
+      query: name,
+      category: 'pharmacies',
+      ...(location && { location })
+    };
     
-    // Determine the search type based on the content and active tab
-    if (activeTab === "zip") {
-      searchTypeToUse = 'zip';
-    } else if (activeTab === "city") {
-      searchTypeToUse = 'city';
-    } else if (activeTab === "phone") {
-      searchTypeToUse = 'phone';
-    } else if (activeTab === "name") {
-      searchTypeToUse = 'name';
-    } else if (activeTab === "all") {
-      // Auto-detect search type
-      const termLower = cleanedSearchTerm.toLowerCase();
-      
-      // Check if this looks like a ZIP/postal code
-      if (/^\d{5}(-\d{4})?$/.test(termLower)) {
-        searchTypeToUse = 'zip';
-      } 
-      // Check if it contains location-specific terms
-      else if (/(in|near|at)\s+([a-zA-Z\s]+)/.test(termLower)) {
-        searchTypeToUse = 'city';
-      }
-      // Check if it's a phone number format
-      else if (/(\+\d{1,3})?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/.test(termLower)) {
-        searchTypeToUse = 'phone';
-      }
-    }
-    
-    // Analyze the search query for better results if using smart search
-    if (searchTypeToUse === 'smart') {
-      try {
-        const response = await aiService.askAI({
-          query: `Analyze this healthcare search query: "${searchQuery}"`,
-          systemPrompt: 'Determine if this query is looking for a pharmacy, med spa, medical specialist, healthcare facility, or specific medication. Return only a JSON object like {"type": "pharmacy|med_spa|specialist|facility|medication", "enhancedQuery": "improved search query"}. No other text.'
-        });
-        
-        if (response.success) {
-          try {
-            const analysis = JSON.parse(response.content);
-            if (analysis.enhancedQuery) {
-              searchQuery = analysis.enhancedQuery;
-              console.log("Enhanced query:", searchQuery);
-            }
-          } catch (error) {
-            console.error("Error parsing response:", error);
-          }
-        }
-      } catch (error) {
-        console.error("Error analyzing search query:", error);
-      }
-    }
-    
-    console.log(`Searching with term: "${searchQuery}" using search type: ${searchTypeToUse}`);
-    onSearch(searchQuery, searchTypeToUse);
-    setSuggestions([]);
-  };
-
-  // Apply suggestion to search field
-  const applySuggestion = (suggestion: string) => {
-    setSearchTerm(suggestion);
-    
-    setTimeout(() => {
-      handleSearch(new Event('submit') as any);
-    }, 100);
-  };
-
-  // Handle input change with suggestions
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value.length >= 3) {
-      generateSearchSuggestions(value);
-    } else {
-      setSuggestions([]);
-    }
+    await debouncedSearch(searchParams);
   };
 
   return (
-    <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg mb-8">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold flex items-center">
-          <span>Find Pharmacies, Med Spas & Healthcare Services Worldwide</span>
-          <Globe className="ml-2 h-4 w-4 text-primary/70" />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-4">
-            <TabsTrigger value="all">All Search</TabsTrigger>
-            <TabsTrigger value="zip">ZIP Code</TabsTrigger>
-            <TabsTrigger value="city">City/State</TabsTrigger>
-            <TabsTrigger value="phone">Phone</TabsTrigger>
-            <TabsTrigger value="name">Facility Name</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="mt-0">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Search pharmacies, med spas, or healthcare services..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={handleInputChange}
-                />
-                {suggestions.length > 0 && (
-                  <div className="absolute w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                    {suggestions.map((suggestion, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                        onClick={() => applySuggestion(suggestion)}
-                      >
-                        <Sparkles className="h-3 w-3 text-primary" />
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button type="submit" disabled={isSearching} className="flex items-center gap-2">
-                {isSearching ? (
-                  "Searching..."
-                ) : (
-                  <>
-                    <MapPin className="h-4 w-4" />
-                    <span>Search</span>
-                  </>
-                )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Tabs 
+        defaultValue="pharmacy" 
+        value={searchType} 
+        onValueChange={(v) => setSearchType(v as "pharmacy" | "medspa")}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pharmacy">{t("pharmacy.type", "Pharmacy")}</TabsTrigger>
+          <TabsTrigger value="medspa">{t("medspa.type", "Med Spa")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <Label htmlFor="name">{t("pharmacy.name", "Name")}</Label>
+          <div className="relative">
+            <Input
+              id="name"
+              placeholder={searchType === "pharmacy" 
+                ? t("pharmacy.name_placeholder", "Enter pharmacy name") 
+                : t("medspa.name_placeholder", "Enter med spa name")}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pr-10"
+            />
+            {name && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                onClick={() => setName("")}
+              >
+                <X className="h-4 w-4" />
               </Button>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="zip" className="mt-0">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Enter ZIP/Postal code..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Search by ZIP"}
-              </Button>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="city" className="mt-0">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Enter city, state, or province..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Search by Location"}
-              </Button>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="phone" className="mt-0">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="tel"
-                  placeholder="Enter phone number..."
-                  className="pl-9"
-                  value={phoneSearch}
-                  onChange={(e) => setPhoneSearch(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Search by Phone"}
-              </Button>
-            </form>
-          </TabsContent>
-          
-          <TabsContent value="name" className="mt-0">
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder="Enter facility name (pharmacy, med spa, clinic)..."
-                  className="pl-9"
-                  value={searchTerm}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <Button type="submit" disabled={isSearching}>
-                {isSearching ? "Searching..." : "Search by Name"}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="mt-3 text-xs text-gray-500">
-          Search for med spas, pharmacies, and other healthcare facilities by location, name, or phone number worldwide.
+            )}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+        
+        <div className="space-y-2">
+          <Label htmlFor="location">{t("pharmacy.location", "Location")}</Label>
+          <div className="relative">
+            <Input
+              id="location"
+              placeholder={t("pharmacy.location_placeholder", "City, state, or zip code")}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="pl-10"
+            />
+            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+        
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSearching || (!name && !location)}
+        >
+          {isSearching ? (
+            t("pharmacy.searching", "Searching...")
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
+              <span>{t("pharmacy.search", "Search")}</span>
+            </div>
+          )}
+        </Button>
+      </div>
+    </form>
   );
 };

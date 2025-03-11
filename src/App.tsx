@@ -29,47 +29,55 @@ import UserPortal from "./pages/UserPortal";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Layout from "./components/Layout";
+import Search from "./pages/Search";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a client
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <AdminProvider>
-      <SearchHistoryProvider>
-        <LanguageProvider>
-          <AccessibilityProvider>
-            <SubscriptionProvider>
-              <MedicalSearchProvider>
-                <SponsorProvider>
-                  <Router>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
-                      <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
-                      <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
-                      <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
-                      <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
-                      <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
-                      <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
-                      <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
-                      <Route path="/sponsor-login" element={<Layout><SponsorLogin /></Layout>} />
-                      <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
-                      <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
-                      <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
-                      <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
-                      <Route path="/terms" element={<Layout><Terms /></Layout>} />
-                      <Route path="/settings" element={<Layout><Settings /></Layout>} />
-                      <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
-                      <Route path="/signin" element={<Layout><SignIn /></Layout>} />
-                      <Route path="/signup" element={<Layout><SignUp /></Layout>} />
-                    </Routes>
-                  </Router>
-                  <Toaster />
-                </SponsorProvider>
-              </MedicalSearchProvider>
-            </SubscriptionProvider>
-          </AccessibilityProvider>
-        </LanguageProvider>
-      </SearchHistoryProvider>
-    </AdminProvider>
+    <QueryClientProvider client={queryClient}>
+      <AdminProvider>
+        <SearchHistoryProvider>
+          <LanguageProvider>
+            <AccessibilityProvider>
+              <SubscriptionProvider>
+                <MedicalSearchProvider>
+                  <SponsorProvider>
+                    <Router>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
+                        <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
+                        <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
+                        <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
+                        <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
+                        <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
+                        <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
+                        <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
+                        <Route path="/sponsor-login" element={<Layout><SponsorLogin /></Layout>} />
+                        <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
+                        <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
+                        <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
+                        <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
+                        <Route path="/terms" element={<Layout><Terms /></Layout>} />
+                        <Route path="/settings" element={<Layout><Settings /></Layout>} />
+                        <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
+                        <Route path="/signin" element={<Layout><SignIn /></Layout>} />
+                        <Route path="/signup" element={<Layout><SignUp /></Layout>} />
+                        <Route path="/search" element={<Search />} />
+                      </Routes>
+                    </Router>
+                    <Toaster />
+                  </SponsorProvider>
+                </MedicalSearchProvider>
+              </SubscriptionProvider>
+            </AccessibilityProvider>
+          </LanguageProvider>
+        </SearchHistoryProvider>
+      </AdminProvider>
+    </QueryClientProvider>
   );
 }
 

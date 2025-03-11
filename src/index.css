@@ -98,3 +98,39 @@
 .map-redirect-btn:active {
   transform: translateY(0);
 }
+
+/* Enhanced search styles */
+.search-highlight {
+  background-color: rgba(var(--primary), 0.2);
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+.search-category-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  font-weight: 500;
+}
+
+.search-results-container {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-tab-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
