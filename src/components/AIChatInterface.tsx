@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, User, Mic, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
@@ -46,7 +47,7 @@ export const AIChatInterface = ({
       };
       setMessages([initialMessage]);
     }
-  }, []);
+  }, [messages.length, t]);
 
   useEffect(() => {
     scrollToBottom();
@@ -84,10 +85,22 @@ export const AIChatInterface = ({
           onSearch(inputValue, []);
         }
       } else {
+        const errorMessage: Message = {
+          content: t("ai.error", "I'm having trouble understanding. Could you rephrase that?"),
+          type: 'ai',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
         toast.error(t("ai.error", "I'm having trouble understanding. Could you rephrase that?"));
       }
     } catch (error) {
       console.error('AI Chat Error:', error);
+      const errorMessage: Message = {
+        content: t("ai.error", "Sorry, I encountered an error. Please try again."),
+        type: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
       toast.error(t("ai.error", "Sorry, I encountered an error. Please try again."));
     } finally {
       setIsTyping(false);
@@ -97,7 +110,11 @@ export const AIChatInterface = ({
   const handleVoiceResult = (text: string) => {
     if (text) {
       setInputValue(text);
-      handleSubmit(new Event('submit') as any);
+      // Use a synthetic event to trigger form submission
+      const syntheticEvent = {
+        preventDefault: () => {}
+      } as React.FormEvent;
+      handleSubmit(syntheticEvent);
     }
   };
 
@@ -122,7 +139,7 @@ export const AIChatInterface = ({
             </div>
             <div className={`rounded-lg px-4 py-2 max-w-[80%] ${
               message.type === 'ai' 
-                ? 'bg-primary/10 text-primary-foreground' 
+                ? 'bg-primary/10 text-foreground' 
                 : 'bg-secondary text-secondary-foreground'
             }`}>
               {message.content}
@@ -134,7 +151,7 @@ export const AIChatInterface = ({
             <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
               <Bot className="h-4 w-4 text-primary" />
             </div>
-            <div className="rounded-lg px-4 py-2 bg-primary/10 text-primary-foreground">
+            <div className="rounded-lg px-4 py-2 bg-primary/10 text-foreground">
               <span className="inline-flex gap-1">
                 <span className="animate-bounce">.</span>
                 <span className="animate-bounce delay-100">.</span>
