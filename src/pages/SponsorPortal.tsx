@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { adPackages } from '@/data/adPackages';
-import { Award, BarChart, ExternalLink, LogIn, FileText, BadgeCheck, TrendingUp } from 'lucide-react';
+import { Award, BarChart, LogIn, FileText, BadgeCheck, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { useSponsor } from '@/contexts/SponsorContext';
 
@@ -16,65 +16,63 @@ const SponsorPortal = () => {
   
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto py-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center mb-4 text-primary">
-            <Award className="h-10 w-10 mr-2" />
-          </div>
-          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent flex items-center justify-center gap-2">
+            <Award className="h-6 w-6 text-primary" />
             Partner with MedMed.AI
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+          <p className="text-gray-600 max-w-lg mx-auto text-sm">
             Reach healthcare consumers directly with our targeted advertising solutions
           </p>
         </div>
         
-        <Tabs defaultValue={currentSponsor ? "dashboard" : "packages"} className="space-y-8">
+        <Tabs defaultValue={currentSponsor ? "dashboard" : "packages"} className="space-y-6">
           <div className="flex justify-center">
-            <TabsList className="mb-6 bg-secondary/80 p-1">
-              <TabsTrigger value="packages" className="text-sm px-4 py-2">
-                Advertising Packages
+            <TabsList className="mb-4 bg-secondary/80 p-1">
+              <TabsTrigger value="packages" className="text-xs px-3 py-1.5">
+                Ad Packages
               </TabsTrigger>
-              <TabsTrigger value="benefits" className="text-sm px-4 py-2">
+              <TabsTrigger value="benefits" className="text-xs px-3 py-1.5">
                 Benefits
               </TabsTrigger>
-              <TabsTrigger value="dashboard" className="text-sm px-4 py-2">
-                Sponsor Dashboard
+              <TabsTrigger value="dashboard" className="text-xs px-3 py-1.5">
+                Dashboard
               </TabsTrigger>
             </TabsList>
           </div>
           
-          <TabsContent value="packages" className="space-y-8 animate-in fade-in-50 duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <TabsContent value="packages" className="space-y-6 animate-in fade-in-50 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {adPackages.map((pkg) => (
                 <Card 
                   key={pkg.id} 
-                  className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${
+                  className={`overflow-hidden transition-all duration-200 hover:shadow-sm ${
                     pkg.id === "premium" 
-                      ? "border-primary/30 relative bg-gradient-to-b from-white to-purple-50" 
-                      : "border hover:border-gray-300"
+                      ? "border-primary/20 bg-gradient-to-b from-white to-purple-50/30" 
+                      : "border"
                   }`}
                 >
                   {pkg.id === "premium" && (
-                    <div className="absolute top-4 right-4">
-                      <span className="bg-primary/10 text-primary text-xs font-medium px-3 py-1 rounded-full flex items-center">
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full flex items-center">
                         <BadgeCheck className="h-3 w-3 mr-1" />
                         Recommended
                       </span>
                     </div>
                   )}
-                  <CardHeader>
-                    <CardTitle className="text-2xl">{pkg.name}</CardTitle>
-                    <CardDescription className="text-base">{pkg.description}</CardDescription>
-                    <div className="mt-4">
-                      <span className="text-3xl font-bold text-primary">
+                  <CardHeader className="py-4 px-4">
+                    <CardTitle className="text-xl">{pkg.name}</CardTitle>
+                    <CardDescription className="text-sm">{pkg.description}</CardDescription>
+                    <div className="mt-2">
+                      <span className="text-2xl font-bold text-primary">
                         {formatCurrency(pkg.price)}
                       </span>
-                      <span className="text-sm font-normal text-gray-500 ml-1">/week</span>
+                      <span className="text-xs font-normal text-gray-500 ml-1">/week</span>
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
+                  <CardContent className="py-2 px-4">
+                    <ul className="space-y-2 text-sm">
                       {pkg.features.map((feature, index) => (
                         <li key={index} className="flex items-start">
                           <span className="text-primary mr-2 mt-0.5">•</span>
@@ -83,12 +81,12 @@ const SponsorPortal = () => {
                       ))}
                     </ul>
                   </CardContent>
-                  <CardFooter>
+                  <CardFooter className="py-3 px-4">
                     <Button 
-                      className="w-full" 
+                      className="w-full text-sm" 
                       variant={pkg.id === "premium" ? "default" : "outline"}
                       onClick={() => navigate('/advertiser-enrollment')}
-                      size="lg"
+                      size="sm"
                     >
                       Get Started
                     </Button>
@@ -97,67 +95,58 @@ const SponsorPortal = () => {
               ))}
             </div>
             
-            <div className="flex justify-center gap-4 mt-8">
+            <div className="flex justify-center mt-4">
               <Button 
                 onClick={() => navigate('/advertiser-enrollment')} 
-                className="flex items-center gap-2"
-                size="lg"
+                className="flex items-center gap-1 text-sm"
+                size="sm"
               >
-                <FileText className="h-4 w-4" />
-                Apply to Advertise
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/sponsor-login')} 
-                className="flex items-center gap-2"
-                size="lg"
-              >
-                <LogIn className="h-4 w-4" />
-                Existing Partner Login
+                <FileText className="h-3.5 w-3.5" />
+                Apply Now
               </Button>
             </div>
           </TabsContent>
           
           <TabsContent value="benefits" className="animate-in fade-in-50 duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="border hover:shadow-md transition-all duration-200">
-                <CardHeader className="pb-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <TrendingUp className="h-6 w-6 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border hover:shadow-sm transition-all">
+                <CardHeader className="py-3 px-4">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center mb-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Targeted Audience</CardTitle>
+                  <CardTitle className="text-base">Targeted Audience</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Reach healthcare consumers at the moment they're searching for medical information and solutions.
+                <CardContent className="py-1 px-4">
+                  <p className="text-gray-600 text-sm">
+                    Reach healthcare consumers at the moment they're searching for medical information.
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="border hover:shadow-md transition-all duration-200">
-                <CardHeader className="pb-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <BarChart className="h-6 w-6 text-primary" />
+              <Card className="border hover:shadow-sm transition-all">
+                <CardHeader className="py-3 px-4">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center mb-2">
+                    <BarChart className="h-4 w-4 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Performance Analytics</CardTitle>
+                  <CardTitle className="text-base">Analytics</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Access detailed analytics on impressions, clicks, and conversions through your sponsor dashboard.
+                <CardContent className="py-1 px-4">
+                  <p className="text-gray-600 text-sm">
+                    Access detailed metrics on impressions, clicks, and conversions through your dashboard.
                   </p>
                 </CardContent>
               </Card>
               
-              <Card className="border hover:shadow-md transition-all duration-200">
-                <CardHeader className="pb-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <BadgeCheck className="h-6 w-6 text-primary" />
+              <Card className="border hover:shadow-sm transition-all">
+                <CardHeader className="py-3 px-4">
+                  <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center mb-2">
+                    <BadgeCheck className="h-4 w-4 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Brand Association</CardTitle>
+                  <CardTitle className="text-base">Brand Association</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600">
-                    Associate your brand with trusted medical information, enhancing credibility and trust.
+                <CardContent className="py-1 px-4">
+                  <p className="text-gray-600 text-sm">
+                    Associate your brand with trusted medical information, enhancing credibility.
                   </p>
                 </CardContent>
               </Card>
@@ -166,18 +155,18 @@ const SponsorPortal = () => {
           
           <TabsContent value="dashboard" className="animate-in fade-in-50 duration-300">
             {currentSponsor ? (
-              <Card className="border shadow-sm hover:shadow-md transition-all duration-200">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Your Sponsor Dashboard</CardTitle>
-                  <CardDescription className="text-base">
-                    View your advertising performance metrics and analytics
+              <Card className="border shadow-sm hover:shadow-md transition-all">
+                <CardHeader className="py-4">
+                  <CardTitle className="text-lg">Your Sponsor Dashboard</CardTitle>
+                  <CardDescription className="text-sm">
+                    View your advertising performance metrics
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center py-12">
+                <CardContent className="text-center py-6">
                   <Button 
                     onClick={() => navigate('/sponsor-dashboard')} 
-                    className="flex items-center gap-2"
-                    size="lg"
+                    className="flex items-center gap-1"
+                    size="sm"
                   >
                     <BarChart className="h-4 w-4" />
                     Go to Dashboard
@@ -186,17 +175,17 @@ const SponsorPortal = () => {
               </Card>
             ) : (
               <Card className="border shadow-sm bg-gray-50/50">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Partner Login Required</CardTitle>
-                  <CardDescription className="text-base">
-                    Please login to access your sponsor dashboard and analytics
+                <CardHeader className="py-4">
+                  <CardTitle className="text-lg">Partner Login Required</CardTitle>
+                  <CardDescription className="text-sm">
+                    Please login to access your dashboard
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center py-12">
+                <CardContent className="text-center py-6">
                   <Button 
                     onClick={() => navigate('/sponsor-login')} 
-                    className="flex items-center gap-2"
-                    size="lg"
+                    className="flex items-center gap-1"
+                    size="sm"
                   >
                     <LogIn className="h-4 w-4" />
                     Partner Login
@@ -207,33 +196,19 @@ const SponsorPortal = () => {
           </TabsContent>
         </Tabs>
         
-        <div className="mt-16 bg-secondary/50 p-8 rounded-xl border">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-4">Ready to become a sponsor?</h2>
-            <p className="mb-6 text-gray-600">
-              Join our growing network of healthcare partners reaching thousands of users daily.
-              For custom advertising solutions or questions, please contact our advertising team.
+        <div className="mt-10 bg-secondary/40 p-4 rounded-lg border">
+          <div className="max-w-lg mx-auto">
+            <h2 className="text-lg font-medium mb-2">Ready to partner with us?</h2>
+            <p className="mb-4 text-gray-600 text-sm">
+              Join our growing network of healthcare partners reaching thousands of users daily. Our AI-powered platform ensures optimal placement of your content.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                onClick={() => navigate('/advertiser-enrollment')}
-                size="lg"
-                className="flex-1"
-              >
-                Apply Now
-              </Button>
-              <Button 
-                variant="outline" 
-                asChild
-                size="lg"
-                className="flex-1"
-              >
-                <a href="mailto:sponsors@medmed.ai" className="flex items-center justify-center gap-2">
-                  Contact Advertising Team
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
+            <Button 
+              onClick={() => navigate('/advertiser-enrollment')}
+              size="sm"
+              className="w-full sm:w-auto"
+            >
+              Apply Now
+            </Button>
           </div>
         </div>
       </div>
