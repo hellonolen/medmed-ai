@@ -42,24 +42,24 @@ function App() {
                   <Router>
                     <Routes>
                       <Route path="/" element={<Index />} />
-                      <Route path="/subscription" element={<Subscription />} />
-                      <Route path="/symptom-checker" element={<SymptomChecker />} />
-                      <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
-                      <Route path="/interaction-checker" element={<InteractionChecker />} />
-                      <Route path="/favorites" element={<Favorites />} />
-                      <Route path="/medication/:id" element={<MedicationDetails />} />
-                      <Route path="/admin" element={<OwnerDashboard />} />
-                      <Route path="/sponsor-dashboard" element={<SponsorDashboard />} />
-                      <Route path="/sponsor-login" element={<SponsorLogin />} />
-                      <Route path="/sponsor-portal" element={<SponsorPortal />} />
-                      <Route path="/reset-password" element={<ResetPassword />} />
-                      <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
-                      <Route path="/privacy" element={<Privacy />} />
-                      <Route path="/terms" element={<Terms />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/user-portal" element={<UserPortal />} />
-                      <Route path="/signin" element={<SignIn />} />
-                      <Route path="/signup" element={<SignUp />} />
+                      <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
+                      <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
+                      <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
+                      <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
+                      <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
+                      <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
+                      <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
+                      <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
+                      <Route path="/sponsor-login" element={<Layout><SponsorLogin /></Layout>} />
+                      <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
+                      <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
+                      <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
+                      <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
+                      <Route path="/terms" element={<Layout><Terms /></Layout>} />
+                      <Route path="/settings" element={<Layout><Settings /></Layout>} />
+                      <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
+                      <Route path="/signin" element={<Layout><SignIn /></Layout>} />
+                      <Route path="/signup" element={<Layout><SignUp /></Layout>} />
                     </Routes>
                   </Router>
                   <Toaster />

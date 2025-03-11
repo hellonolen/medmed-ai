@@ -23,12 +23,6 @@ const Layout = ({ children }: LayoutProps) => {
           
           <div className="flex items-center space-x-3">
             <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-              <Link to="/settings">
-                <Settings className="h-4 w-4 mr-1.5" />
-                {t("nav.settings", "Settings")}
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
               <Link to="/">
                 <Home className="h-4 w-4 mr-1.5" />
                 {t("nav.home", "Home")}
@@ -74,6 +68,10 @@ const Layout = ({ children }: LayoutProps) => {
               </Link>
               <Link to="/terms" className="text-sm text-gray-500 hover:text-primary">
                 {t("footer.terms", "Terms of Service")}
+              </Link>
+              <Link to="/settings" className="text-sm text-gray-500 hover:text-primary">
+                <Settings className="h-3.5 w-3.5 inline-block mr-1" />
+                {t("footer.settings", "Settings")}
               </Link>
             </div>
           </div>

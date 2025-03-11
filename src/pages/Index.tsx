@@ -122,13 +122,6 @@ const Index = () => {
             </Link>
             
             <div className="flex items-center space-x-3">
-              <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-                <Link to="/settings">
-                  <Settings className="h-4 w-4 mr-1.5" />
-                  {t("nav.settings", "Settings")}
-                </Link>
-              </Button>
-              
               <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
               
               <Button variant="outline" size="sm" asChild>
@@ -478,3 +471,4 @@ const Index = () => {
 };
 
 export default Index;
+
