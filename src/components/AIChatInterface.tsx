@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, User, Mic, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
@@ -14,7 +13,19 @@ interface Message {
   timestamp: Date;
 }
 
-export const AIChatInterface = ({ onSearch }: { onSearch: (query: string) => void }) => {
+interface SearchResult {
+  name: string;
+  details: string;
+  price: string;
+  type?: string;
+  source?: string;
+}
+
+export const AIChatInterface = ({ 
+  onSearch 
+}: { 
+  onSearch: (query: string, results: SearchResult[]) => void 
+}) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -70,7 +81,7 @@ export const AIChatInterface = ({ onSearch }: { onSearch: (query: string) => voi
         if (inputValue.toLowerCase().includes('find') || 
             inputValue.toLowerCase().includes('search') ||
             inputValue.toLowerCase().includes('look')) {
-          onSearch(inputValue);
+          onSearch(inputValue, []);
         }
       } else {
         toast.error(t("ai.error", "I'm having trouble understanding. Could you rephrase that?"));
