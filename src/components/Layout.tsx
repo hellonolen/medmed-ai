@@ -50,14 +50,14 @@ const Layout = ({ children }: LayoutProps) => {
               &copy; {new Date().getFullYear()} MedMed.AI. {t("footer.rights", "All rights reserved.")}
             </p>
             <div className="flex space-x-4 mt-4 md:mt-0">
-              <Link to="/sponsor-login" className="text-sm text-gray-500 hover:text-primary">
+              <Link to="/sponsor-portal" className="text-sm text-gray-500 hover:text-primary">
                 {t("footer.sponsors", "Sponsors")}
-              </Link>
-              <Link to="/terms" className="text-sm text-gray-500 hover:text-primary">
-                {t("footer.terms", "Terms of Service")}
               </Link>
               <Link to="/privacy" className="text-sm text-gray-500 hover:text-primary">
                 {t("footer.privacy", "Privacy Policy")}
+              </Link>
+              <Link to="/terms" className="text-sm text-gray-500 hover:text-primary">
+                {t("footer.terms", "Terms of Service")}
               </Link>
               <Button variant="link" size="sm" className="text-sm text-gray-500 hover:text-primary p-0">
                 <HelpCircle className="h-4 w-4 mr-1" />
