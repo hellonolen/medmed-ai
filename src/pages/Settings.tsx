@@ -7,12 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import LanguageSwitcher from "@/components/LanguageSwitcher"; // Fixed import
 import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 
 const Settings = () => {
   const { t } = useLanguage();
-  const { isHighContrast, setHighContrast, textSize, setTextSize } = useAccessibility();
+  const { highContrast, setHighContrast, fontSize, setFontSize } = useAccessibility(); // Fixed property names
   const [darkMode, setDarkMode] = React.useState(false);
   const [notifications, setNotifications] = React.useState(true);
   const currentYear = new Date().getFullYear();
@@ -105,8 +105,8 @@ const Settings = () => {
                     <p className="text-sm text-gray-500">{t("settings.appearance.high_contrast_desc", "Increase visibility with high contrast mode")}</p>
                   </div>
                   <Switch
-                    checked={isHighContrast}
-                    onCheckedChange={() => setHighContrast(!isHighContrast)}
+                    checked={highContrast}
+                    onCheckedChange={() => setHighContrast(!highContrast)}
                     aria-label="Toggle high contrast"
                   />
                 </div>
