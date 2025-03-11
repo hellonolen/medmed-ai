@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
-import Layout from '@/components/Layout';
 import { LogIn, Mail, Lock } from 'lucide-react';
 
 const SignIn = () => {
@@ -44,8 +43,16 @@ const SignIn = () => {
   };
 
   return (
-    <Layout>
-      <div className="flex justify-center items-center py-8">
+    <div className="min-h-screen bg-gray-50/50 flex flex-col">
+      <header className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-xl font-bold text-primary">MedMed.AI</span>
+          </Link>
+        </div>
+      </header>
+      
+      <main className="flex-1 flex justify-center items-center py-8 px-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">
@@ -116,8 +123,29 @@ const SignIn = () => {
             </CardFooter>
           </form>
         </Card>
-      </div>
-    </Layout>
+      </main>
+
+      <footer className="bg-white border-t py-6">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-gray-500">
+              &copy; {new Date().getFullYear()} MedMed.AI. {t("footer.rights", "All rights reserved.")}
+            </p>
+            <div className="flex space-x-4 mt-4 md:mt-0">
+              <Link to="/sponsor-portal" className="text-sm text-gray-500 hover:text-primary">
+                {t("footer.sponsors", "Sponsors")}
+              </Link>
+              <Link to="/privacy" className="text-sm text-gray-500 hover:text-primary">
+                {t("footer.privacy", "Privacy Policy")}
+              </Link>
+              <Link to="/terms" className="text-sm text-gray-500 hover:text-primary">
+                {t("footer.terms", "Terms of Service")}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 
