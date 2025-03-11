@@ -6,9 +6,10 @@ import { Pharmacy } from "@/data/pharmacies";
 
 interface PharmacyCardProps {
   pharmacy: Pharmacy;
+  highlightType?: boolean;
 }
 
-export const PharmacyCard = ({ pharmacy }: PharmacyCardProps) => {
+export const PharmacyCard = ({ pharmacy, highlightType = false }: PharmacyCardProps) => {
   const getPharmacyRating = (rating: number) => {
     return (
       <div className="flex items-center">
@@ -24,7 +25,7 @@ export const PharmacyCard = ({ pharmacy }: PharmacyCardProps) => {
   };
 
   return (
-    <Card className="backdrop-blur-md bg-card/90 border-0 shadow hover:shadow-md transition-all">
+    <Card className={`backdrop-blur-md bg-card/90 border-0 shadow hover:shadow-md transition-all ${highlightType ? 'border-l-4 border-l-primary' : ''}`}>
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div className="mb-4 md:mb-0">
