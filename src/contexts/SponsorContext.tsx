@@ -16,6 +16,8 @@ export interface Sponsor {
   isActive: boolean;
   isOnWaitlist: boolean;
   waitlistPosition?: number;
+  passwordResetToken?: string;
+  passwordResetExpires?: string;
 }
 
 // Define the context type
@@ -25,6 +27,8 @@ interface SponsorContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   resetPassword: (email: string) => Promise<boolean>;
+  updatePassword: (token: string, newPassword: string) => Promise<boolean>;
+  registerSponsor: (sponsorData: Partial<Sponsor>, password: string) => Promise<boolean>;
   error: string | null;
   activeSponsors: Sponsor[];
   availableSlots: { premium: number; standard: number };
@@ -37,6 +41,8 @@ const SponsorContext = createContext<SponsorContextType>({
   login: async () => false,
   logout: () => {},
   resetPassword: async () => false,
+  updatePassword: async () => false,
+  registerSponsor: async () => false,
   error: null,
   activeSponsors: [],
   availableSlots: { premium: PREMIUM_SLOTS, standard: STANDARD_SLOTS },
@@ -192,15 +198,20 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const login = async (email: string, password: string): Promise<boolean> => {
     setError(null);
     
-    // In a real app, this would be an API call to verify credentials
-    const sponsor = sponsors.find(s => s.email.toLowerCase() === email.toLowerCase());
-    
-    if (sponsor && password === 'demo123') { // Using a fixed password for demo
-      setCurrentSponsor(sponsor);
-      localStorage.setItem('sponsorId', sponsor.id);
-      return true;
-    } else {
-      setError('Invalid credentials');
+    try {
+      // In a real app, this would be an API call to verify credentials
+      const sponsor = sponsors.find(s => s.email.toLowerCase() === email.toLowerCase());
+      
+      if (sponsor && password === 'demo123') { // Using a fixed password for demo
+        setCurrentSponsor(sponsor);
+        localStorage.setItem('sponsorId', sponsor.id);
+        return true;
+      } else {
+        setError('Invalid credentials');
+        return false;
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
       return false;
     }
   };
@@ -209,20 +220,114 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const resetPassword = async (email: string): Promise<boolean> => {
     setError(null);
     
-    // In a real app, this would send a password reset email
-    // For demo purposes, we'll just check if the sponsor exists
-    const sponsor = sponsors.find(s => s.email.toLowerCase() === email.toLowerCase());
+    try {
+      // Find sponsor by email
+      const sponsor = sponsors.find(s => s.email.toLowerCase() === email.toLowerCase());
+      
+      if (sponsor) {
+        // Generate a reset token (in a real app, this would be more secure)
+        const token = Math.random().toString(36).substring(2, 15);
+        const expires = new Date();
+        expires.setHours(expires.getHours() + 1); // Token expires in 1 hour
+        
+        // Update the sponsor with the reset token
+        const updatedSponsors = sponsors.map(s => {
+          if (s.id === sponsor.id) {
+            return {
+              ...s,
+              passwordResetToken: token,
+              passwordResetExpires: expires.toISOString()
+            };
+          }
+          return s;
+        });
+        
+        setSponsors(updatedSponsors);
+        
+        // In a real app, this would send an email with the reset link
+        console.log(`Reset token for ${email}: ${token}`);
+        
+        return true;
+      } else {
+        setError('No account found with this email');
+        return false;
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      return false;
+    }
+  };
+
+  // Update password function
+  const updatePassword = async (token: string, newPassword: string): Promise<boolean> => {
+    setError(null);
     
-    if (sponsor) {
-      // In a real app, this would generate a reset token and send an email
-      console.log(`Password reset requested for ${email}`);
+    try {
+      // Find sponsor by reset token
+      const sponsor = sponsors.find(
+        s => s.passwordResetToken === token && 
+        s.passwordResetExpires && 
+        new Date(s.passwordResetExpires) > new Date()
+      );
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (sponsor) {
+        // Update the sponsor's password
+        const updatedSponsors = sponsors.map(s => {
+          if (s.id === sponsor.id) {
+            return {
+              ...s,
+              passwordResetToken: undefined,
+              passwordResetExpires: undefined
+              // In a real app, we would hash the new password here
+            };
+          }
+          return s;
+        });
+        
+        setSponsors(updatedSponsors);
+        return true;
+      } else {
+        setError('Invalid or expired token');
+        return false;
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      return false;
+    }
+  };
+
+  // Register new sponsor function
+  const registerSponsor = async (sponsorData: Partial<Sponsor>, password: string): Promise<boolean> => {
+    setError(null);
+    
+    try {
+      // Check if email already exists
+      const existingEmail = sponsors.find(s => s.email.toLowerCase() === sponsorData.email?.toLowerCase());
       
+      if (existingEmail) {
+        setError('Email already in use');
+        return false;
+      }
+      
+      // Create new sponsor
+      const newSponsor: Sponsor = {
+        id: `sponsor-${Date.now()}`,
+        name: sponsorData.name || '',
+        email: sponsorData.email || '',
+        companyName: sponsorData.companyName || '',
+        package: sponsorData.package || 'Standard',
+        apiKey: `sk_${sponsorData.companyName?.toLowerCase().replace(/\s/g, '')}_${Math.random().toString(36).substring(2, 7)}`,
+        startDate: new Date().toISOString(),
+        endDate: sponsorData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        isActive: false, // Will be activated after payment
+        isOnWaitlist: false,
+        // In a real app, we would hash the password here
+      };
+      
+      setSponsors([...sponsors, newSponsor]);
       return true;
-    } else {
-      setError('No account found with this email');
+    } catch (err) {
+      setError('An unexpected error occurred during registration');
       return false;
     }
   };
@@ -240,6 +345,8 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
       login, 
       logout, 
       resetPassword,
+      updatePassword,
+      registerSponsor,
       error,
       activeSponsors,
       availableSlots

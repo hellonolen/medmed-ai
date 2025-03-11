@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { aiService } from "@/services/AIService";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Check, AlertCircle, Info } from "lucide-react";
+import { Check, AlertCircle, Info, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Provider = 'perplexity' | 'openai' | 'claude' | 'specialized';
 
@@ -28,7 +29,14 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
     specialized: ""
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
   const [configuredProviders, setConfiguredProviders] = useState<Provider[]>([]);
+  const [keyValidation, setKeyValidation] = useState<Record<Provider, boolean | null>>({
+    perplexity: null,
+    openai: null,
+    claude: null,
+    specialized: null
+  });
 
   // Provider configuration data
   const providers: Record<Provider, ProviderConfig> = {
@@ -85,6 +93,41 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
     loadKeys();
   }, []);
 
+  const validateApiKey = async (provider: Provider, key: string): Promise<boolean> => {
+    setIsValidating(true);
+    try {
+      // In a real app, we would make a lightweight API call to validate the key
+      // For demo purposes, we'll just check if the key matches the expected format
+      let isValid = false;
+      
+      switch (provider) {
+        case 'perplexity':
+          isValid = key.startsWith('pplx-');
+          break;
+        case 'openai':
+          isValid = key.startsWith('sk-');
+          break;
+        case 'claude':
+          isValid = key.startsWith('sk-ant-');
+          break;
+        case 'specialized':
+          isValid = key.startsWith('healthcare-');
+          break;
+      }
+      
+      // Simulate an API validation delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In a real app, we would make a test API call here
+      return isValid;
+    } catch (error) {
+      console.error(`Error validating ${provider} key:`, error);
+      return false;
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   const handleSaveKey = async () => {
     if (!apiKeys[activeTab]?.trim()) {
       toast.error(`Please enter a valid ${providers[activeTab].name} key`);
@@ -93,6 +136,20 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
 
     setIsSaving(true);
     try {
+      // Validate the key format
+      const isValid = await validateApiKey(activeTab, apiKeys[activeTab]);
+      setKeyValidation(prev => ({
+        ...prev,
+        [activeTab]: isValid
+      }));
+      
+      if (!isValid) {
+        toast.error(`Invalid ${providers[activeTab].name} key format`);
+        setIsSaving(false);
+        return;
+      }
+      
+      // Save the key if valid
       aiService.setApiKey(activeTab, apiKeys[activeTab].trim());
       toast.success(`${providers[activeTab].name} key saved successfully`);
       
@@ -180,18 +237,45 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
                       <label htmlFor={`${key}-apiKey`} className="text-right text-sm font-medium col-span-1">
                         Key
                       </label>
-                      <Input
-                        id={`${key}-apiKey`}
-                        type="password"
-                        value={apiKeys[key as Provider]}
-                        onChange={(e) => setApiKeys(prev => ({
-                          ...prev,
-                          [key]: e.target.value
-                        }))}
-                        placeholder={provider.keyPlaceholder}
-                        className="col-span-3"
-                      />
+                      <div className="col-span-3 relative">
+                        <Input
+                          id={`${key}-apiKey`}
+                          type="password"
+                          value={apiKeys[key as Provider]}
+                          onChange={(e) => {
+                            setApiKeys(prev => ({
+                              ...prev,
+                              [key]: e.target.value
+                            }));
+                            // Reset validation state when key changes
+                            setKeyValidation(prev => ({
+                              ...prev,
+                              [key]: null
+                            }));
+                          }}
+                          placeholder={provider.keyPlaceholder}
+                          className={keyValidation[key as Provider] === false ? "border-red-500" : ""}
+                        />
+                        {keyValidation[key as Provider] !== null && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            {keyValidation[key as Provider] ? (
+                              <Check className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <AlertCircle className="h-4 w-4 text-red-500" />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    
+                    {keyValidation[key as Provider] === false && (
+                      <Alert variant="destructive" className="col-span-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Invalid API key format. Please check your key and try again.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     
                     <div className="col-span-4 flex items-start space-x-2 text-xs text-gray-500 mt-2">
                       <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -251,8 +335,19 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveKey} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Key"}
+            <Button 
+              onClick={handleSaveKey} 
+              disabled={isSaving || isValidating}
+              className="relative"
+            >
+              {isSaving || isValidating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {isValidating ? "Validating..." : "Saving..."}
+                </>
+              ) : (
+                "Save Key"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
