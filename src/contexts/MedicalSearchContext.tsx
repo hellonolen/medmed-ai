@@ -300,7 +300,11 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
             name: location.name,
             details: `${location.address} - ${location.hours || 'Hours vary'} - ${location.phone}`,
             price: location.chain || "Independent",
-            type: location.type === "Med Spa" ? "Med Spa" : "Pharmacy",
+            type: location.chain?.toLowerCase().includes('spa') || 
+                  location.name.toLowerCase().includes('spa') || 
+                  location.name.toLowerCase().includes('beauty') || 
+                  location.name.toLowerCase().includes('clinic') ? 
+                  "Med Spa" : "Pharmacy",
             source: location.distance ? `Distance: ${location.distance}` : "Healthcare Directory",
             phone: location.phone,
             address: location.address,
@@ -528,4 +532,3 @@ export const useMedicalSearch = (): MedicalSearchContextType => {
   }
   return context;
 };
-
