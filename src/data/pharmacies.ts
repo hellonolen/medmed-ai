@@ -12,10 +12,8 @@ export interface Pharmacy {
   zipCode: string;
   city: string;
   state: string;
-  coordinates?: [number, number];
-  relevance?: number;
-  website?: string; // Added missing property
-  type?: string;    // Added missing property
+  coordinates?: [number, number]; // Added coordinates
+  relevance?: number; // For search relevance
 }
 
 export const pharmacies: Pharmacy[] = [

@@ -47,7 +47,7 @@ function App() {
                   <SponsorProvider>
                     <Router>
                       <Routes>
-                        <Route path="/" element={<Layout><Index /></Layout>} />
+                        <Route path="/" element={<Index />} />
                         <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
                         <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
                         <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
@@ -64,9 +64,9 @@ function App() {
                         <Route path="/terms" element={<Layout><Terms /></Layout>} />
                         <Route path="/settings" element={<Layout><Settings /></Layout>} />
                         <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
-                        <Route path="/signin" element={<SignIn />} />
-                        <Route path="/signup" element={<SignUp />} />
-                        <Route path="/search" element={<Layout><Search /></Layout>} />
+                        <Route path="/signin" element={<Layout><SignIn /></Layout>} />
+                        <Route path="/signup" element={<Layout><SignUp /></Layout>} />
+                        <Route path="/search" element={<Search />} />
                       </Routes>
                     </Router>
                     <Toaster />

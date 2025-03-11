@@ -3,15 +3,13 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-import { Pharmacy } from '@/data/pharmacies';
 
 interface PharmacyMapProps {
   center?: [number, number];
   zoom?: number;
-  pharmacies?: Pharmacy[]; // Added the missing prop
 }
 
-export const PharmacyMap = ({ center, zoom, pharmacies }: PharmacyMapProps) => {
+export const PharmacyMap = ({ center, zoom }: PharmacyMapProps) => {
   const [loading, setLoading] = useState(false);
 
   const handleFindPharmacies = () => {
@@ -43,11 +41,7 @@ export const PharmacyMap = ({ center, zoom, pharmacies }: PharmacyMapProps) => {
   return (
     <div className="w-full h-full flex items-center justify-center bg-gray-100">
       <div className="p-4 bg-card/80 rounded-lg shadow-md text-center">
-        <div className="mb-4 text-gray-600">
-          {pharmacies && pharmacies.length > 0 
-            ? `${pharmacies.length} pharmacies found` 
-            : "Map integration coming soon"}
-        </div>
+        <div className="mb-4 text-gray-600">Map integration coming soon</div>
         <Button 
           onClick={handleFindPharmacies} 
           className="flex items-center justify-center gap-2"
