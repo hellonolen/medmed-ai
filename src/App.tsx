@@ -28,6 +28,7 @@ import Settings from './pages/Settings';
 import UserPortal from "./pages/UserPortal";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import Layout from "./components/Layout";
 
 function App() {
   return (

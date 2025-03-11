@@ -4,7 +4,7 @@ import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings, Search } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings, Search, LogIn, UserPlus, Home } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -49,7 +49,6 @@ const Index = () => {
     setSearchQuery(query);
     setSearchPerformed(query !== '');
     
-    // If we have results focused on one category, switch to that tab
     if (results.length > 0) {
       const resultTypes = new Set(results.map(r => r.type?.toLowerCase()));
       if (resultTypes.size === 1) {
@@ -70,7 +69,6 @@ const Index = () => {
   const removeResult = (index: number) => {
     setSearchResults(prev => prev.filter((_, i) => i !== index));
     
-    // If we removed the last result, clear the search
     if (searchResults.length <= 1) {
       setSearchPerformed(false);
     }
@@ -82,18 +80,13 @@ const Index = () => {
     name: string;
     details: string;
   }, index: number) => {
-    // In a real app, this would be more sophisticated
-    // For this demo, we'll use the index in the search results
     return `0-${index}`;
   };
 
-  // Group medications by type for display
   const groupedResults = groupMedicationsByType(searchResults as MatchedMedication[]);
 
-  // Define preferred display order for medication types
   const displayOrder = ["Injection", "Injectable Gel", "Capsule", "Tablet", "Spray", "Inhaler", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Patch", "Other"];
   
-  // Group results by category
   const medSpaResults = searchResults.filter(r => 
     r.type?.toLowerCase().includes('spa') || 
     r.type?.toLowerCase().includes('aesthetic') ||
@@ -112,7 +105,6 @@ const Index = () => {
     !r.type?.toLowerCase().includes('spa')
   );
   
-  // Medication results - anything with a type like tablet, capsule, injectable, etc.
   const medicationResults = searchResults.filter(r => 
     !r.type?.toLowerCase().includes('spa') && 
     !r.type?.toLowerCase().includes('specialist') &&
@@ -123,6 +115,38 @@ const Index = () => {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white flex flex-col">
+        <header className="bg-white shadow-sm border-b">
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <span className="text-xl font-bold text-primary">MedMed.AI</span>
+            </Link>
+            
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+                <Link to="/settings">
+                  <Settings className="h-4 w-4 mr-1.5" />
+                  {t("nav.settings", "Settings")}
+                </Link>
+              </Button>
+              
+              <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
+              
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/signin">
+                  <LogIn className="h-4 w-4 mr-1.5" />
+                  {t("nav.signin", "Sign In")}
+                </Link>
+              </Button>
+              <Button variant="default" size="sm" asChild>
+                <Link to="/signup">
+                  <UserPlus className="h-4 w-4 mr-1.5" />
+                  {t("nav.signup", "Sign Up")}
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </header>
+
         <div className="container px-4 py-8 mx-auto flex-grow">
           <div className="flex justify-between mb-4">
             <div>
@@ -420,7 +444,6 @@ const Index = () => {
           )}
         </div>
         
-        {/* Policy Footer */}
         <footer className="w-full bg-white border-t border-gray-100">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
