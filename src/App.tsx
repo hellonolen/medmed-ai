@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from "./pages/Index";
@@ -8,7 +7,7 @@ import PharmacyFinder from "./pages/PharmacyFinder";
 import InteractionChecker from "./pages/InteractionChecker";
 import Favorites from "./pages/Favorites";
 import MedicationDetails from "./pages/MedicationDetails";
-import AdminDashboard from "./pages/AdminDashboard";
+import OwnerDashboard from "./pages/OwnerDashboard";
 import { AdminProvider } from './contexts/AdminContext';
 import { SearchHistoryProvider } from './contexts/SearchHistoryContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -38,7 +37,7 @@ function App() {
                     <Route path="/interaction-checker" element={<InteractionChecker />} />
                     <Route path="/favorites" element={<Favorites />} />
                     <Route path="/medication/:id" element={<MedicationDetails />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin" element={<OwnerDashboard />} />
                     <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/terms" element={<Terms />} />

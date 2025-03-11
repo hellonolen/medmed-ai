@@ -1,14 +1,12 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useOwner } from "@/contexts/AdminContext";
+import { useAdmin } from "@/contexts/AdminContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { Download } from "lucide-react";
 
-// Mock data - in a real app, this would come from API calls
 const mockSearchHistory = [
   { user: "user123", query: "Aspirin side effects", date: "2023-09-15" },
   { user: "healthpro", query: "Lisinopril dosage", date: "2023-09-14" },
@@ -67,7 +65,7 @@ const mockSponsorData = [
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useOwner();
+  const { isAdmin } = useAdmin();
   const { t } = useLanguage();
   const [searchHistory, setSearchHistory] = useState(mockSearchHistory);
   const [userData, setUserData] = useState(mockUserData);
@@ -77,7 +75,6 @@ const OwnerDashboard = () => {
     if (!isAdmin) {
       navigate("/");
     }
-    // In a real app, you would fetch data here
   }, [isAdmin, navigate]);
 
   const handleExportCSV = (dataType: string) => {
@@ -106,7 +103,6 @@ const OwnerDashboard = () => {
         return;
     }
 
-    // Create CSV content
     const csvContent = [
       headers.join(","),
       ...data.map(item => {
@@ -121,7 +117,6 @@ const OwnerDashboard = () => {
       })
     ].join("\n");
 
-    // Create download link
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
