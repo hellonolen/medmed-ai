@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import PeriodSelector, { PeriodType } from "@/components/sponsor/PeriodSelector";
@@ -7,31 +7,74 @@ import SponsorStatsChart from "@/components/sponsor/SponsorStatsChart";
 import SponsorStatsSummary from "@/components/sponsor/SponsorStatsSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSponsor } from "@/contexts/SponsorContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const SponsorDashboard = () => {
   const [period, setPeriod] = useState<PeriodType>('weekly');
   const { t } = useLanguage();
+  const { currentSponsor, logout, isLoading } = useSponsor();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !currentSponsor) {
+      navigate('/sponsor-login');
+    }
+  }, [currentSponsor, isLoading, navigate]);
   
   const handlePeriodChange = (newPeriod: PeriodType) => {
     setPeriod(newPeriod);
   };
   
   const handleExportData = (format: 'csv' | 'pdf') => {
+    toast({
+      title: `Exporting ${format.toUpperCase()}`,
+      description: `Your ${format.toUpperCase()} report is being generated and will download shortly.`,
+    });
+    
     // In a real app, this would trigger a download of the stats data
     console.log(`Exporting data in ${format} format for period: ${period}`);
-    alert(`Your ${format.toUpperCase()} report is being generated and will download shortly.`);
+    
+    // Simulate download delay
+    setTimeout(() => {
+      const dummyLink = document.createElement('a');
+      dummyLink.download = `sponsor-report-${period}.${format}`;
+      dummyLink.href = `data:text/plain,This is a sample ${format} report for ${currentSponsor?.companyName}`;
+      document.body.appendChild(dummyLink);
+      dummyLink.click();
+      document.body.removeChild(dummyLink);
+    }, 2000);
   };
+  
+  const handleLogout = () => {
+    logout();
+    navigate('/sponsor-login');
+  };
+  
+  // Show nothing while checking authentication
+  if (isLoading) return null;
+  
+  // If not authenticated, will redirect via useEffect
+  if (!currentSponsor) return null;
   
   return (
     <Layout>
       <div className="container mx-auto py-10">
         <div className="flex flex-col space-y-6">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {t("sponsor.dashboard.title", "Sponsor Dashboard")}
-            </h1>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">
+                {t("sponsor.dashboard.title", "Sponsor Dashboard")}
+              </h1>
+              <p className="text-muted-foreground">
+                {currentSponsor.companyName} - {currentSponsor.package} Package
+              </p>
+            </div>
             <div className="flex space-x-2">
               <Button 
                 variant="outline" 
@@ -50,6 +93,15 @@ const SponsorDashboard = () => {
               >
                 <FileText className="h-4 w-4" />
                 {t("sponsor.dashboard.export_pdf", "Export PDF")}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-1"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
               </Button>
             </div>
           </div>
@@ -109,7 +161,9 @@ const SponsorDashboard = () => {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         <tr>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Spring Promotion</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {currentSponsor.companyName} Campaign
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
                           </td>

@@ -1,63 +1,38 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { PeriodType } from './PeriodSelector';
-
-// Sample data generator
-const generateData = (period: PeriodType) => {
-  const data = [];
-  
-  if (period === 'daily') {
-    // Hours in a day
-    for (let i = 0; i < 24; i++) {
-      data.push({
-        name: `${i}:00`,
-        impressions: Math.floor(Math.random() * 100) + 20,
-        clicks: Math.floor(Math.random() * 30) + 5,
-      });
-    }
-  } else if (period === 'three_days') {
-    // Last 3 days by hour
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 8; j++) {
-        data.push({
-          name: `Day ${i+1} - ${j*3}:00`,
-          impressions: Math.floor(Math.random() * 100) + 20,
-          clicks: Math.floor(Math.random() * 30) + 5,
-        });
-      }
-    }
-  } else if (period === 'weekly') {
-    // Days of the week
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    days.forEach(day => {
-      data.push({
-        name: day,
-        impressions: Math.floor(Math.random() * 500) + 100,
-        clicks: Math.floor(Math.random() * 150) + 20,
-      });
-    });
-  } else {
-    // Monthly (last 30 days)
-    for (let i = 1; i <= 30; i++) {
-      data.push({
-        name: `Day ${i}`,
-        impressions: Math.floor(Math.random() * 500) + 100,
-        clicks: Math.floor(Math.random() * 150) + 20,
-      });
-    }
-  }
-  
-  return data;
-};
+import { useSponsor } from '@/contexts/SponsorContext';
+import { fetchSponsorChartData, SponsorChartData } from '@/services/SponsorAnalyticsService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SponsorStatsChartProps {
   period: PeriodType;
 }
 
 const SponsorStatsChart = ({ period }: SponsorStatsChartProps) => {
-  const data = generateData(period);
+  const { currentSponsor } = useSponsor();
+  const [chartData, setChartData] = useState<SponsorChartData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  useEffect(() => {
+    const loadData = async () => {
+      if (!currentSponsor) return;
+      
+      setIsLoading(true);
+      try {
+        const data = await fetchSponsorChartData(currentSponsor.id, period);
+        setChartData(data);
+      } catch (error) {
+        console.error("Error fetching chart data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [currentSponsor, period]);
   
   return (
     <Card className="col-span-3">
@@ -73,46 +48,55 @@ const SponsorStatsChart = ({ period }: SponsorStatsChartProps) => {
       </CardHeader>
       <CardContent>
         <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={data}
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 70,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                angle={-45} 
-                textAnchor="end" 
-                height={70}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line 
-                type="monotone" 
-                dataKey="impressions" 
-                stroke="#8B5CF6" 
-                strokeWidth={2} 
-                dot={{ r: 4 }} 
-                activeDot={{ r: 6 }} 
-                name="Impressions" 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="clicks" 
-                stroke="#F97316" 
-                strokeWidth={2} 
-                dot={{ r: 4 }} 
-                activeDot={{ r: 6 }} 
-                name="Clicks" 
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full w-full">
+              <div className="space-y-4 w-full">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-[350px] w-full rounded-lg" />
+              </div>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{
+                  top: 20,
+                  right: 30,
+                  left: 20,
+                  bottom: 70,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45} 
+                  textAnchor="end" 
+                  height={70}
+                />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="impressions" 
+                  stroke="#8B5CF6" 
+                  strokeWidth={2} 
+                  dot={{ r: 4 }} 
+                  activeDot={{ r: 6 }} 
+                  name="Impressions" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="clicks" 
+                  stroke="#F97316" 
+                  strokeWidth={2} 
+                  dot={{ r: 4 }} 
+                  activeDot={{ r: 6 }} 
+                  name="Clicks" 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>
