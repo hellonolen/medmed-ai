@@ -31,3 +31,7 @@ export const adPackages = [
 
 // Maximum duration in weeks (13 weeks = 3 months)
 export const MAX_DURATION_WEEKS = 13;
+
+// Available sponsor slots
+export const PREMIUM_SLOTS = 3;
+export const STANDARD_SLOTS = 3;

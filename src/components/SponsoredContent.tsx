@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BadgeCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useSponsor } from '@/contexts/SponsorContext';
 
 interface SponsorProps {
   name: string;
@@ -14,8 +15,53 @@ interface SponsorProps {
 }
 
 export const SponsoredContent = () => {
-  // Sponsors data with premium and standard sponsors clearly separated
-  const premiumSponsors: SponsorProps[] = [
+  const { activeSponsors } = useSponsor();
+  
+  // Filter sponsors by package type
+  const premiumSponsors = activeSponsors
+    .filter(sponsor => sponsor.package === 'Premium' && sponsor.isActive)
+    .slice(0, 3)
+    .map(sponsor => ({
+      name: sponsor.companyName,
+      description: "Your trusted partner for all medication needs with locations nationwide.",
+      logo: `https://placehold.co/100x40/4F46E5/FFFFFF?text=${sponsor.companyName.substring(0, 10)}`,
+      link: "#",
+      isPremium: true
+    }));
+  
+  const standardSponsors = activeSponsors
+    .filter(sponsor => sponsor.package === 'Standard' && sponsor.isActive)
+    .slice(0, 3)
+    .map(sponsor => ({
+      name: sponsor.companyName,
+      description: "Science-backed nutritional supplements for optimal health and wellness.",
+      logo: `https://placehold.co/100x40/EC4899/FFFFFF?text=${sponsor.companyName.substring(0, 10)}`,
+      link: "#"
+    }));
+  
+  // Fallback to demo sponsors if needed to fill slots
+  const demoStandardSponsors: SponsorProps[] = [
+    {
+      name: "NutriHealth Supplements",
+      description: "Science-backed nutritional supplements for optimal health and wellness.",
+      logo: "https://placehold.co/100x40/EC4899/FFFFFF?text=NutriHealth",
+      link: "#"
+    },
+    {
+      name: "MindWell Therapy",
+      description: "Online mental health services and resources for better wellbeing.",
+      logo: "https://placehold.co/100x40/8B5CF6/FFFFFF?text=MindWell",
+      link: "#"
+    },
+    {
+      name: "FitTrack Devices",
+      description: "Smart health monitoring devices to track your fitness and vitals.",
+      logo: "https://placehold.co/100x40/F59E0B/FFFFFF?text=FitTrack",
+      link: "#"
+    }
+  ];
+  
+  const demoPremiumSponsors: SponsorProps[] = [
     {
       name: "HealthPlus Pharmacy",
       description: "Your trusted partner for all medication needs with locations nationwide.",
@@ -39,26 +85,14 @@ export const SponsoredContent = () => {
     }
   ];
   
-  const standardSponsors: SponsorProps[] = [
-    {
-      name: "NutriHealth Supplements",
-      description: "Science-backed nutritional supplements for optimal health and wellness.",
-      logo: "https://placehold.co/100x40/EC4899/FFFFFF?text=NutriHealth",
-      link: "#"
-    },
-    {
-      name: "MindWell Therapy",
-      description: "Online mental health services and resources for better wellbeing.",
-      logo: "https://placehold.co/100x40/8B5CF6/FFFFFF?text=MindWell",
-      link: "#"
-    },
-    {
-      name: "FitTrack Devices",
-      description: "Smart health monitoring devices to track your fitness and vitals.",
-      logo: "https://placehold.co/100x40/F59E0B/FFFFFF?text=FitTrack",
-      link: "#"
-    }
-  ];
+  // Use real sponsors when available, fill with demo data when needed
+  const displayPremiumSponsors = premiumSponsors.length > 0 
+    ? premiumSponsors 
+    : demoPremiumSponsors;
+  
+  const displayStandardSponsors = standardSponsors.length > 0 
+    ? standardSponsors 
+    : demoStandardSponsors;
 
   return (
     <div className="py-8 bg-gray-50/70">
@@ -81,7 +115,7 @@ export const SponsoredContent = () => {
         <div className="mb-4">
           <h3 className="sr-only">Premium Partners</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {premiumSponsors.map((sponsor, index) => (
+            {displayPremiumSponsors.map((sponsor, index) => (
               <Card 
                 key={index} 
                 className="border-primary/10 bg-gradient-to-b from-white to-purple-50/20 hover:shadow-sm transition-all"
@@ -125,7 +159,7 @@ export const SponsoredContent = () => {
         <div>
           <h3 className="sr-only">Standard Partners</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            {standardSponsors.map((sponsor, index) => (
+            {displayStandardSponsors.map((sponsor, index) => (
               <Card 
                 key={index} 
                 className="border hover:shadow-sm transition-all"

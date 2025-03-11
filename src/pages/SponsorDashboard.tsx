@@ -1,17 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import PeriodSelector, { PeriodType } from "@/components/sponsor/PeriodSelector";
 import SponsorStatsChart from "@/components/sponsor/SponsorStatsChart";
 import SponsorStatsSummary from "@/components/sponsor/SponsorStatsSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Download, FileText, LogOut } from "lucide-react";
+import { Download, FileText, LogOut, AlertCircle, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSponsor } from "@/contexts/SponsorContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const SponsorDashboard = () => {
   const [period, setPeriod] = useState<PeriodType>('weekly');
@@ -55,6 +56,31 @@ const SponsorDashboard = () => {
     logout();
     navigate('/sponsor-login');
   };
+  
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }).format(date);
+  };
+  
+  // Calculate days remaining if active
+  const calculateDaysRemaining = () => {
+    if (!currentSponsor?.endDate) return null;
+    
+    const endDate = new Date(currentSponsor.endDate);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
+  };
+  
+  const daysRemaining = calculateDaysRemaining();
   
   // Show nothing while checking authentication
   if (isLoading) return null;
@@ -106,6 +132,29 @@ const SponsorDashboard = () => {
             </div>
           </div>
           
+          {currentSponsor.isOnWaitlist ? (
+            <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Your ad is currently on the waitlist</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Your {currentSponsor.package} ad is currently at position {currentSponsor.waitlistPosition} in the queue. 
+                We'll automatically activate your ad and notify you when a slot becomes available.
+              </AlertDescription>
+            </Alert>
+          ) : daysRemaining !== null && daysRemaining <= 7 ? (
+            <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Your ad campaign is ending soon</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Your campaign will end in {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}. 
+                Would you like to renew your ad campaign?
+                <Button variant="outline" size="sm" className="ml-4 mt-2 bg-white border-amber-300 text-amber-800">
+                  Renew Campaign
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          
           <Card>
             <CardHeader>
               <CardTitle>
@@ -116,17 +165,31 @@ const SponsorDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <PeriodSelector 
-                selectedPeriod={period} 
-                onPeriodChange={handlePeriodChange} 
-                className="mb-6"
-              />
-              
-              <SponsorStatsSummary period={period} />
-              
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <SponsorStatsChart period={period} />
-              </div>
+              {currentSponsor.isActive ? (
+                <>
+                  <PeriodSelector 
+                    selectedPeriod={period} 
+                    onPeriodChange={handlePeriodChange} 
+                    className="mb-6"
+                  />
+                  
+                  <SponsorStatsSummary period={period} />
+                  
+                  <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SponsorStatsChart period={period} />
+                  </div>
+                </>
+              ) : (
+                <div className="py-10 text-center">
+                  <div className="bg-gray-100 inline-block p-4 rounded-full mb-4">
+                    <Clock className="h-8 w-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Waiting for Campaign Activation</h3>
+                  <p className="text-gray-500 max-w-md mx-auto">
+                    Your ad campaign is waiting to be activated. Performance metrics will be available once your ad is live.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -140,14 +203,86 @@ const SponsorDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="active">
+              <Tabs defaultValue="status">
                 <TabsList className="mb-4">
-                  <TabsTrigger value="active">Active Campaigns</TabsTrigger>
-                  <TabsTrigger value="past">Past Campaigns</TabsTrigger>
-                  <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+                  <TabsTrigger value="status">Campaign Status</TabsTrigger>
+                  <TabsTrigger value="history">History</TabsTrigger>
+                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="active">
+                <TabsContent value="status">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500 mb-1">Status</h3>
+                          <div className="flex items-center">
+                            <span className={`h-2.5 w-2.5 rounded-full mr-2 ${
+                              currentSponsor.isActive ? 'bg-green-500' : 'bg-amber-500'
+                            }`}></span>
+                            <span className="font-medium">
+                              {currentSponsor.isActive ? 'Active' : 'On Waitlist'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500 mb-1">Package</h3>
+                          <p className="font-medium">{currentSponsor.package}</p>
+                        </div>
+                        
+                        {currentSponsor.isActive && (
+                          <>
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500 mb-1">Start Date</h3>
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>{formatDate(currentSponsor.startDate)}</span>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500 mb-1">End Date</h3>
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>{formatDate(currentSponsor.endDate)}</span>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <h3 className="text-sm font-medium text-gray-500 mb-1">Time Remaining</h3>
+                              <div className="flex items-center">
+                                <Clock className="h-4 w-4 mr-2 text-gray-400" />
+                                <span>
+                                  {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining
+                                </span>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                        
+                        {currentSponsor.isOnWaitlist && (
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-500 mb-1">Waitlist Position</h3>
+                            <p className="font-medium">Position {currentSponsor.waitlistPosition}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {currentSponsor.isActive && (
+                        <div className="mt-6 pt-6 border-t">
+                          <div className="flex justify-end">
+                            <Button variant="outline" size="sm">
+                              Renew Campaign
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="history">
                   <div className="rounded-md border">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
@@ -165,23 +300,86 @@ const SponsorDashboard = () => {
                             {currentSponsor.companyName} Campaign
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              currentSponsor.isActive
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {currentSponsor.isActive ? 'Active' : 'On Waitlist'}
+                            </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Mar 15, 2023</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">Jun 15, 2023</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">$5,000</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(currentSponsor.startDate)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {formatDate(currentSponsor.endDate)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {currentSponsor.package === 'Premium' ? '$10,000' : '$5,000'} / week
+                          </td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="past">
-                  <p className="text-center text-gray-500 py-8">No past campaigns to display.</p>
-                </TabsContent>
-                
-                <TabsContent value="scheduled">
-                  <p className="text-center text-gray-500 py-8">No scheduled campaigns to display.</p>
+                <TabsContent value="notifications">
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="divide-y">
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-green-100 p-2 rounded-full">
+                              <AlertCircle className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm">Campaign Started</h3>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Your ad campaign has been activated and is now live on our platform.
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                {formatDate(currentSponsor.startDate)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-blue-100 p-2 rounded-full">
+                              <BarChart className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm">Weekly Performance Report</h3>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Your weekly performance report is now available. View your metrics.
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                1 week ago
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-purple-100 p-2 rounded-full">
+                              <Download className="h-4 w-4 text-purple-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-sm">Campaign Analytics Downloaded</h3>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Your campaign analytics CSV file was downloaded.
+                              </p>
+                              <p className="text-xs text-gray-400 mt-2">
+                                2 weeks ago
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </CardContent>

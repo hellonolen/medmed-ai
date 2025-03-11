@@ -1,17 +1,22 @@
 
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ArrowLeft, AlertCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import CompanyInfoForm from "@/components/advertiser/CompanyInfoForm";
 import AdPackageCard from "@/components/advertiser/AdPackageCard";
 import DurationSelector from "@/components/advertiser/DurationSelector";
 import PaymentDialog from "@/components/advertiser/PaymentDialog";
 import { adPackages, MAX_DURATION_WEEKS } from "@/data/adPackages";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useSponsor } from "@/contexts/SponsorContext";
 
 const AdvertiserEnrollment = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { availableSlots, joinWaitlist } = useSponsor();
+  
   const [formData, setFormData] = useState({
     companyName: "",
     description: "",
@@ -24,6 +29,14 @@ const AdvertiserEnrollment = () => {
   const [durationWeeks, setDurationWeeks] = useState(1);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
+
+  const isPremiumSelected = selectedPackage === "premium";
+  const isStandardSelected = selectedPackage === "standard";
+  
+  // Check if selected package is full
+  const isPremiumFull = isPremiumSelected && availableSlots.premium === 0;
+  const isStandardFull = isStandardSelected && availableSlots.standard === 0;
+  const isSelectedPackageFull = isPremiumFull || isStandardFull;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -65,20 +78,43 @@ const AdvertiserEnrollment = () => {
   };
 
   const handlePayment = () => {
-    // Simulate payment processing and AI verification
-    toast({
-      title: "Payment successful!",
-      description: "Your advertisement has been submitted for verification and will go live soon.",
-    });
-    setIsPaymentDialogOpen(false);
-    
-    // Simulate AI verification and email notification
-    setTimeout(() => {
+    // Determine if we're adding to active sponsors or waitlist
+    if (isSelectedPackageFull) {
+      // Add to waitlist
+      const newSponsor = {
+        id: `sponsor-${Date.now()}`,
+        name: "New Sponsor",
+        email: formData.contactEmail,
+        companyName: formData.companyName,
+        package: isPremiumSelected ? 'Premium' : 'Standard' as 'Premium' | 'Standard',
+        apiKey: `sk_${formData.companyName.toLowerCase().replace(/\s+/g, '')}_${Date.now()}`,
+        isActive: false,
+        isOnWaitlist: true
+      };
+      
+      joinWaitlist(newSponsor);
+      
       toast({
-        title: "Ad Verified",
-        description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
+        title: "Added to Waitlist",
+        description: "All slots are currently filled. You've been added to the waitlist and will be notified when a slot becomes available.",
       });
-    }, 3000);
+    } else {
+      // Regular sponsor activation
+      toast({
+        title: "Payment successful!",
+        description: "Your advertisement has been submitted for verification and will go live soon.",
+      });
+      
+      // Simulate AI verification and email notification
+      setTimeout(() => {
+        toast({
+          title: "Ad Verified",
+          description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
+        });
+      }, 3000);
+    }
+    
+    setIsPaymentDialogOpen(false);
     
     // Reset form
     setFormData({
@@ -92,6 +128,11 @@ const AdvertiserEnrollment = () => {
     setSelectedPackage("");
     setDurationWeeks(1);
     setPaymentMethod("card");
+    
+    // Redirect to sponsor portal
+    setTimeout(() => {
+      navigate('/sponsor-portal');
+    }, 2000);
   };
 
   // Handle wire transfer selection
@@ -102,10 +143,15 @@ const AdvertiserEnrollment = () => {
       description: "Check your email for wire transfer instructions. Your ad space will be reserved for 48 hours pending payment.",
     });
     setIsPaymentDialogOpen(false);
+    
+    // Redirect to sponsor portal
+    setTimeout(() => {
+      navigate('/sponsor-portal');
+    }, 2000);
   };
 
-  // Get the character limit based on selected package
-  const getMaxCharacters = () => selectedPackage === "premium" ? 120 : 80;
+  // Get the character limit based on selected package - identical for both packages now
+  const getMaxCharacters = () => 120;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
@@ -124,6 +170,17 @@ const AdvertiserEnrollment = () => {
             Showcase your healthcare products or services to our engaged audience
           </p>
         </div>
+        
+        {/* Availability alerts */}
+        {selectedPackage && isSelectedPackageFull && (
+          <Alert className="bg-amber-50 border-amber-200 mb-6">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">All {isPremiumSelected ? "Premium" : "Standard"} slots are filled</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              You can still proceed with enrollment and join the waitlist. You'll be automatically promoted when a slot becomes available.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="md:col-span-2">
@@ -158,6 +215,20 @@ const AdvertiserEnrollment = () => {
                   adPackages={adPackages}
                   maxDurationWeeks={MAX_DURATION_WEEKS}
                 />
+              )}
+              
+              {/* Package availability info */}
+              {selectedPackage && (
+                <div className="text-sm mt-2">
+                  <div className={`flex items-center ${
+                    isSelectedPackageFull ? "text-amber-600" : "text-green-600"
+                  }`}>
+                    <span className="h-2 w-2 rounded-full mr-2 bg-current"></span>
+                    {isSelectedPackageFull 
+                      ? `${isPremiumSelected ? "Premium" : "Standard"} - Waitlist Only` 
+                      : `${isPremiumSelected ? "Premium" : "Standard"} - Slots Available`}
+                  </div>
+                </div>
               )}
             </div>
           </div>

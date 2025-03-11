@@ -5,14 +5,26 @@ import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { adPackages } from '@/data/adPackages';
-import { Award, BarChart, LogIn, BadgeCheck, TrendingUp } from 'lucide-react';
+import { adPackages, PREMIUM_SLOTS, STANDARD_SLOTS } from '@/data/adPackages';
+import { Award, BarChart, LogIn, BadgeCheck, TrendingUp, AlertCircle, Users } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { useSponsor } from '@/contexts/SponsorContext';
 
 const SponsorPortal = () => {
   const navigate = useNavigate();
-  const { currentSponsor } = useSponsor();
+  const { 
+    currentSponsor, 
+    availableSlots, 
+    waitlistedSponsors 
+  } = useSponsor();
+  
+  // Get waitlist length by package type
+  const premiumWaitlistLength = waitlistedSponsors.filter(s => s.package === 'Premium').length;
+  const standardWaitlistLength = waitlistedSponsors.filter(s => s.package === 'Standard').length;
+  
+  // Check if current sponsor is on waitlist
+  const isOnWaitlist = currentSponsor?.isOnWaitlist || false;
+  const waitlistPosition = currentSponsor?.waitlistPosition || 0;
   
   return (
     <Layout>
@@ -26,6 +38,77 @@ const SponsorPortal = () => {
             Reach healthcare consumers directly with our targeted advertising solutions
           </p>
         </div>
+        
+        {isOnWaitlist && (
+          <Card className="mb-6 bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-amber-100 p-2 rounded-full">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-amber-800">You're on the Waitlist</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Your {currentSponsor?.package} ad is at position {waitlistPosition} in the queue. 
+                    We'll notify you when your ad goes live.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Card className="mb-6">
+          <CardHeader className="py-4 px-6">
+            <CardTitle className="text-lg">Current Availability</CardTitle>
+            <CardDescription>
+              We partner with a limited number of healthcare providers
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 p-2 rounded-full">
+                  <BadgeCheck className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Premium Slots</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-sm">
+                      <span className="font-medium">{availableSlots.premium}</span> of {PREMIUM_SLOTS} available
+                    </div>
+                    {availableSlots.premium === 0 && (
+                      <div className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-full flex items-center gap-0.5">
+                        <Users className="h-3 w-3" />
+                        <span>{premiumWaitlistLength} waiting</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="bg-gray-100 p-2 rounded-full">
+                  <BadgeCheck className="h-5 w-5 text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium">Standard Slots</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="text-sm">
+                      <span className="font-medium">{availableSlots.standard}</span> of {STANDARD_SLOTS} available
+                    </div>
+                    {availableSlots.standard === 0 && (
+                      <div className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded-full flex items-center gap-0.5">
+                        <Users className="h-3 w-3" />
+                        <span>{standardWaitlistLength} waiting</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         
         <Tabs defaultValue={currentSponsor ? "dashboard" : "packages"} className="space-y-6">
           <div className="flex justify-center">
@@ -80,6 +163,34 @@ const SponsorPortal = () => {
                         </li>
                       ))}
                     </ul>
+                    
+                    {/* Availability status */}
+                    <div className="mt-4 text-sm">
+                      <div className={`flex items-center ${
+                        (pkg.id === "premium" && availableSlots.premium === 0) || 
+                        (pkg.id === "standard" && availableSlots.standard === 0) 
+                          ? "text-amber-600" 
+                          : "text-green-600"
+                      }`}>
+                        <span className="h-2 w-2 rounded-full mr-2 bg-current"></span>
+                        {(pkg.id === "premium" && availableSlots.premium > 0) || 
+                         (pkg.id === "standard" && availableSlots.standard > 0) 
+                          ? "Slots Available" 
+                          : "Waitlist Only"}
+                      </div>
+                      
+                      {/* If waitlist, show estimated wait time */}
+                      {((pkg.id === "premium" && availableSlots.premium === 0) || 
+                        (pkg.id === "standard" && availableSlots.standard === 0)) && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Est. wait: {pkg.id === "premium" ? premiumWaitlistLength : standardWaitlistLength} {
+                            (pkg.id === "premium" ? premiumWaitlistLength : standardWaitlistLength) === 1 
+                              ? "sponsor" 
+                              : "sponsors"
+                          } ahead
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                   <CardFooter className="py-3 px-4">
                     <Button 
@@ -88,7 +199,10 @@ const SponsorPortal = () => {
                       onClick={() => navigate('/advertiser-enrollment')}
                       size="sm"
                     >
-                      Get Started
+                      {((pkg.id === "premium" && availableSlots.premium === 0) || 
+                        (pkg.id === "standard" && availableSlots.standard === 0)) 
+                        ? "Join Waitlist" 
+                        : "Get Started"}
                     </Button>
                   </CardFooter>
                 </Card>
