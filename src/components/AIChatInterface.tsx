@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, User, ArrowRight, CircleLetterM } from 'lucide-react';
+import { MessageCircle, User, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { toast } from 'sonner';
@@ -132,7 +132,7 @@ export const AIChatInterface = ({
               message.type === 'ai' ? 'bg-primary/10' : 'bg-secondary'
             }`}>
               {message.type === 'ai' ? (
-                <CircleLetterM className="h-4 w-4 text-primary" />
+                <MessageCircle className="h-4 w-4 text-primary" />
               ) : (
                 <User className="h-4 w-4" />
               )}
@@ -149,7 +149,7 @@ export const AIChatInterface = ({
         {isTyping && (
           <div className="flex gap-2 items-start">
             <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <CircleLetterM className="h-4 w-4 text-primary" />
+              <MessageCircle className="h-4 w-4 text-primary" />
             </div>
             <div className="rounded-lg px-4 py-2 bg-primary/10 text-foreground">
               <span className="inline-flex gap-1">
