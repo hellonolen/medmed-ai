@@ -143,7 +143,7 @@ export const SponsoredContent = () => {
                     
                     <a 
                       href={sponsor.link} 
-                      className="text-primary hover:underline text-xs"
+                      className="text-primary hover:text-primary/80 text-xs"
                       rel="noopener"
                     >
                       Learn more
@@ -186,7 +186,7 @@ export const SponsoredContent = () => {
                     
                     <a 
                       href={sponsor.link} 
-                      className="text-primary hover:underline text-xs"
+                      className="text-primary hover:text-primary/80 text-xs"
                       rel="noopener"
                     >
                       Learn more
