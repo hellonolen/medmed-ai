@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useCallback, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -136,6 +137,58 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
     { name: "Costco Pharmacy", details: "Membership warehouse pharmacy with discounted pricing", price: "Varies", type: "Pharmacy", source: "Pharmacy Directory", phone: "+1-555-890-1234", address: "555 Wholesale Drive, Seattle, WA 98101", rating: 4.7 },
     { name: "Sam's Club Pharmacy", details: "Members-only warehouse pharmacy with savings program", price: "Varies", type: "Pharmacy", source: "Pharmacy Directory", phone: "+1-555-901-2345", address: "666 Club Road, Dallas, TX 75201", rating: 4.4 }
   ];
+
+  // Helper function to determine search priority based on patterns
+  const determineSearchPriority = (patterns: Record<string, boolean>): SearchResultType[] => {
+    if (patterns.location) {
+      return ['Pharmacy', 'Med Spa', 'Specialist', 'Medication'];
+    }
+    if (patterns.pharmacy) {
+      return ['Pharmacy', 'Medication', 'Specialist', 'Med Spa'];
+    }
+    if (patterns.medSpa) {
+      return ['Med Spa', 'Specialist', 'Pharmacy', 'Medication'];
+    }
+    if (patterns.specialist) {
+      return ['Specialist', 'Med Spa', 'Pharmacy', 'Medication'];
+    }
+    if (patterns.symptom) {
+      return ['Specialist', 'Medication', 'Pharmacy', 'Med Spa'];
+    }
+    if (patterns.medication || patterns.injection) {
+      return ['Medication', 'Pharmacy', 'Specialist', 'Med Spa'];
+    }
+    // Default priority
+    return ['Medication', 'Pharmacy', 'Med Spa', 'Specialist', 'Condition', 'Other'];
+  };
+
+  // Function to filter fallback data based on the query
+  const filterFallbackData = (
+    data: UnifiedSearchResult[], 
+    query: string, 
+    limit: number = 10
+  ): UnifiedSearchResult[] => {
+    // For empty queries, return random samples
+    if (!query || query.length < 2) {
+      return data.slice(0, limit);
+    }
+    
+    // Basic matching algorithm
+    const matches = data.filter(item => {
+      const nameMatch = item.name.toLowerCase().includes(query);
+      const detailsMatch = item.details.toLowerCase().includes(query);
+      const typeMatch = item.type.toLowerCase().includes(query);
+      
+      return nameMatch || detailsMatch || typeMatch;
+    });
+    
+    // If no matches, return some default items
+    if (matches.length === 0) {
+      return data.slice(0, limit);
+    }
+    
+    return matches.slice(0, limit);
+  };
 
   // Unified search function with comprehensive search capabilities
   const searchWithContext = useCallback(async (query: string, searchType?: string): Promise<UnifiedSearchResult[]> => {
@@ -433,4 +486,46 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
               ? results.map(r => r.name).join(", ") 
               : "No relevant results",
             results: results,
-            timestamp: new
+            timestamp: new Date()
+          }
+        ]
+      }));
+      
+      console.log("Final search results:", results);
+      
+      return results;
+    } catch (error) {
+      console.error("Search error:", error);
+      setState(prev => ({ 
+        ...prev, 
+        lastError: error instanceof Error ? error.message : "Unknown error" 
+      }));
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [state.history, language]);
+
+  return (
+    <MedicalSearchContext.Provider
+      value={{
+        searchWithContext,
+        searchHistory: state.history,
+        loading,
+        error: state.lastError,
+        clearError
+      }}
+    >
+      {children}
+    </MedicalSearchContext.Provider>
+  );
+};
+
+export const useMedicalSearch = (): MedicalSearchContextType => {
+  const context = useContext(MedicalSearchContext);
+  if (context === undefined) {
+    throw new Error("useMedicalSearch must be used within a MedicalSearchProvider");
+  }
+  return context;
+};
+
