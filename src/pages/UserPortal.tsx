@@ -4,7 +4,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Search, Clock, Star, Shield, Upgrade } from 'lucide-react';
+import { Globe, Search, Clock, Star, Shield, ArrowUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +59,7 @@ const UserPortal = () => {
                           onClick={() => navigate('/subscription')}
                           className="w-full"
                         >
-                          <Upgrade className="mr-2 h-4 w-4" />
+                          <ArrowUp className="mr-2 h-4 w-4" />
                           Upgrade to Premium
                         </Button>
                       </div>
