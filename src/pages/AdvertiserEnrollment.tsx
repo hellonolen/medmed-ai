@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,13 +9,11 @@ import AdPackageCard from "@/components/advertiser/AdPackageCard";
 import DurationSelector from "@/components/advertiser/DurationSelector";
 import PaymentDialog from "@/components/advertiser/PaymentDialog";
 import { adPackages, MAX_DURATION_WEEKS } from "@/data/adPackages";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useSponsor } from "@/contexts/SponsorContext";
 
 const AdvertiserEnrollment = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { availableSlots, joinWaitlist } = useSponsor();
   
   const [formData, setFormData] = useState({
     companyName: "",
@@ -29,14 +27,6 @@ const AdvertiserEnrollment = () => {
   const [durationWeeks, setDurationWeeks] = useState(1);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("card");
-
-  const isPremiumSelected = selectedPackage === "premium";
-  const isStandardSelected = selectedPackage === "standard";
-  
-  // Check if selected package is full
-  const isPremiumFull = isPremiumSelected && availableSlots.premium === 0;
-  const isStandardFull = isStandardSelected && availableSlots.standard === 0;
-  const isSelectedPackageFull = isPremiumFull || isStandardFull;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -78,41 +68,19 @@ const AdvertiserEnrollment = () => {
   };
 
   const handlePayment = () => {
-    // Determine if we're adding to active sponsors or waitlist
-    if (isSelectedPackageFull) {
-      // Add to waitlist
-      const newSponsor = {
-        id: `sponsor-${Date.now()}`,
-        name: "New Sponsor",
-        email: formData.contactEmail,
-        companyName: formData.companyName,
-        package: isPremiumSelected ? 'Premium' : 'Standard' as 'Premium' | 'Standard',
-        apiKey: `sk_${formData.companyName.toLowerCase().replace(/\s+/g, '')}_${Date.now()}`,
-        isActive: false,
-        isOnWaitlist: true
-      };
-      
-      joinWaitlist(newSponsor);
-      
+    // Regular sponsor activation
+    toast({
+      title: "Payment successful!",
+      description: "Your advertisement has been submitted for verification and will go live soon.",
+    });
+    
+    // Simulate AI verification and email notification
+    setTimeout(() => {
       toast({
-        title: "Added to Waitlist",
-        description: "All slots are currently filled. You've been added to the waitlist and will be notified when a slot becomes available.",
+        title: "Ad Verified",
+        description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
       });
-    } else {
-      // Regular sponsor activation
-      toast({
-        title: "Payment successful!",
-        description: "Your advertisement has been submitted for verification and will go live soon.",
-      });
-      
-      // Simulate AI verification and email notification
-      setTimeout(() => {
-        toast({
-          title: "Ad Verified",
-          description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
-        });
-      }, 3000);
-    }
+    }, 3000);
     
     setIsPaymentDialogOpen(false);
     
@@ -171,17 +139,6 @@ const AdvertiserEnrollment = () => {
           </p>
         </div>
         
-        {/* Availability alerts */}
-        {selectedPackage && isSelectedPackageFull && (
-          <Alert className="bg-amber-50 border-amber-200 mb-6">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertTitle className="text-amber-800">All {isPremiumSelected ? "Premium" : "Standard"} slots are filled</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              You can still proceed with enrollment and join the waitlist. You'll be automatically promoted when a slot becomes available.
-            </AlertDescription>
-          </Alert>
-        )}
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <div className="md:col-span-2">
             <CompanyInfoForm 
@@ -215,20 +172,6 @@ const AdvertiserEnrollment = () => {
                   adPackages={adPackages}
                   maxDurationWeeks={MAX_DURATION_WEEKS}
                 />
-              )}
-              
-              {/* Package availability info */}
-              {selectedPackage && (
-                <div className="text-sm mt-2">
-                  <div className={`flex items-center ${
-                    isSelectedPackageFull ? "text-amber-600" : "text-green-600"
-                  }`}>
-                    <span className="h-2 w-2 rounded-full mr-2 bg-current"></span>
-                    {isSelectedPackageFull 
-                      ? `${isPremiumSelected ? "Premium" : "Standard"} - Waitlist Only` 
-                      : `${isPremiumSelected ? "Premium" : "Standard"} - Slots Available`}
-                  </div>
-                </div>
               )}
             </div>
           </div>

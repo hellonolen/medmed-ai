@@ -26,11 +26,7 @@ interface SponsorContextType {
   logout: () => void;
   error: string | null;
   activeSponsors: Sponsor[];
-  waitlistedSponsors: Sponsor[];
   availableSlots: { premium: number; standard: number };
-  joinWaitlist: (sponsor: Sponsor) => void;
-  activateSponsor: (sponsorId: string) => void;
-  deactivateSponsor: (sponsorId: string) => void;
 }
 
 // Create the context with a default value
@@ -41,11 +37,7 @@ const SponsorContext = createContext<SponsorContextType>({
   logout: () => {},
   error: null,
   activeSponsors: [],
-  waitlistedSponsors: [],
   availableSlots: { premium: PREMIUM_SLOTS, standard: STANDARD_SLOTS },
-  joinWaitlist: () => {},
-  activateSponsor: () => {},
-  deactivateSponsor: () => {},
 });
 
 // Mock sponsors data (in a real app, this would come from a database)
@@ -122,29 +114,6 @@ const MOCK_SPONSORS: Sponsor[] = [
     isActive: true,
     isOnWaitlist: false,
   },
-  // Waitlisted sponsors
-  {
-    id: 'sponsor-7',
-    name: 'Thomas Moore',
-    email: 'thomas@medisafe.com',
-    companyName: 'MediSafe Clinic',
-    package: 'Premium',
-    apiKey: 'sk_medisafe_12345',
-    isActive: false,
-    isOnWaitlist: true,
-    waitlistPosition: 1,
-  },
-  {
-    id: 'sponsor-8',
-    name: 'Laura Garcia',
-    email: 'laura@healthvitals.com',
-    companyName: 'HealthVitals Monitor',
-    package: 'Standard',
-    apiKey: 'sk_healthvitals_67890',
-    isActive: false,
-    isOnWaitlist: true,
-    waitlistPosition: 1,
-  },
 ];
 
 export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -156,9 +125,6 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // Get active sponsors by package type
   const activeSponsors = sponsors.filter(s => s.isActive);
-  const waitlistedSponsors = sponsors.filter(s => s.isOnWaitlist).sort((a, b) => 
-    (a.waitlistPosition || 999) - (b.waitlistPosition || 999)
-  );
 
   // Calculate available slots
   const activePremiumCount = activeSponsors.filter(s => s.package === 'Premium').length;
@@ -169,12 +135,12 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
     standard: STANDARD_SLOTS - activeStandardCount
   };
 
-  // Check for expired sponsors and process waitlist daily
+  // Check for expired sponsors daily
   useEffect(() => {
     const checkExpirations = () => {
       const today = new Date();
       const updatedSponsors = [...sponsors];
-      let waitlistUpdated = false;
+      let sponsorsUpdated = false;
 
       // Check for expired sponsors
       updatedSponsors.forEach(sponsor => {
@@ -182,7 +148,7 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const endDate = new Date(sponsor.endDate);
           if (endDate < today) {
             sponsor.isActive = false;
-            waitlistUpdated = true;
+            sponsorsUpdated = true;
             
             // Send notification email (in a real app)
             console.log(`Sponsor ${sponsor.companyName} subscription has ended`);
@@ -190,9 +156,8 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       });
 
-      // Process waitlist if slots opened up
-      if (waitlistUpdated) {
-        processWaitlist(updatedSponsors);
+      if (sponsorsUpdated) {
+        setSponsors(updatedSponsors);
       }
     };
 
@@ -204,141 +169,6 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     return () => clearInterval(intervalId);
   }, [sponsors]);
-
-  // Process the waitlist
-  const processWaitlist = (sponsorsList: Sponsor[]) => {
-    const updatedSponsors = [...sponsorsList];
-    const premiumWaitlist = updatedSponsors
-      .filter(s => s.isOnWaitlist && s.package === 'Premium')
-      .sort((a, b) => (a.waitlistPosition || 999) - (b.waitlistPosition || 999));
-    
-    const standardWaitlist = updatedSponsors
-      .filter(s => s.isOnWaitlist && s.package === 'Standard')
-      .sort((a, b) => (a.waitlistPosition || 999) - (b.waitlistPosition || 999));
-
-    // Calculate available slots
-    const activePremium = updatedSponsors.filter(s => s.isActive && s.package === 'Premium').length;
-    const activeStandard = updatedSponsors.filter(s => s.isActive && s.package === 'Standard').length;
-    
-    const premiumSlots = PREMIUM_SLOTS - activePremium;
-    const standardSlots = STANDARD_SLOTS - activeStandard;
-
-    // Process premium waitlist
-    for (let i = 0; i < Math.min(premiumSlots, premiumWaitlist.length); i++) {
-      const sponsor = premiumWaitlist[i];
-      sponsor.isActive = true;
-      sponsor.isOnWaitlist = false;
-      sponsor.waitlistPosition = undefined;
-      sponsor.startDate = new Date().toISOString().split('T')[0];
-      sponsor.endDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 90 days
-      
-      // Send notification email (in a real app)
-      toast({
-        title: "Sponsor Activated",
-        description: `${sponsor.companyName} has been moved from the waitlist to active status.`,
-      });
-    }
-
-    // Process standard waitlist
-    for (let i = 0; i < Math.min(standardSlots, standardWaitlist.length); i++) {
-      const sponsor = standardWaitlist[i];
-      sponsor.isActive = true;
-      sponsor.isOnWaitlist = false;
-      sponsor.waitlistPosition = undefined;
-      sponsor.startDate = new Date().toISOString().split('T')[0];
-      sponsor.endDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 90 days
-      
-      // Send notification email (in a real app)
-      toast({
-        title: "Sponsor Activated", 
-        description: `${sponsor.companyName} has been moved from the waitlist to active status.`,
-      });
-    }
-
-    // Reindex waitlist positions
-    const remainingPremiumWaitlist = updatedSponsors.filter(s => s.isOnWaitlist && s.package === 'Premium');
-    const remainingStandardWaitlist = updatedSponsors.filter(s => s.isOnWaitlist && s.package === 'Standard');
-    
-    remainingPremiumWaitlist.forEach((sponsor, index) => {
-      sponsor.waitlistPosition = index + 1;
-    });
-    
-    remainingStandardWaitlist.forEach((sponsor, index) => {
-      sponsor.waitlistPosition = index + 1;
-    });
-
-    setSponsors(updatedSponsors);
-  };
-
-  // Join waitlist function
-  const joinWaitlist = (sponsor: Sponsor) => {
-    const updatedSponsors = [...sponsors];
-    
-    // Determine waitlist position
-    const packageWaitlist = updatedSponsors.filter(
-      s => s.isOnWaitlist && s.package === sponsor.package
-    );
-    const waitlistPosition = packageWaitlist.length + 1;
-    
-    // Add to waitlist
-    updatedSponsors.push({
-      ...sponsor,
-      isActive: false,
-      isOnWaitlist: true,
-      waitlistPosition,
-    });
-    
-    setSponsors(updatedSponsors);
-    
-    // Send notification email (in a real app)
-    toast({
-      title: "Added to Waitlist",
-      description: `${sponsor.companyName} has been added to the ${sponsor.package} waitlist at position ${waitlistPosition}.`,
-    });
-  };
-  
-  // Activate sponsor function (for admin use)
-  const activateSponsor = (sponsorId: string) => {
-    const updatedSponsors = [...sponsors];
-    const sponsor = updatedSponsors.find(s => s.id === sponsorId);
-    
-    if (sponsor) {
-      sponsor.isActive = true;
-      sponsor.isOnWaitlist = false;
-      sponsor.waitlistPosition = undefined;
-      sponsor.startDate = new Date().toISOString().split('T')[0];
-      sponsor.endDate = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 90 days
-      
-      setSponsors(updatedSponsors);
-      
-      // Send notification email (in a real app)
-      toast({
-        title: "Sponsor Activated",
-        description: `${sponsor.companyName} has been activated and their ad is now live.`,
-      });
-    }
-  };
-  
-  // Deactivate sponsor function (for admin use)
-  const deactivateSponsor = (sponsorId: string) => {
-    const updatedSponsors = [...sponsors];
-    const sponsor = updatedSponsors.find(s => s.id === sponsorId);
-    
-    if (sponsor) {
-      sponsor.isActive = false;
-      
-      setSponsors(updatedSponsors);
-      
-      // Process waitlist to fill the slot
-      processWaitlist(updatedSponsors);
-      
-      // Send notification email (in a real app)
-      toast({
-        title: "Sponsor Deactivated",
-        description: `${sponsor.companyName} has been deactivated.`,
-      });
-    }
-  };
 
   // Check for saved sponsor session on load
   useEffect(() => {
@@ -387,11 +217,7 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
       logout, 
       error,
       activeSponsors,
-      waitlistedSponsors,
-      availableSlots,
-      joinWaitlist,
-      activateSponsor,
-      deactivateSponsor
+      availableSlots
     }}>
       {children}
     </SponsorContext.Provider>
