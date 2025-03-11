@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -6,7 +5,8 @@ import {
   List, Calendar, FileText, Download, Bell, Activity, Zap,
   DollarSign, ShieldCheck, Server, Pill, RefreshCw, 
   Settings, HelpCircle, Layers, LayoutDashboard, ChevronRight,
-  ArrowUpRight, HelpingHand, BrainCircuit, FileHeart, Stethoscope
+  ArrowUpRight, HelpingHand, BrainCircuit, FileHeart, Stethoscope,
+  UserPlus
 } from "lucide-react";
 import {
   Card,
@@ -26,8 +26,14 @@ import {
   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from "recharts";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Stats cards data
 const statCards = [
   {
     title: "Patient Visits",
@@ -63,7 +69,6 @@ const statCards = [
   },
 ];
 
-// Health insights data
 const healthInsights = [
   {
     title: "Most Searched Condition",
@@ -85,7 +90,6 @@ const healthInsights = [
   },
 ];
 
-// Sample pie chart data
 const diagnosisData = [
   { name: "Cardiovascular", value: 35 },
   { name: "Respiratory", value: 25 },
@@ -99,6 +103,7 @@ const COLORS = ['#8B5CF6', '#10B981', '#F97316', '#0EA5E9', '#EC4899'];
 const AdminDashboard = () => {
   const { isAdmin } = useAdmin();
   const { searchHistory } = useSearchHistory();
+  const { toast } = useToast();
   const [activeVisitors, setActiveVisitors] = useState(42);
   const [totalSearches, setTotalSearches] = useState(0);
   const [topSearches, setTopSearches] = useState<{term: string, count: number}[]>([]);
@@ -121,23 +126,35 @@ const AdminDashboard = () => {
     network: 23
   });
 
+  const [userData, setUserData] = useState([
+    { id: 1, name: "John Smith", email: "john@example.com", joinDate: "2023-05-12", status: "active" },
+    { id: 2, name: "Emma Johnson", email: "emma@example.com", joinDate: "2023-06-21", status: "active" },
+    { id: 3, name: "Michael Brown", email: "michael@example.com", joinDate: "2023-07-15", status: "inactive" },
+    { id: 4, name: "Sophia Davis", email: "sophia@example.com", joinDate: "2023-08-04", status: "active" },
+    { id: 5, name: "William Miller", email: "william@example.com", joinDate: "2023-09-18", status: "active" },
+  ]);
+
+  const [sponsorData, setSponsortData] = useState([
+    { id: 1, company: "HealthPlus Pharmacy", email: "contact@healthplus.com", joinDate: "2023-04-10", plan: "Premium" },
+    { id: 2, company: "MediCorp Solutions", email: "info@medicorp.com", joinDate: "2023-05-22", plan: "Standard" },
+    { id: 3, company: "Wellness Labs", email: "partnerships@wellnesslabs.com", joinDate: "2023-07-30", plan: "Premium" },
+    { id: 4, company: "VitaCare International", email: "business@vitacare.com", joinDate: "2023-08-15", plan: "Premium" },
+    { id: 5, company: "NutriHealth Research", email: "support@nutrihealth.com", joinDate: "2023-10-05", plan: "Standard" },
+  ]);
+
   useEffect(() => {
-    // Process search history data
     if (searchHistory && searchHistory.length > 0) {
-      // Update total searches
       setTotalSearches(searchHistory.length);
       
-      // Update recent search activity
       const recentActivity = [...searchHistory].reverse().slice(0, 10).map(item => ({
         query: item.query,
         timestamp: new Date(item.timestamp).toLocaleString()
       }));
       setRecentSearchActivity(recentActivity);
       
-      // Calculate top searches
       const searchCounts = searchHistory.reduce((acc, curr) => {
         const term = curr.query;
-        if (!term) return acc; // Skip empty queries
+        if (!term) return acc;
         acc[term] = (acc[term] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
@@ -150,11 +167,9 @@ const AdminDashboard = () => {
       setTopSearches(topSearchResults);
     }
 
-    // Simulate fluctuating visitor count
     const interval = setInterval(() => {
       setActiveVisitors(prev => Math.max(35, Math.min(50, prev + Math.floor(Math.random() * 7) - 3)));
       
-      // Update system health randomly
       setSystemHealth(prev => ({
         cpu: Math.min(100, Math.max(5, prev.cpu + (Math.random() * 10 - 5))),
         memory: Math.min(100, Math.max(10, prev.memory + (Math.random() * 8 - 4))),
@@ -166,20 +181,82 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, [searchHistory]);
 
-  const downloadCSV = () => {
-    if (!searchHistory || searchHistory.length === 0) return;
+  const downloadCSV = (dataType = "searches") => {
+    let data = [];
+    let filename = "";
+    let headers = [];
     
-    // Create CSV content
-    const headers = ['Query', 'Results Count', 'Timestamp'];
-    const csvRows = [
-      headers.join(','),
-      ...searchHistory.map(item => 
-        [
+    switch(dataType) {
+      case "searches":
+        if (!searchHistory || searchHistory.length === 0) {
+          toast({
+            title: "No data available",
+            description: "There is no search history data to export",
+            variant: "destructive",
+          });
+          return;
+        }
+        headers = ['Query', 'Results Count', 'Timestamp'];
+        data = searchHistory.map(item => [
           `"${item.query}"`, 
           item.resultsCount, 
           new Date(item.timestamp).toISOString()
-        ].join(',')
-      )
+        ]);
+        filename = `search_history_${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      case "users":
+        if (userData.length === 0) {
+          toast({
+            title: "No data available",
+            description: "There is no user data to export",
+            variant: "destructive",
+          });
+          return;
+        }
+        headers = ['ID', 'Name', 'Email', 'Join Date', 'Status'];
+        data = userData.map(user => [
+          user.id,
+          `"${user.name}"`,
+          `"${user.email}"`,
+          user.joinDate,
+          `"${user.status}"`
+        ]);
+        filename = `users_${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      case "sponsors":
+        if (sponsorData.length === 0) {
+          toast({
+            title: "No data available",
+            description: "There is no sponsor data to export",
+            variant: "destructive",
+          });
+          return;
+        }
+        headers = ['ID', 'Company', 'Email', 'Join Date', 'Plan'];
+        data = sponsorData.map(sponsor => [
+          sponsor.id,
+          `"${sponsor.company}"`,
+          `"${sponsor.email}"`,
+          sponsor.joinDate,
+          `"${sponsor.plan}"`
+        ]);
+        filename = `sponsors_${new Date().toISOString().split('T')[0]}.csv`;
+        break;
+        
+      default:
+        toast({
+          title: "Invalid data type",
+          description: "The requested data type is not available for export",
+          variant: "destructive",
+        });
+        return;
+    }
+    
+    const csvRows = [
+      headers.join(','),
+      ...data.map(row => row.join(','))
     ];
     
     const csvContent = csvRows.join('\n');
@@ -187,15 +264,20 @@ const AdminDashboard = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `search_history_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', filename);
     link.click();
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export successful",
+      description: `${filename} has been downloaded successfully`,
+    });
   };
 
   const getStatusColor = (value: number) => {
-    if (value < 50) return "bg-green-100 text-green-800 border-green-300";
-    if (value < 80) return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    return "bg-red-100 text-red-800 border-red-300";
+    if (value < 50) return "bg-green-100 text-green-700 border-green-300";
+    if (value < 80) return "bg-yellow-100 text-yellow-700 border-yellow-300";
+    return "bg-red-100 text-red-700 border-red-300";
   };
 
   const filteredSearches = recentSearchActivity.filter(item => 
@@ -204,7 +286,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white to-indigo-50">
-      {/* Overlay Patterns */}
       <div className="fixed inset-0 z-0 bg-gradient-radial from-indigo-100/30 to-transparent opacity-70"></div>
       <div className="fixed inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMzMDMwZmYiIGZpbGwtb3BhY2l0eT0iMC4wMiI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00aDJ2MmgtMnYtMnptLTQgOGgydi0yaC0ydjJ6bTItNGgydjJoLTJ2LTJ6bS0yLTR2Mmgydi0yaC0yem00IDBoMnYyaC0ydi0yem0yLTRoLTJ2MmgydjJoMnYtMmgydi0yaC0ydi0yaC0ydjJ6bTQgMGgydjJoLTJ2LTJ6bTIgNHYtMmgtMnYyaDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40"></div>
 
@@ -239,17 +320,34 @@ const AdminDashboard = () => {
                 <Settings className="h-5 w-5" />
               </Button>
               
-              <Button variant="default" size="sm" onClick={downloadCSV} className="rounded-full flex items-center gap-2">
-                <Download className="h-4 w-4" /> 
-                Export Data
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="default" size="sm" className="rounded-full flex items-center gap-2">
+                    <Download className="h-4 w-4" /> 
+                    Export Data
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => downloadCSV("searches")}>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search History
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadCSV("users")}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Users
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadCSV("sponsors")}>
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Sponsors
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-6 relative z-10">
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {statCards.map((stat, i) => (
             <Card key={i} className="overflow-hidden border-none shadow-lg bg-gradient-to-br backdrop-blur-md bg-white/50 hover:bg-white/70 transition-all">
@@ -283,7 +381,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Main Chart */}
           <Card className="lg:col-span-2 border shadow-md bg-white/80 backdrop-blur-md">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -355,7 +452,6 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Health Insights */}
           <Card className="border shadow-md bg-white/80 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Health Insights</CardTitle>
@@ -383,7 +479,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Diagnosis Distribution */}
           <Card className="border shadow-md bg-white/80 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Diagnosis Distribution</CardTitle>
@@ -419,7 +514,6 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Top Searches */}
           <Card className="border shadow-md bg-white/80 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Top Searches</CardTitle>
@@ -461,7 +555,6 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Revenue Overview */}
           <Card className="border shadow-md bg-white/80 backdrop-blur-md">
             <CardHeader>
               <CardTitle>Revenue Overview</CardTitle>
@@ -586,7 +679,7 @@ const AdminDashboard = () => {
                   <RefreshCw className="h-4 w-4" />
                   Refresh
                 </Button>
-                <Button variant="outline" size="sm" onClick={downloadCSV} className="rounded-full flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => downloadCSV("searches")} className="rounded-full flex items-center gap-2">
                   <Download className="h-4 w-4" /> 
                   Export All
                 </Button>
@@ -762,6 +855,96 @@ const AdminDashboard = () => {
                   Support Center
                 </Button>
               </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="user-management">
+            <Card className="border shadow-md bg-white/80 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>All registered users</CardDescription>
+                </div>
+                <Button onClick={() => downloadCSV("users")} className="rounded-full flex items-center gap-2">
+                  <Download className="h-4 w-4" /> 
+                  Export Users
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-muted/20">
+                        <th className="text-left p-4 font-medium text-muted-foreground">Name</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Join Date</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {userData.map((user) => (
+                        <tr key={user.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="p-4">{user.name}</td>
+                          <td className="p-4">{user.email}</td>
+                          <td className="p-4">{user.joinDate}</td>
+                          <td className="p-4">
+                            <Badge className={user.status === 'active' 
+                              ? "bg-green-100 text-green-700" 
+                              : "bg-amber-100 text-amber-700"}>
+                              {user.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sponsor-management">
+            <Card className="border shadow-md bg-white/80 backdrop-blur-md">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Sponsor Management</CardTitle>
+                  <CardDescription>All registered sponsors</CardDescription>
+                </div>
+                <Button onClick={() => downloadCSV("sponsors")} className="rounded-full flex items-center gap-2">
+                  <Download className="h-4 w-4" /> 
+                  Export Sponsors
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-muted/20">
+                        <th className="text-left p-4 font-medium text-muted-foreground">Company</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Email</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Join Date</th>
+                        <th className="text-left p-4 font-medium text-muted-foreground">Plan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {sponsorData.map((sponsor) => (
+                        <tr key={sponsor.id} className="hover:bg-muted/10 transition-colors">
+                          <td className="p-4">{sponsor.company}</td>
+                          <td className="p-4">{sponsor.email}</td>
+                          <td className="p-4">{sponsor.joinDate}</td>
+                          <td className="p-4">
+                            <Badge className={sponsor.plan === 'Premium' 
+                              ? "bg-purple-100 text-purple-700" 
+                              : "bg-blue-100 text-blue-700"}>
+                              {sponsor.plan}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
