@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
@@ -35,6 +34,7 @@ const Index = () => {
   const { isAdmin } = useAdmin();
   const { t } = useLanguage();
   const { tier, isSubscribed } = useSubscription();
+  const navigate = useNavigate();
   
   const handleSearch = (query: string, results: Array<{
     name: string;
@@ -128,13 +128,18 @@ const Index = () => {
             <div>
               <AIKeySetup />
             </div>
-            {isSubscribed && (
-              <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
+            {isSubscribed ? (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="bg-primary/10 text-primary"
+                onClick={() => navigate('/user-portal')}
+              >
                 <span className="flex items-center gap-1.5">
                   Premium {tier.charAt(0).toUpperCase() + tier.slice(1)} Active
                 </span>
               </Button>
-            )}
+            ) : null}
           </div>
 
           <div className="text-center mb-12">
