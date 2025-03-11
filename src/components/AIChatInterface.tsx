@@ -10,6 +10,7 @@ import { VoiceSearchButton } from './VoiceSearchButton';
 import { useNavigate } from 'react-router-dom';
 import { intelligentPharmacySearch } from '@/utils/pharmacySearch';
 import { AccessibilityPanel } from './AccessibilityPanel';
+import { useMedicalSearch } from '@/contexts/MedicalSearchContext';
 
 interface Message {
   content: string;
@@ -23,6 +24,8 @@ interface SearchResult {
   price: string;
   type?: string;
   source?: string;
+  phone?: string;
+  address?: string;
 }
 
 export const AIChatInterface = ({ 
@@ -36,6 +39,7 @@ export const AIChatInterface = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const { searchWithContext } = useMedicalSearch();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -71,19 +75,32 @@ export const AIChatInterface = ({
     setIsTyping(true);
 
     try {
-      // Check for pharmacy-related queries
+      // Check for pharmacy/med spa related queries
       const normalizedInput = inputValue.toLowerCase();
       const isPharmacySearch = /pharmacy|drugstore|chemist|near|around|locate/.test(normalizedInput);
-
-      if (isPharmacySearch) {
-        // Redirect to pharmacy finder with the query
-        const results = await intelligentPharmacySearch(inputValue, language);
-        if (results.length > 0) {
+      const isMedSpaSearch = /med\s*spa|medi\s*spa|med-spa|spa|cosmetic|aesthetic|beauty/.test(normalizedInput);
+      
+      // Use the centralized medical search context
+      const searchResults = await searchWithContext(inputValue);
+      
+      // Determine if we should redirect based on the query type
+      if ((isPharmacySearch || isMedSpaSearch) && searchResults.length > 0) {
+        // Check if it's a clear request for the pharmacy finder
+        if (isPharmacySearch && /find|locate|list|show|search/.test(normalizedInput)) {
           navigate(`/pharmacy-finder?query=${encodeURIComponent(inputValue)}`);
+          // Add message before redirecting
+          const redirectMessage: Message = {
+            content: t("ai.redirect", "Taking you to pharmacy finder with your search results..."),
+            type: 'ai',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, redirectMessage]);
+          setIsTyping(false);
           return;
         }
       }
 
+      // Process AI response
       const response = await aiService.getHealthAdvice(inputValue);
       
       if (response.success) {
@@ -95,7 +112,7 @@ export const AIChatInterface = ({
         setMessages(prev => [...prev, aiMessage]);
         
         // Trigger search for relevant results
-        onSearch(inputValue, []); // AI service will handle the actual results
+        onSearch(inputValue, searchResults); 
       } else {
         throw new Error('AI service error');
       }
@@ -173,7 +190,7 @@ export const AIChatInterface = ({
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder={t("ai.input_placeholder", "Ask about medications, symptoms, find pharmacies worldwide...")}
+          placeholder={t("ai.input_placeholder", "Ask about medications, symptoms, find pharmacies, med spas worldwide...")}
           className="flex-1 px-4 py-2 rounded-lg border border-input bg-background"
         />
         <AccessibilityPanel />
