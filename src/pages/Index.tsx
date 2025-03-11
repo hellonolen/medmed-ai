@@ -208,8 +208,8 @@ const Index = () => {
             </div>
           )}
           
-          <footer className="mt-16 text-center text-gray-500 text-sm">
-            <p>© {currentYear} MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
+          <footer className="mt-16 text-left text-gray-500 text-sm">
+            <p>© 2025 MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
             <p className="mt-2">{t("app.footer.demo", "This is a demo application. Not for actual medical use.")}</p>
             <p className="mt-1">{t("app.footer.global", "Providing global healthcare information and resources")}</p>
           </footer>
