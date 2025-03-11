@@ -340,6 +340,48 @@ class AIService {
         };
     }
   }
+
+  // Add new methods to fix the TS errors
+  
+  /**
+   * Answers a FAQ question using the configured AI providers
+   * @param question The question to answer
+   * @returns AI response with the answer
+   */
+  public async answerFAQ(question: string): Promise<AIResponse> {
+    // Special system prompt for FAQ answers
+    const faqSystemPrompt = 
+      "You are a healthcare FAQ assistant providing accurate, concise answers to medical questions. " +
+      "Keep responses under 3 paragraphs, use simple language, and include appropriate disclaimers. " +
+      "Always clarify that this information is for educational purposes only and not a substitute for professional medical advice.";
+    
+    return this.askAI({
+      query: question,
+      systemPrompt: faqSystemPrompt
+    });
+  }
+  
+  /**
+   * Verifies payment details using AI to detect potential fraud
+   * @param paymentDetails The payment details to verify
+   * @returns AI response with verification result in JSON format
+   */
+  public async getPaymentVerification(paymentDetails: any): Promise<AIResponse> {
+    // Special system prompt for payment verification
+    const verificationSystemPrompt = 
+      "You are a payment verification assistant. Analyze the provided payment details and return a JSON object " +
+      "with the following structure: { \"verified\": boolean, \"risk\": \"low\"|\"medium\"|\"high\", \"reason\": string }. " +
+      "Base your assessment on the payment amount, method, and any provided context. " +
+      "IMPORTANT: Your response must ONLY contain valid JSON that can be parsed.";
+    
+    // Format the payment details as a structured query
+    const query = `Please verify the following payment transaction:\n${JSON.stringify(paymentDetails, null, 2)}`;
+    
+    return this.askAI({
+      query,
+      systemPrompt: verificationSystemPrompt
+    });
+  }
 }
 
 export const aiService = AIService.getInstance();
