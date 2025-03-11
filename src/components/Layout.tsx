@@ -15,34 +15,38 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen bg-gray-50/50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold text-primary">MedMed.AI</span>
           </Link>
-          <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" asChild>
+          
+          <div className="flex items-center space-x-3">
+            <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+              <Link to="/settings">
+                <Settings className="h-4 w-4 mr-1.5" />
+                {t("nav.settings", "Settings")}
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className="hidden md:flex">
+              <Link to="/">
+                <Home className="h-4 w-4 mr-1.5" />
+                {t("nav.home", "Home")}
+              </Link>
+            </Button>
+            
+            <div className="h-6 w-px bg-gray-200 mx-1 hidden md:block"></div>
+            
+            <Button variant="default" size="sm" asChild className="bg-primary hover:bg-primary/90">
               <Link to="/signup">
-                <UserPlus className="h-4 w-4 mr-1" />
+                <UserPlus className="h-4 w-4 mr-1.5" />
                 {t("nav.signup", "Sign Up")}
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/signin">
-                <LogIn className="h-4 w-4 mr-1" />
+                <LogIn className="h-4 w-4 mr-1.5" />
                 {t("nav.signin", "Sign In")}
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/settings">
-                <Settings className="h-4 w-4 mr-1" />
-                {t("nav.settings", "Settings")}
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/">
-                <Home className="h-4 w-4 mr-1" />
-                {t("nav.home", "Home")}
               </Link>
             </Button>
           </div>
