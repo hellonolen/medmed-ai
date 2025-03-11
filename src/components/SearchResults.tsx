@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { SearchResult } from '@/services/SearchService';
 import { MedicationCardWrapper } from '@/components/MedicationCardWrapper';
 import { Button } from '@/components/ui/button';
-import { X, BadgeInfo, Star, Clock } from 'lucide-react';
+import { X, BadgeInfo, Star, Clock, Stethoscope, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
