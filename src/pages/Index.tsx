@@ -10,7 +10,6 @@ import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMatcher";
-import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
@@ -73,25 +72,14 @@ const Index = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
         <div className="container px-4 py-8 mx-auto">
-          <div className="flex justify-between mb-4">
-            <div>
-              {!isSubscribed && (
-                <Link to="/subscription">
-                  <Button size="sm" variant="outline" className="bg-card/90 backdrop-blur-md hover:bg-card flex items-center gap-1.5">
-                    <CreditCard className="h-4 w-4 text-primary" />
-                    <span>Upgrade to Premium</span>
-                  </Button>
-                </Link>
-              )}
-              {isSubscribed && (
-                <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
-                  <span className="flex items-center gap-1.5">
-                    Premium {tier.charAt(0).toUpperCase() + tier.slice(1)} Active
-                  </span>
-                </Button>
-              )}
-            </div>
-            <AccessibilityPanel />
+          <div className="flex justify-end mb-4">
+            {isSubscribed && (
+              <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
+                <span className="flex items-center gap-1.5">
+                  Premium {tier.charAt(0).toUpperCase() + tier.slice(1)} Active
+                </span>
+              </Button>
+            )}
           </div>
           
           <div className="text-center mb-12 animate-fadeIn">

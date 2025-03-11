@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Search, X, Globe, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { VoiceSearchButton } from '@/components/VoiceSearchButton';
 import { useMedicalSearch } from '@/contexts/MedicalSearchContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Link } from 'react-router-dom';
+import { AccessibilityPanel } from '@/components/AccessibilityPanel';
 
 interface SearchBarProps {
   onSearch: (query: string, results: Array<{ name: string; details: string; price: string; type?: string; source?: string }>) => void;
@@ -80,12 +82,15 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             </Link>
           )}
         </div>
-        <VoiceSearchButton
-          onResult={handleVoiceResult}
-          isListening={isListening}
-          setIsListening={setIsListening}
-          className="ml-2"
-        />
+        <div className="flex items-center">
+          <VoiceSearchButton
+            onResult={handleVoiceResult}
+            isListening={isListening}
+            setIsListening={setIsListening}
+            className="mr-2"
+          />
+          <AccessibilityPanel />
+        </div>
       </div>
       
       <form onSubmit={handleSearch} className="w-full relative">
