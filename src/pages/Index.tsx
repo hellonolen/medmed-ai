@@ -4,7 +4,7 @@ import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings, Search, LogIn, UserPlus, Home } from "lucide-react";
+import { X, Clipboard, Map, Activity, Globe, Shield, FileText, Settings, Search, LogIn, UserPlus } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -187,18 +187,6 @@ const Index = () => {
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card/100 hover:shadow-sm transition-all">
                   <Activity className="h-4 w-4 text-primary" />
                   <span className="text-center w-full truncate">{t("menu.interaction_checker", "Interaction Checker")}</span>
-                </Button>
-              </Link>
-              <Link to="/favorites" className="sm:col-span-3 md:col-span-1">
-                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card/100 hover:shadow-sm transition-all">
-                  <Heart className="h-4 w-4 text-primary" />
-                  <span className="text-center w-full truncate">{t("menu.favorites", "My Favorites")}</span>
-                </Button>
-              </Link>
-              <Link to="/subscription" className="sm:col-span-3 md:col-span-1">
-                <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card/100 hover:shadow-sm transition-all">
-                  <CreditCard className="h-4 w-4 text-primary" />
-                  <span className="text-center w-full truncate">{t("menu.premium", "Premium Plans")}</span>
                 </Button>
               </Link>
             </div>
@@ -467,3 +455,4 @@ const Index = () => {
 };
 
 export default Index;
+
