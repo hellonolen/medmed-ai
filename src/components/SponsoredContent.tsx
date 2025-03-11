@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, BadgeCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -56,56 +56,70 @@ export const SponsoredContent = () => {
   ];
 
   return (
-    <div className="py-8">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-semibold text-primary mb-2">Our Partners</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          We work with trusted healthcare providers to bring you the best services
-        </p>
-        <div className="flex justify-center gap-4 mt-4">
-          <Link to="/sponsor-portal">
-            <Button variant="outline" size="sm">
-              Become a Partner
-            </Button>
-          </Link>
+    <div className="py-12 bg-gray-50/70">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl font-semibold text-primary mb-3">Our Healthcare Partners</h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            We collaborate with trusted healthcare providers to bring you the best services and resources
+          </p>
+          <div className="flex justify-center gap-4 mt-4">
+            <Link to="/sponsor-portal">
+              <Button variant="outline" size="sm" className="mt-2">
+                Become a Partner
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {sponsors.map((sponsor, index) => (
-          <Card key={index} className={`border hover:shadow-md transition-all duration-200 ${sponsor.isPremium ? 'border-primary/30' : ''}`}>
-            <CardContent className="p-6">
-              <div className="flex flex-col gap-4 h-full">
-                <div className="flex justify-between items-start">
-                  <img 
-                    src={sponsor.logo} 
-                    alt={`${sponsor.name} logo`} 
-                    className="h-10 object-contain"
-                  />
-                  <div className={`text-xs ${sponsor.isPremium ? 'bg-primary/10 text-primary' : 'bg-gray-100'} rounded-full px-2 py-1`}>
-                    {sponsor.isPremium ? 'Premium Sponsor' : 'Sponsored'}
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {sponsors.map((sponsor, index) => (
+            <Card 
+              key={index} 
+              className={`border hover:shadow-md transition-all duration-200 ${
+                sponsor.isPremium ? 'border-primary/20 bg-gradient-to-b from-white to-purple-50/30' : ''
+              }`}
+            >
+              <CardContent className="p-6">
+                <div className="flex flex-col gap-4 h-full">
+                  <div className="flex justify-between items-start">
+                    <img 
+                      src={sponsor.logo} 
+                      alt={`${sponsor.name} logo`} 
+                      className="h-10 object-contain"
+                    />
+                    {sponsor.isPremium ? (
+                      <div className="bg-primary/10 text-primary text-xs rounded-full px-2 py-1 flex items-center">
+                        <BadgeCheck className="h-3 w-3 mr-1" />
+                        Premium Partner
+                      </div>
+                    ) : (
+                      <div className="bg-gray-100 text-gray-600 text-xs rounded-full px-2 py-1">
+                        Partner
+                      </div>
+                    )}
                   </div>
+                  
+                  <div className="flex-grow">
+                    <h3 className="font-medium text-lg">{sponsor.name}</h3>
+                    <p className="text-gray-600 text-sm mt-2">
+                      {sponsor.description}
+                    </p>
+                  </div>
+                  
+                  <a 
+                    href={sponsor.link} 
+                    className="text-primary hover:underline text-sm flex items-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Learn more <ExternalLink className="ml-1 h-3 w-3" />
+                  </a>
                 </div>
-                
-                <div className="flex-grow">
-                  <h3 className="font-medium text-lg">{sponsor.name}</h3>
-                  <p className="text-gray-600 text-sm mt-2">
-                    {sponsor.description}
-                  </p>
-                </div>
-                
-                <a 
-                  href={sponsor.link} 
-                  className="text-primary hover:underline text-sm flex items-center"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Learn more <ExternalLink className="ml-1 h-3 w-3" />
-                </a>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );
