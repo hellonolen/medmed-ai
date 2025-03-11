@@ -38,10 +38,10 @@ export const SubscriptionPlans = () => {
       description: 'Basic access to medication information',
       features: [
         { name: 'Basic medication search', included: true, icon: <Globe size={16} /> },
-        { name: 'Symptom checker', included: true, icon: <Bot size={16} /> },
+        { name: 'Smart health assistant', included: true, icon: <Bot size={16} /> },
         { name: 'Pharmacy finder', included: true, icon: <Globe size={16} /> },
         { name: 'Detailed medication information', included: false, icon: <Shield size={16} /> },
-        { name: 'AI support', included: true, icon: <Bot size={16} /> },
+        { name: 'Personalized recommendations', included: false, icon: <Star size={16} /> },
         { name: 'Exclusive health content', included: false, icon: <FileText size={16} /> },
       ]
     },
@@ -55,8 +55,8 @@ export const SubscriptionPlans = () => {
       features: [
         { name: 'All free features', included: true, icon: <Check size={16} /> },
         { name: 'Detailed medication information', included: true, icon: <Shield size={16} /> },
-        { name: 'Unlimited search history', included: true, icon: <Bot size={16} /> },
-        { name: 'Advanced AI support', included: true, icon: <Bot size={16} /> },
+        { name: 'Advanced search history', included: true, icon: <Bot size={16} /> },
+        { name: 'Enhanced recommendations', included: true, icon: <Star size={16} /> },
         { name: 'Exclusive health content', included: true, icon: <FileText size={16} /> },
         { name: 'Detailed health reports', included: true, icon: <FileText size={16} /> },
       ]
@@ -69,11 +69,11 @@ export const SubscriptionPlans = () => {
       description: 'Advanced healthcare solutions for professionals',
       features: [
         { name: 'All premium features', included: true, icon: <Check size={16} /> },
-        { name: 'Advanced analytics', included: true, icon: <Globe size={16} /> },
-        { name: 'Bulk medication lookups', included: true, icon: <FileText size={16} /> },
+        { name: 'Performance analytics', included: true, icon: <Globe size={16} /> },
+        { name: 'Batch medication lookups', included: true, icon: <FileText size={16} /> },
         { name: 'Specialist contact information', included: true, icon: <Star size={16} /> },
         { name: 'Professional health resources', included: true, icon: <FileText size={16} /> },
-        { name: 'Priority AI response', included: true, icon: <Bot size={16} /> },
+        { name: 'Priority response time', included: true, icon: <Bot size={16} /> },
       ]
     }
   ];

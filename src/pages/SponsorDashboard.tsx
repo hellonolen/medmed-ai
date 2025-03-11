@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import Layout from "@/components/Layout";
@@ -7,7 +6,7 @@ import SponsorStatsChart from "@/components/sponsor/SponsorStatsChart";
 import SponsorStatsSummary from "@/components/sponsor/SponsorStatsSummary";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Download, FileText, LogOut, AlertCircle, Calendar, Clock } from "lucide-react";
+import { Download, FileText, LogOut, AlertCircle, Calendar, Clock, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSponsor } from "@/contexts/SponsorContext";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +20,6 @@ const SponsorDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !currentSponsor) {
       navigate('/sponsor-login');
@@ -38,10 +36,8 @@ const SponsorDashboard = () => {
       description: `Your ${format.toUpperCase()} report is being generated and will download shortly.`,
     });
     
-    // In a real app, this would trigger a download of the stats data
     console.log(`Exporting data in ${format} format for period: ${period}`);
     
-    // Simulate download delay
     setTimeout(() => {
       const dummyLink = document.createElement('a');
       dummyLink.download = `sponsor-report-${period}.${format}`;
@@ -57,7 +53,6 @@ const SponsorDashboard = () => {
     navigate('/sponsor-login');
   };
   
-  // Format date for display
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
@@ -68,7 +63,6 @@ const SponsorDashboard = () => {
     }).format(date);
   };
   
-  // Calculate days remaining if active
   const calculateDaysRemaining = () => {
     if (!currentSponsor?.endDate) return null;
     
@@ -82,10 +76,8 @@ const SponsorDashboard = () => {
   
   const daysRemaining = calculateDaysRemaining();
   
-  // Show nothing while checking authentication
   if (isLoading) return null;
   
-  // If not authenticated, will redirect via useEffect
   if (!currentSponsor) return null;
   
   return (
@@ -133,7 +125,7 @@ const SponsorDashboard = () => {
           </div>
           
           {currentSponsor.isOnWaitlist ? (
-            <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+            <Alert className="bg-amber-50 border-amber-200 text-amber-800">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Your ad is currently on the waitlist</AlertTitle>
               <AlertDescription className="text-amber-700">
@@ -142,7 +134,7 @@ const SponsorDashboard = () => {
               </AlertDescription>
             </Alert>
           ) : daysRemaining !== null && daysRemaining <= 7 ? (
-            <Alert variant="warning" className="bg-amber-50 border-amber-200 text-amber-800">
+            <Alert className="bg-amber-50 border-amber-200 text-amber-800">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Your ad campaign is ending soon</AlertTitle>
               <AlertDescription className="text-amber-700">
