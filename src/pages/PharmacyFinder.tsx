@@ -26,7 +26,6 @@ const PharmacyFinder = () => {
   
   useEffect(() => {
     if (initialName) {
-      // Fix: Create a proper filter instead of an incomplete object
       const filteredPharmacies = pharmacies.filter(p => 
         p.name.toLowerCase().includes(initialName.toLowerCase())
       );
@@ -61,15 +60,15 @@ const PharmacyFinder = () => {
   };
 
   return (
-    <div className="container mx-auto">
-      <div className="flex flex-col space-y-4">
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col space-y-6">
         <h1 className="text-2xl font-bold">{t("pharmacy.title", "Find Pharmacies & Med Spas")}</h1>
         
         <p className="text-gray-600">
           {t("pharmacy.description", "Search for pharmacies and medical spas near you. You can search by name, city, or zip code.")}
         </p>
         
-        <Card>
+        <Card className="bg-white shadow-sm">
           <CardContent className="pt-6">
             <PharmacySearchForm 
               onResultsFound={handleSearch} 
@@ -80,7 +79,7 @@ const PharmacyFinder = () => {
         
         {searched && (
           <>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mt-4">
               <h2 className="text-xl font-semibold">
                 {results.length > 0 
                   ? t("pharmacy.results_title", `Found ${results.length} locations`)
@@ -115,8 +114,12 @@ const PharmacyFinder = () => {
                   onLocationSelect={handleLocationSelect}
                 />
               ) : (
-                <div className="h-[600px] rounded-lg overflow-hidden border">
-                  <PharmacyMap />
+                <div className="h-[600px] rounded-lg overflow-hidden border bg-white shadow-inner">
+                  <PharmacyMap 
+                    pharmacies={results}
+                    center={mapCenter}
+                    zoom={mapZoom}
+                  />
                 </div>
               )}
             </div>

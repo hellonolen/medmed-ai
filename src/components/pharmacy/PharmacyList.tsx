@@ -17,9 +17,9 @@ export const PharmacyList: React.FC<PharmacyListProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         {[...Array(3)].map((_, index) => (
-          <Card key={index} className="animate-pulse">
+          <Card key={index} className="animate-pulse bg-[#F1F1F1]">
             <CardContent className="p-6 h-32"></CardContent>
           </Card>
         ))}
@@ -29,7 +29,7 @@ export const PharmacyList: React.FC<PharmacyListProps> = ({
 
   if (pharmacies.length === 0) {
     return (
-      <Card>
+      <Card className="bg-[#F1F1F1]">
         <CardContent className="p-6 text-center">
           <p className="text-gray-500">No pharmacies found matching your search criteria.</p>
         </CardContent>
@@ -38,7 +38,7 @@ export const PharmacyList: React.FC<PharmacyListProps> = ({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {pharmacies.map((pharmacy) => (
         <PharmacyCard 
           key={pharmacy.id} 
