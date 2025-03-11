@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Settings } from 'lucide-react';
+import { Home, Settings, LogIn, UserPlus } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,7 +20,19 @@ const Layout = ({ children }: LayoutProps) => {
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold text-primary">MedMed.AI</span>
           </Link>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/signup">
+                <UserPlus className="h-4 w-4 mr-1" />
+                {t("nav.signup", "Sign Up")}
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/signin">
+                <LogIn className="h-4 w-4 mr-1" />
+                {t("nav.signin", "Sign In")}
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/settings">
                 <Settings className="h-4 w-4 mr-1" />

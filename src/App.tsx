@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from "./pages/Index";
@@ -25,6 +26,8 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import Settings from './pages/Settings';
 import UserPortal from "./pages/UserPortal";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 
 function App() {
   return (
@@ -54,6 +57,8 @@ function App() {
                       <Route path="/terms" element={<Terms />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/user-portal" element={<UserPortal />} />
+                      <Route path="/signin" element={<SignIn />} />
+                      <Route path="/signup" element={<SignUp />} />
                     </Routes>
                   </Router>
                   <Toaster />
