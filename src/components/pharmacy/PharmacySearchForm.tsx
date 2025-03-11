@@ -1,152 +1,139 @@
 
-import React, { useState } from 'react';
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { Search, MapPin, X } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/useDebounce';
-import { searchService, SearchParams } from '@/services/SearchService';
-import { toast } from '@/hooks/use-toast';
+import { pharmacies } from '@/data/pharmacies';
+import { Pharmacy } from '@/data/pharmacies';
+import { Search, MapPin } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface PharmacySearchFormProps {
-  onSearch: (results: any[]) => void;
-  onSearchStart: () => void;
-  initialSearch?: string;
+  onResultsFound: (results: Pharmacy[]) => void;
+  initialName?: string;
 }
 
-export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({
-  onSearch,
-  onSearchStart,
-  initialSearch = ""
+export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({ 
+  onResultsFound,
+  initialName = '',
 }) => {
+  const [searchTerm, setSearchTerm] = useState(initialName);
+  const [searchType, setSearchType] = useState<'smart' | 'zip' | 'city'>('smart');
   const { t } = useLanguage();
-  const [name, setName] = useState(initialSearch || "");
-  const [location, setLocation] = useState("");
-  const [searchType, setSearchType] = useState<"pharmacy" | "medspa">("pharmacy");
-  const [isSearching, setIsSearching] = useState(false);
   
-  const debouncedSearch = useDebounce(async (params: SearchParams) => {
-    try {
-      const results = await searchService.searchAll(params);
-      
-      // Filter results based on search type
-      const filteredResults = results.filter(result => {
-        if (searchType === "pharmacy") {
-          return result.type === "Pharmacy";
-        } else {
-          return result.type === "Med Spa";
-        }
-      });
-      
-      onSearch(filteredResults);
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to search pharmacies. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
+  // Process search when component mounts with initialName
+  useEffect(() => {
+    if (initialName) {
+      handleSearch();
     }
-  }, 500);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  }, [initialName]);
+  
+  const debouncedSearch = useDebounce(performSearch, 500);
+  
+  function handleSearch() {
+    debouncedSearch();
+  }
+  
+  function performSearch() {
+    if (!searchTerm) return;
     
-    if (!name && !location) {
-      toast({
-        title: "Search Error",
-        description: "Please enter a name or location to search",
-        variant: "destructive",
-      });
-      return;
+    let results: Pharmacy[] = [];
+    const term = searchTerm.toLowerCase();
+    
+    switch (searchType) {
+      case 'zip':
+        results = pharmacies.filter(p => p.zip.includes(term));
+        break;
+      case 'city':
+        results = pharmacies.filter(p => p.city.toLowerCase().includes(term));
+        break;
+      case 'smart':
+      default:
+        // Smart search across name, city, chain, and zip
+        results = pharmacies.filter(p => {
+          return p.name.toLowerCase().includes(term) || 
+                 p.city.toLowerCase().includes(term) || 
+                 (p.chain && p.chain.toLowerCase().includes(term)) ||
+                 p.zip.includes(term);
+        });
     }
     
-    setIsSearching(true);
-    onSearchStart();
+    // Add a relevance property for sorting based on exact matches
+    const enrichedResults = results.map(pharmacy => {
+      let relevance = 0;
+      
+      if (pharmacy.name.toLowerCase() === term) relevance += 10;
+      else if (pharmacy.name.toLowerCase().includes(term)) relevance += 5;
+      
+      if (pharmacy.city.toLowerCase() === term) relevance += 8;
+      else if (pharmacy.city.toLowerCase().includes(term)) relevance += 4;
+      
+      if (pharmacy.zip === term) relevance += 9;
+      else if (pharmacy.zip.includes(term)) relevance += 4;
+      
+      if (pharmacy.chain && pharmacy.chain.toLowerCase() === term) relevance += 7;
+      else if (pharmacy.chain && pharmacy.chain.toLowerCase().includes(term)) relevance += 3;
+      
+      return { ...pharmacy, relevance };
+    });
     
-    const searchParams: SearchParams = {
-      query: name,
-      category: 'pharmacies',
-      ...(location && { location })
-    };
+    // Sort by relevance
+    enrichedResults.sort((a, b) => (b.relevance || 0) - (a.relevance || 0));
     
-    await debouncedSearch(searchParams);
+    onResultsFound(enrichedResults);
+  }
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
-
+  
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
       <Tabs 
-        defaultValue="pharmacy" 
         value={searchType} 
-        onValueChange={(v) => setSearchType(v as "pharmacy" | "medspa")}
+        onValueChange={(value) => setSearchType(value as 'smart' | 'zip' | 'city')}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="pharmacy">{t("pharmacy.type", "Pharmacy")}</TabsTrigger>
-          <TabsTrigger value="medspa">{t("medspa.type", "Med Spa")}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="smart">
+            {t("pharmacy.search.smart", "Smart Search")}
+          </TabsTrigger>
+          <TabsTrigger value="zip">
+            {t("pharmacy.search.zip", "ZIP Code")}
+          </TabsTrigger>
+          <TabsTrigger value="city">
+            {t("pharmacy.search.city", "City")}
+          </TabsTrigger>
         </TabsList>
       </Tabs>
       
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <Label htmlFor="name">{t("pharmacy.name", "Name")}</Label>
-          <div className="relative">
-            <Input
-              id="name"
-              placeholder={searchType === "pharmacy" 
-                ? t("pharmacy.name_placeholder", "Enter pharmacy name") 
-                : t("medspa.name_placeholder", "Enter med spa name")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="pr-10"
-            />
-            {name && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
-                onClick={() => setName("")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+      <div className="flex space-x-2">
+        <div className="relative flex-grow">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={
+              searchType === 'zip'
+                ? t("pharmacy.search.zip_placeholder", "Enter ZIP code...")
+                : searchType === 'city'
+                ? t("pharmacy.search.city_placeholder", "Enter city name...")
+                : t("pharmacy.search.smart_placeholder", "Search by name, city, or ZIP...")
+            }
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={handleKeyDown}
+          />
         </div>
         
-        <div className="space-y-2">
-          <Label htmlFor="location">{t("pharmacy.location", "Location")}</Label>
-          <div className="relative">
-            <Input
-              id="location"
-              placeholder={t("pharmacy.location_placeholder", "City, state, or zip code")}
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="pl-10"
-            />
-            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          </div>
-        </div>
-        
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSearching || (!name && !location)}
-        >
-          {isSearching ? (
-            t("pharmacy.searching", "Searching...")
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4" />
-              <span>{t("pharmacy.search", "Search")}</span>
-            </div>
-          )}
+        <Button onClick={handleSearch} type="button">
+          <Search className="h-4 w-4 mr-2" />
+          {t("pharmacy.search.button", "Search")}
         </Button>
       </div>
-    </form>
+    </div>
   );
 };

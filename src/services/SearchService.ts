@@ -1,207 +1,162 @@
 
 import { medications } from '@/data/medications';
 import { pharmacies } from '@/data/pharmacies';
-import { specialists } from '@/data/specialists';
-import { medicalConditions } from '@/data/symptoms';
-import { levenshteinDistance } from '@/utils/enhancedSearch';
+import { specialists as specialistsData } from '@/data/specialists';
+import { weightedSearch, levenshteinDistance, matchMedicalTerms } from '@/utils/enhancedSearch';
 
-export interface SearchResult {
-  id: string;
-  name: string;
-  details: string;
-  type?: string;
-  price?: string;
-  source?: string;
-  phone?: string;
-  address?: string;
-  relevanceScore?: number;
-}
-
+// Define the interfaces
 export interface SearchParams {
   query: string;
-  category?: 'medications' | 'specialists' | 'conditions' | 'pharmacies' | 'all';
+  category?: 'medications' | 'specialists' | 'pharmacies' | 'all';
   location?: string;
+  limit?: number;
+}
+
+export interface SearchResult {
+  id: string | number;
+  name: string;
+  details: string;
+  price?: string;
+  type?: string;
+  source?: string;
+  relevanceScore?: number;
+  phone?: string;
+  address?: string;
 }
 
 class SearchService {
-  async searchAll({ query, category = 'all', location }: SearchParams): Promise<SearchResult[]> {
-    if (!query || query.trim().length < 2) {
+  searchAll(params: SearchParams): Promise<SearchResult[]> {
+    return new Promise((resolve) => {
+      // Add a small delay to simulate API call
+      setTimeout(() => {
+        const results: SearchResult[] = [];
+        const { query, category = 'all', limit = 20 } = params;
+        
+        // Skip search for very short queries
+        if (!query || query.trim().length < 2) {
+          resolve([]);
+          return;
+        }
+        
+        // Search each category based on the selected filter
+        if (category === 'all' || category === 'medications') {
+          results.push(...this.searchMedications(query, limit));
+        }
+        
+        if (category === 'all' || category === 'specialists') {
+          results.push(...this.searchSpecialists(query, limit));
+        }
+        
+        if (category === 'all' || category === 'pharmacies') {
+          results.push(...this.searchPharmacies(query, limit));
+        }
+        
+        // Sort by relevance score
+        results.sort((a, b) => {
+          return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+        });
+        
+        resolve(results.slice(0, limit));
+      }, 300);
+    });
+  }
+  
+  private searchMedications(query: string, limit: number): SearchResult[] {
+    const results: SearchResult[] = [];
+    
+    for (const med of medications) {
+      // Calculate relevance score based on name, description, and type
+      const relevanceScore = weightedSearch(
+        query,
+        { name: med.name, description: med.description, type: med.type },
+        { name: 10, description: 5, type: 3 }
+      );
+      
+      // Only include results with a minimum relevance
+      if (relevanceScore > 0) {
+        results.push({
+          id: med.id,
+          name: med.name,
+          details: med.description,
+          type: med.type,
+          price: med.price,
+          source: 'Internal Database',
+          relevanceScore
+        });
+      }
+    }
+    
+    return results.slice(0, limit);
+  }
+  
+  private searchSpecialists(query: string, limit: number): SearchResult[] {
+    const results: SearchResult[] = [];
+    
+    // Make sure we have specialistsData before trying to search it
+    if (!specialistsData || !Array.isArray(specialistsData)) {
+      console.warn('Specialists data is not available or not in the expected format');
       return [];
     }
     
-    const normalizedQuery = query.toLowerCase().trim();
-    
-    let results: SearchResult[] = [];
-    
-    // Switch based on category or search all if 'all' is selected
-    if (category === 'all' || category === 'medications') {
-      const medicationResults = this.searchMedications(normalizedQuery);
-      results = [...results, ...medicationResults];
+    for (const specialist of specialistsData) {
+      const relevanceScore = weightedSearch(
+        query,
+        { 
+          name: specialist.name, 
+          specialty: specialist.specialty, 
+          conditions: specialist.conditions.join(' ')
+        },
+        { name: 5, specialty: 10, conditions: 8 }
+      );
+      
+      if (relevanceScore > 0) {
+        results.push({
+          id: specialist.id,
+          name: specialist.name,
+          details: `${specialist.specialty}. Treats: ${specialist.conditions.join(', ')}`,
+          type: 'Specialist',
+          source: 'Specialist Directory',
+          relevanceScore,
+          phone: specialist.phone || undefined,
+          address: specialist.address || undefined
+        });
+      }
     }
     
-    if (category === 'all' || category === 'specialists') {
-      const specialistResults = this.searchSpecialists(normalizedQuery, location);
-      results = [...results, ...specialistResults];
-    }
-    
-    if (category === 'all' || category === 'conditions') {
-      const conditionResults = this.searchConditions(normalizedQuery);
-      results = [...results, ...conditionResults];
-    }
-    
-    if (category === 'all' || category === 'pharmacies') {
-      const pharmacyResults = this.searchPharmacies(normalizedQuery, location);
-      results = [...results, ...pharmacyResults];
-    }
-    
-    // Sort by relevance score
-    return results.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+    return results.slice(0, limit);
   }
   
-  private searchMedications(query: string): SearchResult[] {
-    return medications
-      .filter(med => {
-        // Check if medication name or type contains the query
-        const nameMatch = med.name.toLowerCase().includes(query);
-        const typeMatch = med.type?.toLowerCase().includes(query);
-        
-        // If no direct match, try fuzzy matching
-        if (!nameMatch && !typeMatch) {
-          const nameDistance = levenshteinDistance(query, med.name.toLowerCase());
-          // Allow matches with distance less than 3 (adjust based on preference)
-          return nameDistance < 3;
+  private searchPharmacies(query: string, limit: number): SearchResult[] {
+    const results: SearchResult[] = [];
+    
+    for (const pharmacy of pharmacies) {
+      const nameMatch = pharmacy.name.toLowerCase().includes(query.toLowerCase());
+      const cityMatch = pharmacy.city.toLowerCase().includes(query.toLowerCase());
+      const chainMatch = pharmacy.chain && pharmacy.chain.toLowerCase().includes(query.toLowerCase());
+      
+      if (nameMatch || cityMatch || chainMatch) {
+        // Determine the type based on the name or chain
+        let type = 'Pharmacy';
+        if (pharmacy.name.toLowerCase().includes('spa') || 
+            (pharmacy.chain && pharmacy.chain.toLowerCase().includes('spa')) ||
+            pharmacy.name.toLowerCase().includes('aesthetic') || 
+            pharmacy.name.toLowerCase().includes('beauty')) {
+          type = 'Med Spa';
         }
         
-        return nameMatch || typeMatch;
-      })
-      .map(med => ({
-        id: `med-${med.name.replace(/\s/g, '-').toLowerCase()}`,
-        name: med.name,
-        details: med.description || 'No description available',
-        type: med.type,
-        price: med.price,
-        source: 'Medication Database',
-        relevanceScore: this.calculateRelevanceScore(query, med.name, med.type || '', med.description || '')
-      }));
-  }
-  
-  private searchSpecialists(query: string, location?: string): SearchResult[] {
-    return specialists
-      .filter(spec => {
-        const nameMatch = spec.name.toLowerCase().includes(query);
-        const specialtyMatch = spec.specialty.toLowerCase().includes(query);
-        
-        // Location filter if provided
-        const locationMatch = !location || 
-          (spec.location && spec.location.toLowerCase().includes(location.toLowerCase()));
-        
-        return (nameMatch || specialtyMatch) && locationMatch;
-      })
-      .map(spec => ({
-        id: `spec-${spec.name.replace(/\s/g, '-').toLowerCase()}`,
-        name: spec.name,
-        details: `${spec.specialty} - ${spec.location || 'Location not specified'}`,
-        type: 'Specialist',
-        price: spec.price || 'Consultation fee varies',
-        source: 'Specialist Directory',
-        phone: spec.phone,
-        address: spec.address,
-        relevanceScore: this.calculateRelevanceScore(query, spec.name, spec.specialty, '')
-      }));
-  }
-  
-  private searchConditions(query: string): SearchResult[] {
-    let results: SearchResult[] = [];
-    
-    medicalConditions.forEach(category => {
-      // Search through conditions in each category
-      category.conditions
-        .filter(condition => condition.toLowerCase().includes(query))
-        .forEach(condition => {
-          results.push({
-            id: `cond-${condition.replace(/\s/g, '-').toLowerCase()}`,
-            name: condition,
-            details: `Category: ${category.category} - Related symptoms: ${category.symptoms.join(', ')}`,
-            type: 'Medical Condition',
-            source: 'Medical Conditions Database',
-            relevanceScore: this.calculateRelevanceScore(query, condition, category.category, '')
-          });
+        results.push({
+          id: pharmacy.id,
+          name: pharmacy.name,
+          details: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zip}`,
+          type,
+          source: 'Pharmacy Network',
+          phone: pharmacy.phone || undefined,
+          address: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zip}`
         });
-    });
-    
-    return results;
-  }
-  
-  private searchPharmacies(query: string, location?: string): SearchResult[] {
-    return pharmacies
-      .filter(pharm => {
-        const nameMatch = pharm.name.toLowerCase().includes(query);
-        const chainMatch = pharm.chain && pharm.chain.toLowerCase().includes(query);
-        
-        // Location filter if provided
-        const locationMatch = !location || 
-          (pharm.address && pharm.address.toLowerCase().includes(location.toLowerCase()));
-        
-        return (nameMatch || chainMatch) && locationMatch;
-      })
-      .map(pharm => {
-        // Determine if this is a med spa based on name or chain
-        const isMedSpa = 
-          pharm.chain?.toLowerCase().includes('spa') || 
-          pharm.name.toLowerCase().includes('spa') || 
-          pharm.name.toLowerCase().includes('beauty') || 
-          pharm.name.toLowerCase().includes('clinic');
-        
-        return {
-          id: `pharm-${pharm.name.replace(/\s/g, '-').toLowerCase()}`,
-          name: pharm.name,
-          details: `${pharm.address} - ${pharm.hours || 'Hours vary'} - ${pharm.phone}`,
-          type: isMedSpa ? 'Med Spa' : 'Pharmacy',
-          price: pharm.chain || 'Independent',
-          source: pharm.distance ? `Distance: ${pharm.distance}` : 'Healthcare Directory',
-          phone: pharm.phone,
-          address: pharm.address,
-          relevanceScore: this.calculateRelevanceScore(query, pharm.name, pharm.chain || '', '')
-        };
-      });
-  }
-  
-  private calculateRelevanceScore(
-    query: string, 
-    name: string, 
-    category: string, 
-    description: string
-  ): number {
-    let score = 0;
-    
-    // Name match has highest weight
-    if (name.toLowerCase().includes(query)) {
-      score += 5;
-      // Exact match gets even higher score
-      if (name.toLowerCase() === query) {
-        score += 3;
       }
     }
     
-    // Category match
-    if (category.toLowerCase().includes(query)) {
-      score += 3;
-    }
-    
-    // Description match
-    if (description.toLowerCase().includes(query)) {
-      score += 1;
-    }
-    
-    // Check for fuzzy matches if no exact match
-    if (score === 0) {
-      const nameDistance = levenshteinDistance(query, name.toLowerCase());
-      if (nameDistance < 3) {
-        score += (3 - nameDistance);
-      }
-    }
-    
-    return score;
+    return results.slice(0, limit);
   }
 }
 

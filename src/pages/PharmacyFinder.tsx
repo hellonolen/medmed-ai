@@ -1,112 +1,127 @@
 
-import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Globe } from "lucide-react";
-import { toast } from "sonner";
-import { Pharmacy } from "@/data/pharmacies";
-import { searchPharmaciesByZip, searchPharmaciesByCity, intelligentPharmacySearch } from "@/utils/pharmacySearch";
-import { PharmacySearchForm } from "@/components/pharmacy/PharmacySearchForm";
-import { PharmacyList } from "@/components/pharmacy/PharmacyList";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { PharmacySearchForm } from '@/components/pharmacy/PharmacySearchForm';
+import { PharmacyList } from '@/components/pharmacy/PharmacyList';
+import { PharmacyMap } from '@/components/PharmacyMap';
+import { useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Search, MapPin, List } from 'lucide-react';
+import { pharmacies } from '@/data/pharmacies';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Pharmacy } from '@/data/pharmacies';
+
+const INITIAL_MAP_CENTER = [40.7128, -74.0060]; // NYC
 
 const PharmacyFinder = () => {
-  const [results, setResults] = useState<Pharmacy[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<'zip' | 'city' | 'smart'>('smart');
   const [searchParams] = useSearchParams();
+  const initialName = searchParams.get('name') || '';
+  const [selectedView, setSelectedView] = useState<'list' | 'map'>('list');
+  const [results, setResults] = useState<Pharmacy[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(INITIAL_MAP_CENTER);
+  const [mapZoom, setMapZoom] = useState(11);
+  const { t } = useLanguage();
   
-  // Handle search query from URL parameters
   useEffect(() => {
-    const query = searchParams.get('query');
-    if (query) {
-      setSearchTerm(query);
-      handleSearch(query, 'smart');
+    if (initialName) {
+      handleSearch([{ name: initialName }]);
     }
-  }, [searchParams]);
-  
-  const handleSearch = (term: string, type: 'zip' | 'city' | 'smart') => {
-    setSearching(true);
+  }, [initialName]);
+
+  const handleSearch = (pharmacyResults: any[]) => {
+    setLoading(true);
     setSearched(true);
-    setSearchTerm(term);
-    setSearchType(type);
-    
-    // Clean the term by removing duplicate language codes
-    const cleanedTerm = term.replace(/\s*\([a-z]{2}\)(\s*\([a-z]{2}\))+/g, " ($1)").trim();
     
     // Simulate API call delay
     setTimeout(() => {
-      let filteredPharmacies: Pharmacy[] = [];
+      setResults(pharmacyResults);
       
-      console.log(`Searching by ${type}:`, cleanedTerm);
-      
-      // Check if term contains a city name or location mention
-      const hasCityOrLocation = /(in|near|at)\s+([a-zA-Z\s]+)/.test(cleanedTerm);
-      const locationMatch = cleanedTerm.match(/(in|near|at)\s+([a-zA-Z\s]+)/);
-      const extractedLocation = locationMatch ? locationMatch[2].trim() : "";
-      
-      // Use the appropriate search function based on the search type and query
-      if (type === 'zip' || /^\d{5}$/.test(cleanedTerm)) {
-        // It's a ZIP code search
-        filteredPharmacies = searchPharmaciesByZip(cleanedTerm);
-      } else if (type === 'city' || hasCityOrLocation) {
-        // It's a city search or contains a city mention
-        const searchLocation = hasCityOrLocation ? extractedLocation : cleanedTerm;
-        filteredPharmacies = searchPharmaciesByCity(searchLocation);
-      } else {
-        // Use intelligent search for everything else
-        filteredPharmacies = intelligentPharmacySearch(cleanedTerm);
+      // Update map center if results exist
+      if (pharmacyResults.length > 0 && pharmacyResults[0].coordinates) {
+        setMapCenter(pharmacyResults[0].coordinates);
+        setMapZoom(14);
       }
       
-      console.log("Search results:", filteredPharmacies.length);
-      setResults(filteredPharmacies);
-      setSearching(false);
-      
-      if (filteredPharmacies.length === 0) {
-        toast.info(`No pharmacies found for this search term. Try a different search.`);
-      } else if (filteredPharmacies.some(p => p.distance === "International")) {
-        toast.success(`Found ${filteredPharmacies.length} pharmacies worldwide including international locations.`);
-      } else {
-        toast.success(`Found ${filteredPharmacies.length} pharmacies matching your search.`);
-      }
-    }, 1000);
+      setLoading(false);
+    }, 500);
+  };
+  
+  const handleLocationSelect = (pharmacy: Pharmacy) => {
+    if (pharmacy.coordinates) {
+      setMapCenter(pharmacy.coordinates);
+      setMapZoom(16);
+      setSelectedView('map');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
-      <div className="container px-4 py-8 mx-auto">
-        <Link to="/">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-          </Button>
-        </Link>
+    <div className="container mx-auto">
+      <div className="flex flex-col space-y-4">
+        <h1 className="text-2xl font-bold">{t("pharmacy.title", "Find Pharmacies & Med Spas")}</h1>
         
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">
-            Global Pharmacy Finder
-            <Globe className="inline-block ml-3 h-8 w-8 text-primary/70" />
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Find pharmacies worldwide - including local chains and international locations
-          </p>
-        </div>
+        <p className="text-gray-600">
+          {t("pharmacy.description", "Search for pharmacies and medical spas near you. You can search by name, city, or zip code.")}
+        </p>
         
-        <div className="max-w-4xl mx-auto">
-          <PharmacySearchForm 
-            onSearch={handleSearch}
-            isSearching={searching}
-            initialSearchTerm={searchTerm}
-          />
-          
-          <PharmacyList 
-            pharmacies={results}
-            searchTerm={searchTerm}
-            searchType={searchType}
-            isLoading={searching}
-            hasSearched={searched}
-          />
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <PharmacySearchForm 
+              onResultsFound={handleSearch} 
+              initialName={initialName} 
+            />
+          </CardContent>
+        </Card>
+        
+        {searched && (
+          <>
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">
+                {results.length > 0 
+                  ? t("pharmacy.results_title", `Found ${results.length} locations`)
+                  : t("pharmacy.no_results", "No locations found")}
+              </h2>
+              
+              <div className="flex space-x-2">
+                <Button 
+                  size="sm" 
+                  variant={selectedView === 'list' ? 'default' : 'outline'} 
+                  onClick={() => setSelectedView('list')}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  {t("pharmacy.list_view", "List")}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant={selectedView === 'map' ? 'default' : 'outline'} 
+                  onClick={() => setSelectedView('map')}
+                >
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {t("pharmacy.map_view", "Map")}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              {selectedView === 'list' ? (
+                <PharmacyList 
+                  pharmacies={results} 
+                  loading={loading} 
+                  onLocationSelect={handleLocationSelect}
+                />
+              ) : (
+                <div className="h-[600px] rounded-lg overflow-hidden border">
+                  <PharmacyMap 
+                    pharmacies={results}
+                    center={mapCenter}
+                    zoom={mapZoom}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
