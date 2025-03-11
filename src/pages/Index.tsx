@@ -4,7 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -71,8 +71,8 @@ const Index = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
-        <div className="container px-4 py-8 mx-auto">
+      <div className="min-h-screen bg-gradient-to-b from-secondary to-white flex flex-col">
+        <div className="container px-4 py-8 mx-auto flex-grow">
           <div className="flex justify-between mb-4">
             <div>
               <AIKeySetup />
@@ -207,11 +207,33 @@ const Index = () => {
               </div>
             </div>
           )}
-          
-          <footer className="mt-16 text-left text-gray-500 text-sm">
-            <p>© {currentYear} MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
-          </footer>
         </div>
+        
+        {/* Policy Footer */}
+        <footer className="w-full bg-white border-t border-gray-100">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="text-gray-500 text-sm">
+                <p>© {currentYear} MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
+              </div>
+              
+              <div className="flex items-center gap-6 mt-4 md:mt-0">
+                <Link to="/privacy" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>{t("footer.privacy", "Privacy")}</span>
+                </Link>
+                <Link to="/terms" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>{t("footer.terms", "Terms")}</span>
+                </Link>
+                <Link to="/settings" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
+                  <Settings className="h-3.5 w-3.5" />
+                  <span>{t("footer.settings", "Settings")}</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </TooltipProvider>
   );

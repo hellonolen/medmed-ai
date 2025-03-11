@@ -17,6 +17,9 @@ import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import AdvertiserEnrollment from "./pages/AdvertiserEnrollment";
 import { MedicalSearchProvider } from './contexts/MedicalSearchContext';
 import { Toaster } from './components/ui/toaster';
+import Privacy from './pages/Privacy';
+import Terms from './pages/Terms';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -37,6 +40,9 @@ function App() {
                     <Route path="/medication/:id" element={<MedicationDetails />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/settings" element={<Settings />} />
                   </Routes>
                 </Router>
                 <Toaster />
