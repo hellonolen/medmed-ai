@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, AlertCircle } from 'lucide-react';
+import { Mic, MicOff, AlertCircle, WifiOff } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -19,8 +19,31 @@ export const VoiceSearchButton = ({
   className
 }: VoiceSearchButtonProps) => {
   const [error, setError] = React.useState<string | null>(null);
+  const [networkError, setNetworkError] = React.useState(false);
   const { toast } = useToast();
   const { t, language } = useLanguage();
+
+  // Check if network is available
+  useEffect(() => {
+    const handleNetworkChange = () => {
+      setNetworkError(!navigator.onLine);
+      if (navigator.onLine && networkError) {
+        setError(null);
+      }
+    };
+
+    // Set initial state
+    setNetworkError(!navigator.onLine);
+    
+    // Add event listeners
+    window.addEventListener('online', handleNetworkChange);
+    window.addEventListener('offline', handleNetworkChange);
+    
+    return () => {
+      window.removeEventListener('online', handleNetworkChange);
+      window.removeEventListener('offline', handleNetworkChange);
+    };
+  }, [networkError]);
 
   const toggleListening = React.useCallback(() => {
     if (isListening) {
@@ -30,10 +53,24 @@ export const VoiceSearchButton = ({
     
     setError(null);
     
+    if (networkError) {
+      toast({
+        title: t("voice.error.network", "Network Error"),
+        description: t("voice.error.network.description", "Please check your internet connection and try again."),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (!SpeechRecognition) {
         setError('Speech recognition not supported');
+        toast({
+          title: t("voice.error.unsupported", "Speech Recognition Unsupported"),
+          description: t("voice.error.unsupported.description", "Your browser doesn't support speech recognition."),
+          variant: "destructive",
+        });
         return;
       }
       
@@ -65,16 +102,31 @@ export const VoiceSearchButton = ({
       
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        setError(event.error);
-        setIsListening(false);
         
-        if (event.error === 'not-allowed') {
+        if (event.error === 'network') {
+          setNetworkError(true);
+          toast({
+            title: t("voice.error.network", "Network Error"),
+            description: t("voice.error.network.description", "Please check your internet connection and try again."),
+            variant: "destructive",
+          });
+        } else if (event.error === 'not-allowed') {
+          setError('microphone-blocked');
           toast({
             title: t("voice.error", "Microphone not available"),
-            description: t("voice.permission", "Please allow microphone access"),
+            description: t("voice.permission", "Please allow microphone access in your browser settings."),
+            variant: "destructive",
+          });
+        } else {
+          setError(event.error);
+          toast({
+            title: t("voice.error.generic", "Speech Recognition Error"),
+            description: t("voice.error.generic.description", "There was an error with speech recognition. Please try again."),
             variant: "destructive",
           });
         }
+        
+        setIsListening(false);
       };
       
       recognition.onend = () => {
@@ -94,8 +146,14 @@ export const VoiceSearchButton = ({
       console.error('Error initializing speech recognition:', err);
       setError('Failed to initialize speech recognition');
       setIsListening(false);
+      
+      toast({
+        title: t("voice.error.initialization", "Initialization Error"),
+        description: t("voice.error.initialization.description", "Failed to initialize speech recognition."),
+        variant: "destructive",
+      });
     }
-  }, [isListening, language, onResult, setIsListening, t, toast]);
+  }, [isListening, language, networkError, onResult, setIsListening, t, toast]);
 
   return (
     <Button
@@ -104,10 +162,14 @@ export const VoiceSearchButton = ({
       className={`relative ${isListening ? 'bg-primary/10' : ''} ${className || ''}`}
       onClick={toggleListening}
       aria-label={isListening ? t("button.voice.stop", "Stop voice search") : t("button.voice.start", "Start voice search")}
-      disabled={!!error}
+      disabled={!!error && error !== 'microphone-blocked'}
       title={error || ''}
     >
-      {error ? (
+      {networkError ? (
+        <WifiOff className="h-4 w-4 text-destructive" />
+      ) : error === 'microphone-blocked' ? (
+        <MicOff className="h-4 w-4 text-destructive" />
+      ) : error ? (
         <AlertCircle className="h-4 w-4 text-destructive" />
       ) : isListening ? (
         <>
