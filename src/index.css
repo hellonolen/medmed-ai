@@ -76,6 +76,15 @@
   }
 }
 
+/* Card Button Hover Effects */
+.button-card {
+  @apply transition-all duration-200;
+}
+
+.button-card:hover {
+  @apply bg-gray-50 shadow-sm;
+}
+
 /* Accessibility Styles */
 .high-contrast {
   --background: 0 0% 100%;
