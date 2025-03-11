@@ -9,6 +9,7 @@ import InteractionChecker from "./pages/InteractionChecker";
 import Favorites from "./pages/Favorites";
 import MedicationDetails from "./pages/MedicationDetails";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import SponsorDashboard from "./pages/SponsorDashboard";
 import { AdminProvider } from './contexts/AdminContext';
 import { SearchHistoryProvider } from './contexts/SearchHistoryContext';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -39,6 +40,7 @@ function App() {
                     <Route path="/favorites" element={<Favorites />} />
                     <Route path="/medication/:id" element={<MedicationDetails />} />
                     <Route path="/admin" element={<OwnerDashboard />} />
+                    <Route path="/sponsor-dashboard" element={<SponsorDashboard />} />
                     <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
                     <Route path="/privacy" element={<Privacy />} />
                     <Route path="/terms" element={<Terms />} />
