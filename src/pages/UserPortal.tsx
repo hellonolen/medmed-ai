@@ -1,20 +1,17 @@
 
 import React from 'react';
-import { Navigate } from 'react-router-dom';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Search, Clock, Star } from 'lucide-react';
+import { Globe, Search, Clock, Star, Shield, Upgrade } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const UserPortal = () => {
   const { tier, isSubscribed } = useSubscription();
-
-  // Redirect non-subscribed users to subscription page
-  if (!isSubscribed) {
-    return <Navigate to="/subscription" replace />;
-  }
+  const navigate = useNavigate();
 
   return (
     <Layout>
@@ -22,7 +19,7 @@ const UserPortal = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-primary">My Portal</h1>
-            <p className="text-gray-500">Manage your {tier} subscription</p>
+            <p className="text-gray-500">Access your MedMed.AI features</p>
           </div>
           <Badge variant="outline" className="capitalize">
             {tier} Plan
@@ -48,13 +45,25 @@ const UserPortal = () => {
                 <CardContent>
                   <dl className="space-y-2">
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Plan</dt>
+                      <dt className="text-sm font-medium text-gray-500">Current Plan</dt>
                       <dd className="text-2xl font-bold text-primary capitalize">{tier}</dd>
                     </div>
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Status</dt>
                       <dd className="text-green-600">Active</dd>
                     </div>
+                    {!isSubscribed && (
+                      <div className="mt-4">
+                        <Button 
+                          variant="default" 
+                          onClick={() => navigate('/subscription')}
+                          className="w-full"
+                        >
+                          <Upgrade className="mr-2 h-4 w-4" />
+                          Upgrade to Premium
+                        </Button>
+                      </div>
+                    )}
                   </dl>
                 </CardContent>
               </Card>
@@ -62,18 +71,32 @@ const UserPortal = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Star className="h-5 w-5 text-primary" />
-                    Features
+                    <Shield className="h-5 w-5 text-primary" />
+                    Available Features
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    <li className="text-sm text-gray-600">✓ Detailed medication info</li>
-                    <li className="text-sm text-gray-600">✓ Advanced search</li>
-                    <li className="text-sm text-gray-600">✓ Specialist contacts</li>
-                    {tier === 'business' && (
-                      <li className="text-sm text-gray-600">✓ Priority support</li>
-                    )}
+                    {/* Free tier features */}
+                    <li className="text-sm text-gray-600">✓ Basic medication search</li>
+                    <li className="text-sm text-gray-600">✓ Basic AI support</li>
+                    <li className="text-sm text-gray-600">✓ Pharmacy finder</li>
+                    
+                    {/* Premium tier features */}
+                    <li className={`text-sm ${tier === 'free' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {tier === 'free' ? '○' : '✓'} Detailed medication info
+                    </li>
+                    <li className={`text-sm ${tier === 'free' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {tier === 'free' ? '○' : '✓'} Advanced search
+                    </li>
+                    
+                    {/* Business tier features */}
+                    <li className={`text-sm ${tier !== 'business' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {tier !== 'business' ? '○' : '✓'} Priority support
+                    </li>
+                    <li className={`text-sm ${tier !== 'business' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {tier !== 'business' ? '○' : '✓'} Specialist contacts
+                    </li>
                   </ul>
                 </CardContent>
               </Card>
