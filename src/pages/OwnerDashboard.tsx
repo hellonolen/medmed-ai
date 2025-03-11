@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { Download } from "lucide-react";
+import { AIKeySetup } from "@/components/AIKeySetup";
 
 const mockSearchHistory = [
   { user: "user123", query: "Aspirin side effects", date: "2023-09-15" },
@@ -142,10 +143,13 @@ const OwnerDashboard = () => {
               ? t("owner.dashboard.owner_title", "Owner Dashboard") 
               : t("owner.dashboard.title", "Admin Dashboard")}
           </h1>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            {t("owner.dashboard.export_all", "Export All Data")}
-          </Button>
+          <div className="flex items-center gap-3">
+            <AIKeySetup />
+            <Button variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              {t("owner.dashboard.export_all", "Export All Data")}
+            </Button>
+          </div>
         </div>
         <p className="text-gray-600 mt-2">
           {isOwner

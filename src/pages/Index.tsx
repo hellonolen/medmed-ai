@@ -13,7 +13,6 @@ import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMat
 import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
-import { AIKeySetup } from "@/components/AIKeySetup";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -141,10 +140,7 @@ const Index = () => {
         </header>
 
         <div className="container px-4 py-8 mx-auto flex-grow">
-          <div className="flex justify-between mb-4">
-            <div>
-              <AIKeySetup />
-            </div>
+          <div className="flex justify-end mb-4">
             {isSubscribed ? (
               <Button 
                 size="sm" 
@@ -471,4 +467,3 @@ const Index = () => {
 };
 
 export default Index;
-
