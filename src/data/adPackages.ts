@@ -5,25 +5,26 @@ export const adPackages = [
     id: "standard",
     name: "Standard Ad Package",
     price: 5000, // Price per week in dollars
-    description: "Your brand featured in our partners section",
+    description: "Placement in the bottom row of the partner section",
     features: [
-      "Standard position in partners section",
-      "Up to 80 characters description",
-      "Basic analytics dashboard",
-      "Weekly performance report"
+      "Bottom row placement in partners section",
+      "Full description with same character limit",
+      "Advanced analytics dashboard",
+      "Complete performance metrics",
+      "Partner login access"
     ]
   },
   {
     id: "premium",
     name: "Premium Ad Package",
     price: 10000, // Price per week in dollars
-    description: "Premium placement with enhanced visibility",
+    description: "Placement in the top row of the partner section",
     features: [
-      "Top position in partners section",
-      "Up to 120 characters description",
-      "Priority placement for maximum visibility",
+      "Top row placement in partners section",
+      "Full description with same character limit",
       "Advanced analytics dashboard",
-      "Daily performance metrics"
+      "Complete performance metrics",
+      "Partner login access"
     ]
   }
 ];

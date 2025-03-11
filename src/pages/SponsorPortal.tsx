@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { adPackages } from '@/data/adPackages';
-import { Award, BarChart, LogIn, FileText, BadgeCheck, TrendingUp } from 'lucide-react';
+import { Award, BarChart, LogIn, BadgeCheck, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatUtils';
 import { useSponsor } from '@/contexts/SponsorContext';
 
@@ -57,7 +57,7 @@ const SponsorPortal = () => {
                     <div className="absolute top-2 right-2">
                       <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full flex items-center">
                         <BadgeCheck className="h-3 w-3 mr-1" />
-                        Recommended
+                        Top Row
                       </span>
                     </div>
                   )}
