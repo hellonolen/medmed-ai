@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Search, X, Globe, Star, Brain } from 'lucide-react';
+import { Search, X, Globe, Star } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -76,7 +76,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       // If it's a pharmacy location search
       if (isPharmacySearch && (hasLocation || normalizedQuery.includes("find"))) {
         toast.info("Searching pharmacies...", {
-          icon: <Brain className="h-4 w-4 text-primary animate-pulse" />,
+          icon: <Search className="h-4 w-4 text-primary animate-pulse" />,
         });
         
         // Quick show of pharmacy page for better user experience
@@ -94,7 +94,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       
       // For medical/medication searches
       toast.info("Searching global medical database...", {
-        icon: <Brain className="h-4 w-4 text-primary animate-pulse" />,
+        icon: <Search className="h-4 w-4 text-primary animate-pulse" />,
         duration: 2000,
       });
       
@@ -232,10 +232,17 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             aria-label={t("search.placeholder.global", "Search medications, symptoms, conditions worldwide")}
           />
           
-          {/* AI Indicator */}
-          <div className="absolute right-14 top-1/2 transform -translate-y-1/2 flex items-center">
-            <Brain className={`h-5 w-5 text-primary ${aiProcessing || loading ? 'animate-pulse' : ''}`} />
-          </div>
+          {/* Submit Button */}
+          <Button 
+            type="submit"
+            size="icon"
+            variant="ghost"
+            className={`absolute right-14 top-1/2 transform -translate-y-1/2 text-primary ${aiProcessing || loading ? 'opacity-50' : ''}`}
+            disabled={loading || aiProcessing}
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </Button>
           
           {query && (
             <Button
@@ -276,7 +283,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
               className="w-full text-left py-2 px-3 hover:bg-primary/10 rounded text-gray-700 text-sm transition-colors flex items-center"
               onClick={() => applySuggestion(suggestion)}
             >
-              <Brain className="h-3 w-3 text-primary mr-2" />
+              <Search className="h-3 w-3 text-primary mr-2" />
               {suggestion}
             </button>
           ))}

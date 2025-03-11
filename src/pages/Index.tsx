@@ -4,7 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, MessageSquare } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,7 +13,6 @@ import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMat
 import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
-import { AIChat } from "@/components/AIChat";
 import { AIKeySetup } from "@/components/AIKeySetup";
 
 const Index = () => {
@@ -21,7 +20,6 @@ const Index = () => {
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; type?: string; source?: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAIChat, setShowAIChat] = useState(false);
   const { isAdmin } = useAdmin();
   const { addSearchToHistory, searchHistory } = useSearchHistory();
   const { t, language } = useLanguage();
@@ -134,27 +132,8 @@ const Index = () => {
                   <span>{t("menu.premium", "Premium Plans")}</span>
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
-                className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card"
-                onClick={() => setShowAIChat(!showAIChat)}
-              >
-                <MessageSquare className="h-4 w-4 text-primary" />
-                <span>{t("menu.ai_assistant", "AI Assistant")}</span>
-              </Button>
             </div>
           </div>
-
-          {showAIChat && (
-            <div className="mb-10 max-w-2xl mx-auto">
-              <AIChat
-                title="MedMed.AI Healthcare Assistant"
-                initialSystemPrompt="You are a helpful healthcare assistant for MedMed.AI. Provide informative, accurate but concise responses about medications, healthcare, medical conditions, and general health inquiries. Always include a disclaimer that you're not providing medical advice and serious concerns should be directed to a healthcare professional."
-                placeholder="Ask me about medications, symptoms, or health concerns..."
-                maxHeight="400px"
-              />
-            </div>
-          )}
 
           {searchPerformed && (
             <div className="max-w-4xl mx-auto">
