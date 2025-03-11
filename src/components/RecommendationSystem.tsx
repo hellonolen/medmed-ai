@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSearchHistory } from '@/contexts/SearchHistoryContext';
@@ -85,7 +86,7 @@ export const RecommendationSystem = () => {
   }
 
   return (
-    <div className="mb-8 animate-fadeIn">
+    <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -103,7 +104,7 @@ export const RecommendationSystem = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2].map(i => (
-            <div key={i} className="bg-card/40 rounded-lg p-6 animate-pulse">
+            <div key={i} className="bg-card/40 rounded-lg p-6">
               <div className="h-6 bg-muted rounded-md w-3/4 mb-4"></div>
               <div className="h-4 bg-muted rounded-md w-full mb-2"></div>
               <div className="h-4 bg-muted rounded-md w-5/6"></div>
@@ -116,7 +117,7 @@ export const RecommendationSystem = () => {
             <Link 
               key={index} 
               to={`/medication/rec-${index}`}
-              className="transition-transform hover:scale-[1.02]"
+              className="transition-transform"
             >
               <MedicationCardWrapper
                 name={recommendation.name}

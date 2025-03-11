@@ -14,6 +14,7 @@ import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
 import { AIKeySetup } from "@/components/AIKeySetup";
+
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{
@@ -75,6 +76,7 @@ const Index = () => {
 
   // Define preferred display order for medication types
   const displayOrder = ["Injection", "Injectable Gel", "Capsule", "Tablet", "Spray", "Inhaler", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Patch", "Other"];
+  
   return <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white flex flex-col">
         <div className="container px-4 py-8 mx-auto flex-grow">
@@ -89,7 +91,7 @@ const Index = () => {
               </Button>}
           </div>
           
-          <div className="text-center mb-12 animate-fadeIn">
+          <div className="text-center mb-12">
             <h1 className="font-bold text-primary mb-4 flex items-center justify-center text-7xl">
               {t("app.name", "MedMed.AI")}
               <Globe className="ml-2 h-6 w-6 text-primary/70" />
@@ -139,7 +141,7 @@ const Index = () => {
           </div>
 
           {searchPerformed && <div className="max-w-4xl mx-auto">
-              {searchResults.length > 0 && <div className="mb-12 animate-fadeIn">
+              {searchResults.length > 0 && <div className="mb-12">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-2xl font-semibold text-gray-800">{t("search.results", "Global Medication Results")}</h2>
                     <div className="flex items-center gap-2">
@@ -211,4 +213,5 @@ const Index = () => {
       </div>
     </TooltipProvider>;
 };
+
 export default Index;
