@@ -65,7 +65,7 @@ const CompanyInfoForm = ({
       console.error("Error generating description:", error);
       toast.error("Failed to generate suggestion");
     } finally {
-      setLoadingSuggestions(false);
+      setLoadingSuggestion(false);
     }
   };
   
