@@ -91,11 +91,14 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
       return;
     }
     
-    // Add language context to search
-    let searchQuery = `${searchTerm} (${language})`;
+    // Clean the search term - remove any existing language codes first
+    let cleanedSearchTerm = searchTerm.replace(/\s*\([a-z]{2}\)\s*/g, "").trim();
+    
+    // Add language context to search only once
+    let searchQuery = `${cleanedSearchTerm} (${language})`;
     
     // Determine the search type based on the content
-    const termLower = searchTerm.toLowerCase();
+    const termLower = cleanedSearchTerm.toLowerCase();
     let searchType: 'zip' | 'city' | 'smart' = 'smart';
     
     // Check if this looks like a ZIP/postal code

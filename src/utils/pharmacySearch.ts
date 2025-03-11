@@ -22,14 +22,22 @@ const calculateDistance = (zipCode1: string, zipCode2: string): string => {
   return (5 + Math.random() * 15).toFixed(1) + ' miles';
 };
 
+// Helper function to clean search terms and remove language codes
+const cleanSearchTerm = (searchTerm: string): string => {
+  // Remove language codes like (en), (es), etc.
+  return searchTerm.replace(/\s*\([a-z]{2}\)\s*/g, "").trim();
+};
+
 // Enhanced search with fuzzy matching and AI-like capabilities
 export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
   if (!zipCode) return [];
   
-  console.log("Searching ZIP code:", zipCode);
+  // Clean the zip code by removing language codes
+  const cleanedZip = cleanSearchTerm(zipCode);
+  console.log("Searching ZIP code:", cleanedZip);
   
-  // Extract just the ZIP code if it's part of a larger string (e.g. includes language code)
-  let normalizedZip = zipCode.trim();
+  // Extract just the ZIP code if it's part of a larger string
+  let normalizedZip = cleanedZip.trim();
   
   // Check for ZIP code pattern in the string (5 digits for US)
   const zipMatch = normalizedZip.match(/\b\d{5}\b/);
@@ -76,17 +84,40 @@ export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
 export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   if (!city) return [];
   
-  console.log("Searching city:", city);
+  // Clean the city name by removing language codes
+  const cleanedCity = cleanSearchTerm(city);
+  console.log("Searching city:", cleanedCity);
   
   // Normalize input for better matching
-  // Remove language code if present (e.g., "New York (en)")
-  let searchTerm = city.toLowerCase().trim();
-  const langCodeMatch = searchTerm.match(/\s*\([a-z]{2}\)$/);
-  if (langCodeMatch) {
-    searchTerm = searchTerm.substring(0, searchTerm.length - langCodeMatch[0].length).trim();
-  }
+  const searchTerm = cleanedCity.toLowerCase().trim();
   
   console.log("Normalized city search term:", searchTerm);
+  
+  // US cities to prioritize
+  const usCities = {
+    "alpharetta": "Alpharetta, GA",
+    "atlanta": "Atlanta, GA",
+    "tampa": "Tampa, FL",
+    "ny": "New York, NY",
+    "nyc": "New York, NY",
+    "la": "Los Angeles, CA",
+    "chicago": "Chicago, IL",
+    "miami": "Miami, FL",
+    "boston": "Boston, MA",
+    "sf": "San Francisco, CA",
+    "san francisco": "San Francisco, CA",
+    "dallas": "Dallas, TX",
+    "houston": "Houston, TX",
+    "phoenix": "Phoenix, AZ",
+    "philadelphia": "Philadelphia, PA",
+    "seattle": "Seattle, WA"
+  };
+  
+  // Check if this is a known US city
+  if (searchTerm in usCities) {
+    // Generate realistic US-based pharmacies for this city
+    return generateUSCityPharmacies(usCities[searchTerm as keyof typeof usCities]);
+  }
   
   // First try exact match with city names
   let matchedPharmacies = pharmacies.filter(pharmacy => 
@@ -135,7 +166,7 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   // If still no results, check if it might be an international location
   if (matchedPharmacies.length === 0) {
     // For demo purposes, return some pharmacies to simulate international results
-    matchedPharmacies = getInternationalPharmacies(city);
+    matchedPharmacies = getInternationalPharmacies(searchTerm);
   }
   
   console.log("Found pharmacies by city:", matchedPharmacies.length);
@@ -148,21 +179,79 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   }));
 };
 
+// Generate realistic US-based pharmacies for specific cities
+const generateUSCityPharmacies = (cityState: string): Pharmacy[] => {
+  console.log("Generating US city pharmacies for:", cityState);
+  
+  const [city, state] = cityState.split(", ");
+  
+  // Major US pharmacy chains
+  const usPharmacyChains = [
+    "CVS Pharmacy", 
+    "Walgreens", 
+    "Rite Aid", 
+    "Walmart Pharmacy", 
+    "Target Pharmacy",
+    "Publix Pharmacy",
+    "Kroger Pharmacy",
+    "Costco Pharmacy",
+    "Sam's Club Pharmacy"
+  ];
+  
+  // Street name templates
+  const streetTemplates = [
+    "Main St", "Broadway", "5th Ave", "Market St", "Oak St", "Washington Ave",
+    "Peachtree Rd", "State St", "University Ave", "Park Ave", "Highland Dr",
+    "Center St", "Maple Ave", "Riverside Dr", "Lincoln Ave"
+  ];
+  
+  // Generate 3-5 pharmacies
+  const count = 3 + Math.floor(Math.random() * 3);
+  
+  return Array.from({ length: count }, (_, i) => {
+    const chainName = usPharmacyChains[i % usPharmacyChains.length];
+    const streetNumber = Math.floor(Math.random() * 9000) + 1000;
+    const streetName = streetTemplates[Math.floor(Math.random() * streetTemplates.length)];
+    const rating = (3.5 + Math.random() * 1.5);
+    const zipPrefix = city === "New York" ? "10" : city === "Los Angeles" ? "90" : "30";
+    const zipCode = zipPrefix + Math.floor(Math.random() * 100).toString().padStart(3, '0');
+    
+    return {
+      id: 2000 + Math.floor(Math.random() * 9000),
+      name: chainName,
+      address: `${streetNumber} ${streetName}, ${city}, ${state}`,
+      phone: `+1 ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 9000) + 1000}`,
+      hours: Math.random() > 0.5 ? "24 hours" : "8am - 10pm",
+      distance: (0.5 + Math.random() * 5).toFixed(1) + ' miles',
+      rating: rating,
+      chain: chainName,
+      zipCode: zipCode,
+      city: city,
+      state: "USA"
+    };
+  });
+};
+
 // Function to simulate international pharmacy search
 // In a real app, this would connect to an API like Google Places or a global pharmacy database
 const getInternationalPharmacies = (location: string): Pharmacy[] => {
   console.log("Simulating international search for:", location);
   
-  // Normalize the location input
-  let normalizedLocation = location.toLowerCase().trim();
-  
-  // Remove language code if present (e.g., "London (en)")
-  const langCodeMatch = normalizedLocation.match(/\s*\([a-z]{2}\)$/);
-  if (langCodeMatch) {
-    normalizedLocation = normalizedLocation.substring(0, normalizedLocation.length - langCodeMatch[0].length).trim();
-  }
+  // Normalize the location input - remove language codes and clean
+  const normalizedLocation = cleanSearchTerm(location).toLowerCase().trim();
   
   console.log("Normalized international location search:", normalizedLocation);
+  
+  // US cities to prioritize
+  const usCities = {
+    "alpharetta": "Alpharetta, GA",
+    "atlanta": "Atlanta, GA"
+  };
+  
+  // Check if this is a known US city that should get US results
+  if (normalizedLocation in usCities) {
+    return generateUSCityPharmacies(usCities[normalizedLocation as keyof typeof usCities]);
+  }
   
   // Enhanced global locations for worldwide coverage
   const internationalLocations = [
@@ -357,12 +446,8 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   
   console.log(`AI-enhanced search for: "${query}" in language: ${language}`);
   
-  // Extract the actual query by removing language code if present
-  let normalizedQuery = query.toLowerCase().trim();
-  const langCodeMatch = normalizedQuery.match(/\s*\([a-z]{2}\)$/);
-  if (langCodeMatch) {
-    normalizedQuery = normalizedQuery.substring(0, normalizedQuery.length - langCodeMatch[0].length).trim();
-  }
+  // Clean the query by removing language codes
+  const normalizedQuery = cleanSearchTerm(query).toLowerCase().trim();
   
   console.log("Normalized query for intelligent search:", normalizedQuery);
   
@@ -390,6 +475,17 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   const zipMatch = normalizedQuery.match(/\b\d{5}\b/);  // US ZIP
   const zipQuery = zipMatch ? zipMatch[0] : normalizedQuery;
   
+  // US cities to prioritize
+  const usCities = {
+    "alpharetta": "Alpharetta, GA",
+    "atlanta": "Atlanta, GA"
+  };
+  
+  // Check if this is a known US city that should get US results
+  if (normalizedQuery in usCities) {
+    return generateUSCityPharmacies(usCities[normalizedQuery as keyof typeof usCities]);
+  }
+  
   // Get results based on query type
   let results: Pharmacy[] = [];
   
@@ -403,7 +499,7 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   }
   else if (isPharmacySearch) {
     // Generic pharmacy search - check if there are any location terms in the query
-    const cityMatches = normalizedQuery.match(/\b(new york|chicago|los angeles|miami|tampa|boston|san francisco)\b/gi);
+    const cityMatches = normalizedQuery.match(/\b(new york|chicago|los angeles|miami|tampa|boston|san francisco|alpharetta|atlanta)\b/gi);
     if (cityMatches && cityMatches.length > 0) {
       // Search by the city mentioned in the query
       results = searchPharmaciesByCity(cityMatches[0]);

@@ -32,28 +32,31 @@ const PharmacyFinder = () => {
     setSearchTerm(term);
     setSearchType(type);
     
+    // Clean the term by removing duplicate language codes
+    const cleanedTerm = term.replace(/\s*\([a-z]{2}\)(\s*\([a-z]{2}\))+/g, " ($1)").trim();
+    
     // Simulate API call delay
     setTimeout(() => {
       let filteredPharmacies: Pharmacy[] = [];
       
-      console.log(`Searching by ${type}:`, term);
+      console.log(`Searching by ${type}:`, cleanedTerm);
       
       // Check if term contains a city name or location mention
-      const hasCityOrLocation = /(in|near|at)\s+([a-zA-Z\s]+)/.test(term);
-      const locationMatch = term.match(/(in|near|at)\s+([a-zA-Z\s]+)/);
+      const hasCityOrLocation = /(in|near|at)\s+([a-zA-Z\s]+)/.test(cleanedTerm);
+      const locationMatch = cleanedTerm.match(/(in|near|at)\s+([a-zA-Z\s]+)/);
       const extractedLocation = locationMatch ? locationMatch[2].trim() : "";
       
       // Use the appropriate search function based on the search type and query
-      if (type === 'zip' || /^\d{5}$/.test(term)) {
+      if (type === 'zip' || /^\d{5}$/.test(cleanedTerm)) {
         // It's a ZIP code search
-        filteredPharmacies = searchPharmaciesByZip(term);
+        filteredPharmacies = searchPharmaciesByZip(cleanedTerm);
       } else if (type === 'city' || hasCityOrLocation) {
         // It's a city search or contains a city mention
-        const searchLocation = hasCityOrLocation ? extractedLocation : term;
+        const searchLocation = hasCityOrLocation ? extractedLocation : cleanedTerm;
         filteredPharmacies = searchPharmaciesByCity(searchLocation);
       } else {
         // Use intelligent search for everything else
-        filteredPharmacies = intelligentPharmacySearch(term);
+        filteredPharmacies = intelligentPharmacySearch(cleanedTerm);
       }
       
       console.log("Search results:", filteredPharmacies.length);

@@ -35,7 +35,7 @@ export const PharmacyList = ({
           No pharmacies found for{' '}
           {searchType === 'city' ? 'location' : 
            searchType === 'zip' ? 'postal code' : 
-           'search term'}: "{searchTerm}"
+           'search term'}: "{searchTerm.replace(/\s*\([a-z]{2}\)\s*/g, "")}"
         </p>
         <p className="mt-2 text-sm text-gray-400">
           Try using different search terms or switch to Smart Search for better results
@@ -47,6 +47,9 @@ export const PharmacyList = ({
   if (pharmacies.length === 0) {
     return null;
   }
+  
+  // Clean the display search term by removing language codes
+  const displaySearchTerm = searchTerm.replace(/\s*\([a-z]{2}\)\s*/g, "").trim();
 
   // Group pharmacies by country/region for better organization
   const groupedPharmacies: { [key: string]: Pharmacy[] } = {};
@@ -72,10 +75,10 @@ export const PharmacyList = ({
     <div className="space-y-6 mb-8">
       <h2 className="text-xl font-semibold">
         {searchType === 'smart' 
-          ? `Pharmacy Results for "${searchTerm}"`
+          ? `Pharmacy Results for "${displaySearchTerm}"`
           : searchType === 'city' 
-            ? `Pharmacies in ${searchTerm}`
-            : `Pharmacies Near ${searchTerm}`}
+            ? `Pharmacies in ${displaySearchTerm}`
+            : `Pharmacies Near ${displaySearchTerm}`}
       </h2>
       
       {hasInternationalResults && (
@@ -111,4 +114,3 @@ export const PharmacyList = ({
     </div>
   );
 };
-
