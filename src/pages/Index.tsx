@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { SearchBar } from "@/components/SearchBar";
 import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
@@ -17,7 +16,6 @@ import { SponsoredContent } from "@/components/SponsoredContent";
 import { AIKeySetup } from "@/components/AIKeySetup";
 
 const Index = () => {
-  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{
     name: string;
     details: string;
@@ -26,22 +24,10 @@ const Index = () => {
     source?: string;
   }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const {
-    isAdmin
-  } = useAdmin();
-  const {
-    addSearchToHistory,
-    searchHistory
-  } = useSearchHistory();
-  const {
-    t,
-    language
-  } = useLanguage();
-  const {
-    tier,
-    isSubscribed
-  } = useSubscription();
+  const { isAdmin } = useAdmin();
+  const { t } = useLanguage();
+  const { tier, isSubscribed } = useSubscription();
+  
   const handleSearch = (query: string, results: Array<{
     name: string;
     details: string;
@@ -49,16 +35,10 @@ const Index = () => {
     type?: string;
     source?: string;
   }>) => {
-    setSearchQuery(query);
     setSearchResults(results);
     setSearchPerformed(query !== '');
-    setIsSearching(false);
-
-    // Track search in history if it's not an empty search
-    if (query.trim()) {
-      addSearchToHistory(query, results.length);
-    }
   };
+
   const removeResult = (index: number) => {
     setSearchResults(prev => prev.filter((_, i) => i !== index));
   };
@@ -77,42 +57,39 @@ const Index = () => {
 
   // Define preferred display order for medication types
   const displayOrder = ["Injection", "Injectable Gel", "Capsule", "Tablet", "Spray", "Inhaler", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Patch", "Other"];
-  
-  return <TooltipProvider>
+
+  return (
+    <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white flex flex-col">
         <div className="container px-4 py-8 mx-auto flex-grow">
           <div className="flex justify-between mb-4">
             <div>
               <AIKeySetup />
             </div>
-            {isSubscribed && <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
+            {isSubscribed && (
+              <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
                 <span className="flex items-center gap-1.5">
                   Premium {tier.charAt(0).toUpperCase() + tier.slice(1)} Active
                 </span>
-              </Button>}
+              </Button>
+            )}
           </div>
-          
+
           <div className="text-center mb-12">
             <h1 className="font-bold text-primary mb-4 flex items-center justify-center text-7xl">
               {t("app.name", "MedMed.AI")}
               <Globe className="ml-2 h-6 w-6 text-primary/70" />
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {t("app.tagline", "Search medications, find specialists, and get personalized recommendations.")}
+              {t("app.tagline", "Your AI-powered healthcare assistant. Ask anything about medications, symptoms, or find nearby healthcare services.")}
             </p>
           </div>
 
-          <div className="mb-8 space-y-6">
-            <div className="max-w-2xl mx-auto">
-              <SearchBar onSearch={handleSearch} />
-            </div>
-            
-            <div className="max-w-2xl mx-auto">
-              <AIChatInterface onSearch={handleSearch} />
-            </div>
+          <div className="max-w-2xl mx-auto mb-8">
+            <AIChatInterface onSearch={handleSearch} />
           </div>
-          
-          <div className="mb-8 max-w-4xl mx-auto">
+
+          <div className="max-w-4xl mx-auto mb-8">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card/100 hover:shadow-sm transition-all">
@@ -147,8 +124,10 @@ const Index = () => {
             </div>
           </div>
 
-          {searchPerformed && <div className="max-w-4xl mx-auto">
-              {searchResults.length > 0 && <div className="mb-12">
+          {searchPerformed && (
+            <div className="max-w-4xl mx-auto">
+              {searchResults.length > 0 && (
+                <div className="mb-12">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-2xl font-semibold text-gray-800">{t("search.results", "Global Medication Results")}</h2>
                     <div className="flex items-center gap-2">
@@ -176,20 +155,28 @@ const Index = () => {
                 })}
                         </div>
                       </div>)}
-                </div>}
+                </div>
+              )}
               
-              <SpecialistsList searchQuery={searchQuery} />
+              <SpecialistsList searchQuery={searchResults.length > 0 ? searchResults[0].name : ''} />
               
-              {searchQuery && !searchResults.length && !document.querySelector('[data-specialist-found="true"]') && <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
-                  <p className="text-gray-500">{t("search.no_results", "No results found matching your search. Try different keywords.")}</p>
-                </div>}
-            </div>}
+              {!searchResults.length && !document.querySelector('[data-specialist-found="true"]') && (
+                <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
+                  <p className="text-gray-500">
+                    {t("search.no_results", "No results found matching your search. Try different keywords.")}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           
-          {!searchPerformed && <div className="max-w-4xl mx-auto grid grid-cols-1 gap-8 mb-12">
+          {!searchPerformed && (
+            <div className="max-w-4xl mx-auto grid grid-cols-1 gap-8 mb-12">
               <div>
                 {!isSubscribed && <SponsoredContent />}
               </div>
-            </div>}
+            </div>
+          )}
         </div>
         
         {/* Policy Footer */}
@@ -222,7 +209,8 @@ const Index = () => {
           </div>
         </footer>
       </div>
-    </TooltipProvider>;
+    </TooltipProvider>
+  );
 };
 
 export default Index;

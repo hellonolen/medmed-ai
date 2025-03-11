@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { aiService } from '@/services/AIService';
 import { VoiceSearchButton } from './VoiceSearchButton';
+import { useNavigate } from 'react-router-dom';
+import { intelligentPharmacySearch } from '@/utils/pharmacySearch';
 
 interface Message {
   content: string;
@@ -31,17 +33,17 @@ export const AIChatInterface = ({
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
-    // Initial greeting
     if (messages.length === 0) {
       const initialMessage = {
-        content: t("ai.greeting", "Hello! I'm your medical assistant. I can help you find medications, check symptoms, locate pharmacies, or answer health-related questions. How can I help you today?"),
+        content: t("ai.greeting", "Hello! I'm your medical assistant. Ask me about medications, symptoms, nearby pharmacies, or any health-related questions. I can help you find what you need globally."),
         type: 'ai' as const,
         timestamp: new Date()
       };
@@ -68,6 +70,19 @@ export const AIChatInterface = ({
     setIsTyping(true);
 
     try {
+      // Check for pharmacy-related queries
+      const normalizedInput = inputValue.toLowerCase();
+      const isPharmacySearch = /pharmacy|drugstore|chemist|near|around|locate/.test(normalizedInput);
+
+      if (isPharmacySearch) {
+        // Redirect to pharmacy finder with the query
+        const results = await intelligentPharmacySearch(inputValue, language);
+        if (results.length > 0) {
+          navigate(`/pharmacy-finder?query=${encodeURIComponent(inputValue)}`);
+          return;
+        }
+      }
+
       const response = await aiService.getHealthAdvice(inputValue);
       
       if (response.success) {
@@ -78,30 +93,20 @@ export const AIChatInterface = ({
         };
         setMessages(prev => [...prev, aiMessage]);
         
-        // If the response contains actionable information, trigger a search
-        if (inputValue.toLowerCase().includes('find') || 
-            inputValue.toLowerCase().includes('search') ||
-            inputValue.toLowerCase().includes('look')) {
-          onSearch(inputValue, []);
-        }
+        // Trigger search for relevant results
+        onSearch(inputValue, []); // AI service will handle the actual results
       } else {
-        const errorMessage: Message = {
-          content: t("ai.error", "I'm having trouble understanding. Could you rephrase that?"),
-          type: 'ai',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
-        toast.error(t("ai.error", "I'm having trouble understanding. Could you rephrase that?"));
+        throw new Error('AI service error');
       }
     } catch (error) {
       console.error('AI Chat Error:', error);
       const errorMessage: Message = {
-        content: t("ai.error", "Sorry, I encountered an error. Please try again."),
+        content: t("ai.error", "I apologize, but I'm having trouble processing that. Could you try rephrasing your question?"),
         type: 'ai',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-      toast.error(t("ai.error", "Sorry, I encountered an error. Please try again."));
+      toast.error(t("ai.error", "I encountered an error. Please try again."));
     } finally {
       setIsTyping(false);
     }
@@ -110,7 +115,6 @@ export const AIChatInterface = ({
   const handleVoiceResult = (text: string) => {
     if (text) {
       setInputValue(text);
-      // Use a synthetic event to trigger form submission
       const syntheticEvent = {
         preventDefault: () => {}
       } as React.FormEvent;
@@ -120,7 +124,7 @@ export const AIChatInterface = ({
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="h-[300px] overflow-y-auto p-4 space-y-4">
+      <div className="h-[400px] overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -168,7 +172,7 @@ export const AIChatInterface = ({
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder={t("ai.input_placeholder", "Ask me anything about medications, symptoms, or healthcare...")}
+          placeholder={t("ai.input_placeholder", "Ask about medications, symptoms, find pharmacies worldwide...")}
           className="flex-1 px-4 py-2 rounded-lg border border-input bg-background"
         />
         <VoiceSearchButton
