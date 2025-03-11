@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,16 @@ const PharmacyFinder = () => {
   const [searched, setSearched] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchType, setSearchType] = useState<'zip' | 'city' | 'smart'>('smart');
+  const [searchParams] = useSearchParams();
+  
+  // Handle search query from URL parameters
+  useEffect(() => {
+    const query = searchParams.get('query');
+    if (query) {
+      setSearchTerm(query);
+      handleSearch(query, 'smart');
+    }
+  }, [searchParams]);
   
   const handleSearch = (term: string, type: 'zip' | 'city' | 'smart') => {
     setSearching(true);
@@ -28,18 +38,22 @@ const PharmacyFinder = () => {
       
       console.log(`Searching by ${type}:`, term);
       
-      // Use the appropriate search function based on the search type
-      switch (type) {
-        case 'zip':
-          filteredPharmacies = searchPharmaciesByZip(term);
-          break;
-        case 'city':
-          filteredPharmacies = searchPharmaciesByCity(term);
-          break;
-        case 'smart':
-          filteredPharmacies = intelligentPharmacySearch(term);
-          toast.success(`AI-enhanced search completed for "${term}"`);
-          break;
+      // Check if term contains a city name or location mention
+      const hasCityOrLocation = /(in|near|at)\s+([a-zA-Z\s]+)/.test(term);
+      const locationMatch = term.match(/(in|near|at)\s+([a-zA-Z\s]+)/);
+      const extractedLocation = locationMatch ? locationMatch[2].trim() : "";
+      
+      // Use the appropriate search function based on the search type and query
+      if (type === 'zip' || /^\d{5}$/.test(term)) {
+        // It's a ZIP code search
+        filteredPharmacies = searchPharmaciesByZip(term);
+      } else if (type === 'city' || hasCityOrLocation) {
+        // It's a city search or contains a city mention
+        const searchLocation = hasCityOrLocation ? extractedLocation : term;
+        filteredPharmacies = searchPharmaciesByCity(searchLocation);
+      } else {
+        // Use intelligent search for everything else
+        filteredPharmacies = intelligentPharmacySearch(term);
       }
       
       console.log("Search results:", filteredPharmacies.length);
@@ -79,6 +93,7 @@ const PharmacyFinder = () => {
           <PharmacySearchForm 
             onSearch={handleSearch}
             isSearching={searching}
+            initialSearchTerm={searchTerm}
           />
           
           <PharmacyList 

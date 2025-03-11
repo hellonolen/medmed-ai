@@ -37,6 +37,16 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
     
     setLoading(true);
     try {
+      // Check if query appears to be looking for pharmacy locations
+      const isPharmacyLocationSearch = /pharma(c|s|cy|cies)|drug\s?store|location|near|in\s\w+/.test(query.toLowerCase());
+      
+      // If it looks like a pharmacy location search, we should let the pharmacy finder handle it
+      if (isPharmacyLocationSearch) {
+        // We'll still return some basic results and let the main search component
+        // decide how to handle it (it will check for this pattern again)
+        return [];
+      }
+      
       // Get recent context from history
       const recentContext = state.history
         .slice(-3)

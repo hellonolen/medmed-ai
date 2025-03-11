@@ -1,4 +1,6 @@
 
+// Enhanced search utilities for pharmacy locations
+
 import { Pharmacy, pharmacies } from "@/data/pharmacies";
 
 // Calculate a realistic distance based on ZIP code or location comparison
@@ -62,7 +64,7 @@ export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
     matchedPharmacies = getInternationalPharmacies(normalizedZip);
   }
   
-  console.log("Found pharmacies:", matchedPharmacies.length);
+  console.log("Found pharmacies by ZIP:", matchedPharmacies.length);
   
   // Calculate distances
   return matchedPharmacies.map(pharmacy => ({
@@ -91,7 +93,7 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
     pharmacy.city.toLowerCase() === searchTerm
   );
   
-  // If no exact matches, try partial match
+  // If no exact matches, try partial match with city names
   if (matchedPharmacies.length === 0) {
     matchedPharmacies = pharmacies.filter(pharmacy => 
       pharmacy.city.toLowerCase().includes(searchTerm) || 
@@ -107,13 +109,36 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
     );
   }
   
+  // Special handling for common city names
+  if (matchedPharmacies.length === 0) {
+    // Map of common search terms to city names
+    const cityAliases: {[key: string]: string} = {
+      "tampa": "Tampa",
+      "ny": "New York",
+      "nyc": "New York",
+      "la": "Los Angeles",
+      "chicago": "Chicago",
+      "miami": "Miami",
+      "boston": "Boston",
+      "sf": "San Francisco",
+      "san francisco": "San Francisco"
+    };
+    
+    const mappedCity = cityAliases[searchTerm];
+    if (mappedCity) {
+      matchedPharmacies = pharmacies.filter(pharmacy => 
+        pharmacy.city === mappedCity
+      );
+    }
+  }
+  
   // If still no results, check if it might be an international location
   if (matchedPharmacies.length === 0) {
     // For demo purposes, return some pharmacies to simulate international results
     matchedPharmacies = getInternationalPharmacies(city);
   }
   
-  console.log("Found pharmacies:", matchedPharmacies.length);
+  console.log("Found pharmacies by city:", matchedPharmacies.length);
   console.log("Available cities in data:", [...new Set(pharmacies.map(p => p.city))]);
   
   // Return pharmacies with calculated distances
@@ -341,49 +366,92 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   
   console.log("Normalized query for intelligent search:", normalizedQuery);
   
+  // Check for pharmacy-specific terms
+  const isPharmacySearch = /pharma(c|cy|cies|s)|drug\s?store|medication|pill|medicine|prescription/.test(normalizedQuery);
+  
   // Try to determine if the query is a ZIP code or a city name
   const isZipCode = /^\d{5}(-\d{4})?$/.test(normalizedQuery) || // US format
                    /^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/.test(normalizedQuery) || // Canadian format
                    /^[A-Za-z]{1,2}\d{1,2}[A-Za-z]? ?\d[A-Za-z]{2}$/.test(normalizedQuery); // UK format
   
+  // Check for location-based search patterns
+  const locationPattern = /(in|near|at)\s+([a-zA-Z\s]+)/;
+  const hasLocation = locationPattern.test(normalizedQuery);
+  let locationMatch = null;
+  let locationName = "";
+  
+  if (hasLocation) {
+    locationMatch = normalizedQuery.match(locationPattern);
+    locationName = locationMatch ? locationMatch[2].trim() : "";
+    console.log("Extracted location:", locationName);
+  }
+  
   // Look for ZIP code patterns in the query
   const zipMatch = normalizedQuery.match(/\b\d{5}\b/);  // US ZIP
   const zipQuery = zipMatch ? zipMatch[0] : normalizedQuery;
   
-  // Get results from both search methods
-  let zipResults: Pharmacy[] = [];
+  // Get results based on query type
+  let results: Pharmacy[] = [];
+  
   if (isZipCode || zipMatch) {
-    zipResults = searchPharmaciesByZip(zipQuery);
+    // This is likely a ZIP code search
+    results = searchPharmaciesByZip(zipQuery);
+  } 
+  else if (hasLocation && locationName) {
+    // This is likely a location-based search
+    results = searchPharmaciesByCity(locationName);
   }
-  
-  const cityResults = searchPharmaciesByCity(normalizedQuery);
-  
-  // Combine and deduplicate results, prioritizing ZIP results if it's a ZIP code
-  let combinedResults = isZipCode 
-    ? [...zipResults, ...cityResults.filter(city => !zipResults.some(zip => zip.id === city.id))]
-    : [...cityResults, ...zipResults.filter(zip => !cityResults.some(city => zip.id === city.id))];
-  
-  // If no results, try a more permissive search as a fallback
-  if (combinedResults.length === 0) {
+  else if (isPharmacySearch) {
+    // Generic pharmacy search - check if there are any location terms in the query
+    const cityMatches = normalizedQuery.match(/\b(new york|chicago|los angeles|miami|tampa|boston|san francisco)\b/gi);
+    if (cityMatches && cityMatches.length > 0) {
+      // Search by the city mentioned in the query
+      results = searchPharmaciesByCity(cityMatches[0]);
+    } else {
+      // If no specific city is mentioned, search all pharmacies and sort by rating
+      results = pharmacies
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 10)
+        .map(pharmacy => ({
+          ...pharmacy,
+          distance: "Varies by location"
+        }));
+    }
+  }
+  else {
+    // Try a hybrid approach - search both by city and generic terms
+    const cityResults = searchPharmaciesByCity(normalizedQuery);
+    
     // Look for pharmacy names, chains, or addresses
-    combinedResults = pharmacies.filter(pharmacy => 
+    const nameResults = pharmacies.filter(pharmacy => 
       pharmacy.name.toLowerCase().includes(normalizedQuery) ||
       pharmacy.address.toLowerCase().includes(normalizedQuery) ||
       pharmacy.chain.toLowerCase().includes(normalizedQuery)
     );
     
+    // Combine results without duplicates
+    results = [...cityResults];
+    nameResults.forEach(pharmacy => {
+      if (!results.some(p => p.id === pharmacy.id)) {
+        results.push({
+          ...pharmacy,
+          distance: "Varies by location"
+        });
+      }
+    });
+    
     // If still no results, add some global results
-    if (combinedResults.length === 0) {
-      combinedResults = getInternationalPharmacies(normalizedQuery);
+    if (results.length === 0) {
+      results = getInternationalPharmacies(normalizedQuery);
     }
   }
   
-  console.log("Total results after AI search:", combinedResults.length);
+  console.log("Total results after AI search:", results.length);
   
   // Sort by rating unless it's a zip code search (where distance matters more)
   if (!isZipCode) {
-    combinedResults.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    results.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }
   
-  return combinedResults;
+  return results;
 };

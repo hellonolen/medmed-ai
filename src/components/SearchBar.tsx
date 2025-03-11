@@ -34,6 +34,15 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       return;
     }
     
+    // Check if query appears to be looking for pharmacy locations
+    const isPharmacyLocationSearch = /pharma(c|s|cy|cies)|drug\s?store|location|near|in\s\w+/.test(query.toLowerCase());
+    
+    if (isPharmacyLocationSearch) {
+      // Redirect to pharmacy finder with the query
+      window.location.href = `/pharmacy-finder?query=${encodeURIComponent(query)}`;
+      return;
+    }
+    
     try {
       const results = await searchWithContext(query);
       onSearch(query, results);
@@ -57,6 +66,15 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     setQuery(text);
     // Automatically trigger search when voice input is received
     if (text.trim()) {
+      // Check if voice query is looking for pharmacy locations
+      const isPharmacyLocationSearch = /pharma(c|s|cy|cies)|drug\s?store|location|near|in\s\w+/.test(text.toLowerCase());
+      
+      if (isPharmacyLocationSearch) {
+        // Redirect to pharmacy finder with the query
+        window.location.href = `/pharmacy-finder?query=${encodeURIComponent(text)}`;
+        return;
+      }
+      
       searchWithContext(text).then(results => {
         onSearch(text, results);
       }).catch(error => {

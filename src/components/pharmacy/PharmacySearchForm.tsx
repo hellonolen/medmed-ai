@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,14 +11,50 @@ import { useLanguage } from "@/contexts/LanguageContext";
 interface PharmacySearchFormProps {
   onSearch: (searchTerm: string, searchType: 'zip' | 'city' | 'smart') => void;
   isSearching: boolean;
+  initialSearchTerm?: string;
 }
 
-export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchFormProps) => {
+export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = "" }: PharmacySearchFormProps) => {
   const [zipCode, setZipCode] = useState("");
   const [city, setCity] = useState("");
   const [smartSearch, setSmartSearch] = useState("");
   const [activeTab, setActiveTab] = useState<'zip' | 'city' | 'smart'>('smart');
   const { language } = useLanguage();
+
+  // Set initial search term if provided
+  useEffect(() => {
+    if (initialSearchTerm) {
+      // Check if it looks like a ZIP code
+      if (/^\d{5}$/.test(initialSearchTerm)) {
+        setZipCode(initialSearchTerm);
+        setActiveTab('zip');
+      } 
+      // Check if it contains a city/location reference
+      else if (/(in|near|at)\s+([a-zA-Z\s]+)/.test(initialSearchTerm)) {
+        const locationMatch = initialSearchTerm.match(/(in|near|at)\s+([a-zA-Z\s]+)/);
+        const extractedLocation = locationMatch ? locationMatch[2].trim() : "";
+        setCity(extractedLocation || initialSearchTerm);
+        setActiveTab('city');
+      } 
+      // Default to smart search
+      else {
+        setSmartSearch(initialSearchTerm);
+        setActiveTab('smart');
+      }
+    }
+  }, [initialSearchTerm]);
+
+  // Trigger search when initialSearchTerm is provided
+  useEffect(() => {
+    if (initialSearchTerm && !isSearching) {
+      // Use a small delay to ensure the form has updated
+      const timer = setTimeout(() => {
+        handleSearch(new Event('submit') as any);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [initialSearchTerm, activeTab]);
 
   // Clear form when language changes
   useEffect(() => {
@@ -70,6 +107,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
       </CardHeader>
       <CardContent>
         <Tabs 
+          value={activeTab}
           defaultValue="smart" 
           className="w-full"
           onValueChange={(value) => setActiveTab(value as 'zip' | 'city' | 'smart')}
@@ -119,7 +157,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Supports international postal code formats including US ZIP (e.g. 10001, 60601), UK postcodes, and more.
+              Supports US ZIP codes like 33511, 60601, 90001 (Tampa, Chicago, LA). For international searches, try the Smart Search.
             </p>
           </TabsContent>
           
@@ -140,7 +178,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Search by any city, region, or country name worldwide. Try "London", "Tokyo", "Chicago", or "New York".
+              Try "Tampa", "Chicago", "New York" or include country for international searches like "Paris, France".
             </p>
           </TabsContent>
         </Tabs>
