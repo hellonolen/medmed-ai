@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, Shield, FileText, Settings, Search } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,6 +15,9 @@ import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
 import { AIKeySetup } from "@/components/AIKeySetup";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const [searchResults, setSearchResults] = useState<Array<{
@@ -22,8 +26,12 @@ const Index = () => {
     price: string;
     type?: string;
     source?: string;
+    phone?: string;
+    address?: string;
   }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
   const { isAdmin } = useAdmin();
   const { t } = useLanguage();
   const { tier, isSubscribed } = useSubscription();
@@ -34,15 +42,42 @@ const Index = () => {
     price: string;
     type?: string;
     source?: string;
+    phone?: string;
+    address?: string;
   }>) => {
     setSearchResults(results);
+    setSearchQuery(query);
     setSearchPerformed(query !== '');
+    
+    // If we have results focused on one category, switch to that tab
+    if (results.length > 0) {
+      const resultTypes = new Set(results.map(r => r.type?.toLowerCase()));
+      if (resultTypes.size === 1) {
+        const type = Array.from(resultTypes)[0];
+        if (type?.includes('med spa')) {
+          setActiveTab('medspas');
+        } else if (type?.includes('specialist')) {
+          setActiveTab('specialists');
+        } else if (type?.includes('tablet') || type?.includes('capsule') || type?.includes('injection')) {
+          setActiveTab('medications');
+        } else if (type?.includes('pharmacy')) {
+          setActiveTab('pharmacies');
+        }
+      }
+    }
   };
 
   const removeResult = (index: number) => {
     setSearchResults(prev => prev.filter((_, i) => i !== index));
+    
+    // If we removed the last result, clear the search
+    if (searchResults.length <= 1) {
+      setSearchPerformed(false);
+    }
   };
+  
   const currentYear = new Date().getFullYear();
+  
   const getResultId = (result: {
     name: string;
     details: string;
@@ -57,6 +92,33 @@ const Index = () => {
 
   // Define preferred display order for medication types
   const displayOrder = ["Injection", "Injectable Gel", "Capsule", "Tablet", "Spray", "Inhaler", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Patch", "Other"];
+  
+  // Group results by category
+  const medSpaResults = searchResults.filter(r => 
+    r.type?.toLowerCase().includes('spa') || 
+    r.type?.toLowerCase().includes('aesthetic') ||
+    r.type?.toLowerCase().includes('beauty') ||
+    r.name.toLowerCase().includes('spa')
+  );
+  
+  const specialistResults = searchResults.filter(r => 
+    r.type?.toLowerCase().includes('specialist') || 
+    r.type?.toLowerCase().includes('doctor') ||
+    r.type?.toLowerCase().includes('physician')
+  );
+  
+  const pharmacyResults = searchResults.filter(r => 
+    r.type?.toLowerCase().includes('pharmacy') && 
+    !r.type?.toLowerCase().includes('spa')
+  );
+  
+  // Medication results - anything with a type like tablet, capsule, injectable, etc.
+  const medicationResults = searchResults.filter(r => 
+    !r.type?.toLowerCase().includes('spa') && 
+    !r.type?.toLowerCase().includes('specialist') &&
+    !r.type?.toLowerCase().includes('pharmacy') &&
+    r.type !== undefined
+  );
 
   return (
     <TooltipProvider>
@@ -100,7 +162,7 @@ const Index = () => {
               <Link to="/pharmacy-finder">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card/100 hover:shadow-sm transition-all">
                   <Map className="h-4 w-4 text-primary" />
-                  <span className="text-center w-full truncate">{t("menu.pharmacy_finder", "Pharmacy Finder")}</span>
+                  <span className="text-center w-full truncate">{t("menu.pharmacy_finder", "Pharmacy & Med Spa Finder")}</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
@@ -128,37 +190,211 @@ const Index = () => {
             <div className="max-w-4xl mx-auto">
               {searchResults.length > 0 && (
                 <div className="mb-12">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-2xl font-semibold text-gray-800">{t("search.results", "Global Medication Results")}</h2>
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-gray-600">{t("search.worldwide", "Worldwide search")}</span>
+                  <Card className="mb-6 overflow-hidden">
+                    <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <Search className="h-4 w-4 text-primary" />
+                        <h2 className="text-xl font-semibold">Search Results for "{searchQuery}"</h2>
+                      </div>
+                      <Badge variant="outline" className="flex items-center text-xs">
+                        <Globe className="h-3 w-3 mr-1" />
+                        {searchResults.length} worldwide results
+                      </Badge>
                     </div>
-                  </div>
-                  
-                  {displayOrder.map(type => groupedResults[type] && groupedResults[type].length > 0 && <div key={type} className="mb-8">
-                        <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
+                    
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                      <TabsList className="w-full border-b rounded-none justify-start px-4">
+                        <TabsTrigger value="all">All Results</TabsTrigger>
+                        {medicationResults.length > 0 && (
+                          <TabsTrigger value="medications">Medications</TabsTrigger>
+                        )}
+                        {medSpaResults.length > 0 && (
+                          <TabsTrigger value="medspas">Med Spas</TabsTrigger>
+                        )}
+                        {specialistResults.length > 0 && (
+                          <TabsTrigger value="specialists">Specialists</TabsTrigger>
+                        )}
+                        {pharmacyResults.length > 0 && (
+                          <TabsTrigger value="pharmacies">Pharmacies</TabsTrigger>
+                        )}
+                      </TabsList>
+                      
+                      <TabsContent value="all" className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {groupedResults[type].map((result, index) => {
-                  const overallIndex = searchResults.findIndex(r => r.name === result.name);
-                  return <div key={`${type}-${index}`} className="relative">
-                                <Link to={`/medication/${getResultId(result, overallIndex)}`}>
-                                  <MedicationCardWrapper name={result.name} details={result.details} price={isAdmin ? result.price : t("medication.price", "Login to see pricing")} type={result.type} source={result.source} />
-                                </Link>
-                                <Button variant="ghost" size="icon" className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background" onClick={e => {
-                      e.preventDefault();
-                      removeResult(overallIndex);
-                    }} aria-label="Remove result">
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>;
-                })}
+                          {searchResults.map((result, index) => (
+                            <div key={index} className="relative">
+                              <Link to={`/medication/${getResultId(result, index)}`}>
+                                <MedicationCardWrapper 
+                                  name={result.name} 
+                                  details={result.details} 
+                                  price={isAdmin ? result.price : t("medication.price", "Login to see pricing")} 
+                                  type={result.type} 
+                                  source={result.source}
+                                  phone={result.phone}
+                                  address={result.address}
+                                />
+                              </Link>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                onClick={() => removeResult(index)} 
+                                aria-label="Remove result"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
                         </div>
-                      </div>)}
+                      </TabsContent>
+                      
+                      {medicationResults.length > 0 && (
+                        <TabsContent value="medications" className="p-4">
+                          {displayOrder.map(type => {
+                            const typeResults = medicationResults.filter(r => r.type === type);
+                            if (typeResults.length === 0) return null;
+                            
+                            return (
+                              <div key={type} className="mb-8">
+                                <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {typeResults.map((result, index) => {
+                                    const overallIndex = searchResults.findIndex(r => r.name === result.name);
+                                    return (
+                                      <div key={`${type}-${index}`} className="relative">
+                                        <Link to={`/medication/${getResultId(result, overallIndex)}`}>
+                                          <MedicationCardWrapper 
+                                            name={result.name} 
+                                            details={result.details} 
+                                            price={isAdmin ? result.price : t("medication.price", "Login to see pricing")} 
+                                            type={result.type} 
+                                            source={result.source}
+                                          />
+                                        </Link>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                          onClick={() => removeResult(overallIndex)} 
+                                          aria-label="Remove result"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </TabsContent>
+                      )}
+                      
+                      {medSpaResults.length > 0 && (
+                        <TabsContent value="medspas" className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {medSpaResults.map((result, index) => {
+                              const overallIndex = searchResults.findIndex(r => r.name === result.name);
+                              return (
+                                <div key={`medspa-${index}`} className="relative">
+                                  <Link to={`/pharmacy-finder?name=${encodeURIComponent(result.name)}`}>
+                                    <MedicationCardWrapper 
+                                      name={result.name} 
+                                      details={result.details} 
+                                      price={result.price} 
+                                      type="Med Spa" 
+                                      source={result.source}
+                                      phone={result.phone}
+                                      address={result.address}
+                                    />
+                                  </Link>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                    onClick={() => removeResult(overallIndex)} 
+                                    aria-label="Remove result"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TabsContent>
+                      )}
+                      
+                      {specialistResults.length > 0 && (
+                        <TabsContent value="specialists" className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {specialistResults.map((result, index) => {
+                              const overallIndex = searchResults.findIndex(r => r.name === result.name);
+                              return (
+                                <div key={`specialist-${index}`} className="relative">
+                                  <MedicationCardWrapper 
+                                    name={result.name} 
+                                    details={result.details} 
+                                    price={result.price} 
+                                    type="Specialist" 
+                                    source={result.source}
+                                    phone={result.phone}
+                                    address={result.address}
+                                  />
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                    onClick={() => removeResult(overallIndex)} 
+                                    aria-label="Remove result"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TabsContent>
+                      )}
+                      
+                      {pharmacyResults.length > 0 && (
+                        <TabsContent value="pharmacies" className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {pharmacyResults.map((result, index) => {
+                              const overallIndex = searchResults.findIndex(r => r.name === result.name);
+                              return (
+                                <div key={`pharmacy-${index}`} className="relative">
+                                  <Link to={`/pharmacy-finder?name=${encodeURIComponent(result.name)}`}>
+                                    <MedicationCardWrapper 
+                                      name={result.name} 
+                                      details={result.details} 
+                                      price={result.price} 
+                                      type="Pharmacy" 
+                                      source={result.source}
+                                      phone={result.phone}
+                                      address={result.address}
+                                    />
+                                  </Link>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
+                                    onClick={() => removeResult(overallIndex)} 
+                                    aria-label="Remove result"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TabsContent>
+                      )}
+                    </Tabs>
+                  </Card>
                 </div>
               )}
               
-              <SpecialistsList searchQuery={searchResults.length > 0 ? searchResults[0].name : ''} />
+              <SpecialistsList searchQuery={searchResults.length > 0 ? searchQuery : ''} />
               
               {!searchResults.length && !document.querySelector('[data-specialist-found="true"]') && (
                 <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
