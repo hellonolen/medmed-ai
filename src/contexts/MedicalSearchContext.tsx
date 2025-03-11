@@ -27,7 +27,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
   const { toast: uiToast } = useToast();
   const { t } = useLanguage();
 
-  // Enhanced fallback results for when API is not available
+  // Enhanced fallback results for when service is not available
   const fallbackResults = [
     { name: "Amoxicillin", details: "Antibiotic used to treat bacterial infections", price: "$12.99", type: "Tablet", source: "FDA Database" },
     { name: "Ibuprofen", details: "NSAID used to treat pain and inflammation", price: "$8.99", type: "Tablet", source: "FDA Database" },
@@ -76,16 +76,16 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       
       if (isPharmacyLocationSearch) {
         // Specialized pharmacy search
-        systemPrompt = 'You are a pharmacy search assistant. Return detailed information about pharmacies that match the query in JSON format: {"results": [{"name": "Pharmacy Name", "details": "Address and hours", "price": "N/A", "type": "Pharmacy", "source": "Pharmacy Database"}]}';
+        systemPrompt = 'Return detailed information about pharmacies that match the query in JSON format: {"results": [{"name": "Pharmacy Name", "details": "Address and hours", "price": "N/A", "type": "Pharmacy", "source": "Pharmacy Database"}]}';
       } else if (isSpecialistSearch) {
         // Specialized doctor search
-        systemPrompt = 'You are a medical specialist search assistant. Return information about medical specialists based on the query in JSON format: {"results": [{"name": "Specialist Name", "details": "Specialization and qualifications", "price": "Consultation fee if available", "type": "Specialist", "source": "Medical Directory"}]}';
+        systemPrompt = 'Return information about medical specialists based on the query in JSON format: {"results": [{"name": "Specialist Name", "details": "Specialization and qualifications", "price": "Consultation fee if available", "type": "Specialist", "source": "Medical Directory"}]}';
       } else if (isSymptomSearch) {
         // Symptom analysis prompt
-        systemPrompt = 'You are a symptom analysis assistant. Provide possible conditions, recommended specialists, and over-the-counter medications for these symptoms in JSON format: {"results": [{"name": "Possible Condition/Medication", "details": "Description and recommendations", "price": "Estimate if medication", "type": "Condition or Medication", "source": "Medical Database"}]}';
+        systemPrompt = 'Provide possible conditions, recommended specialists, and over-the-counter medications for these symptoms in JSON format: {"results": [{"name": "Possible Condition/Medication", "details": "Description and recommendations", "price": "Estimate if medication", "type": "Condition or Medication", "source": "Medical Database"}]}';
       } else {
         // Default medical search
-        systemPrompt = 'You are a medical search assistant. Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
+        systemPrompt = 'Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
       }
       
       // Use the centralized service

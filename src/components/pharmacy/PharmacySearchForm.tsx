@@ -73,7 +73,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     try {
       const response = await aiService.askAI({
         query: `Generate 3 pharmacy or healthcare provider search suggestions related to: ${query}`,
-        systemPrompt: 'You are a pharmacy search assistant. Generate 3 search suggestions related to the user\'s query. Return only a JSON array of strings with no additional text. For example: ["suggestion 1", "suggestion 2", "suggestion 3"]'
+        systemPrompt: 'Generate 3 search suggestions related to the user\'s query. Return only a JSON array of strings with no additional text. For example: ["suggestion 1", "suggestion 2", "suggestion 3"]'
       });
       
       if (response.success) {
@@ -145,7 +145,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
       try {
         const response = await aiService.askAI({
           query: `Analyze this healthcare search query: "${searchTerm}"`,
-          systemPrompt: 'You are a healthcare search analyst. Determine if this query is looking for a pharmacy, medical specialist, healthcare facility, or specific medication. Return only a JSON object like {"type": "pharmacy|specialist|facility|medication", "enhancedQuery": "improved search query"}. No other text.'
+          systemPrompt: 'Determine if this query is looking for a pharmacy, medical specialist, healthcare facility, or specific medication. Return only a JSON object like {"type": "pharmacy|specialist|facility|medication", "enhancedQuery": "improved search query"}. No other text.'
         });
         
         if (response.success) {

@@ -41,7 +41,7 @@ const CompanyInfoForm = ({
   const [suggestion, setSuggestion] = useState("");
   const [improvingDescription, setImprovingDescription] = useState(false);
   
-  // Get AI suggestion for description based on company name and website
+  // Get suggestion for description based on company name and website
   const getDescriptionSuggestion = async () => {
     if (!formData.companyName && !formData.website) {
       toast.error("Please enter company name or website first");
@@ -53,7 +53,7 @@ const CompanyInfoForm = ({
     try {
       const response = await aiService.askAI({
         query: `Generate a concise, professional description for this company: Name: ${formData.companyName || "Unknown"}. Website: ${formData.website || "Not provided"}.`,
-        systemPrompt: `You are an advertising copywriter. Generate a compelling, concise company description in under ${maxCharacters} characters. Focus on value proposition, unique selling points, and professional tone. Do not use placeholder text. If website is provided, base description on the typical services of this type of business.`
+        systemPrompt: `Generate a compelling, concise company description in under ${maxCharacters} characters. Focus on value proposition, unique selling points, and professional tone. Do not use placeholder text. If website is provided, base description on the typical services of this type of business.`
       });
       
       if (response.success) {
@@ -65,11 +65,11 @@ const CompanyInfoForm = ({
       console.error("Error generating description:", error);
       toast.error("Failed to generate suggestion");
     } finally {
-      setLoadingSuggestion(false);
+      setLoadingSuggestions(false);
     }
   };
   
-  // Improve existing description with AI
+  // Improve existing description
   const improveDescription = async () => {
     if (!formData.description) {
       toast.error("Please enter a description first");
@@ -81,7 +81,7 @@ const CompanyInfoForm = ({
     try {
       const response = await aiService.askAI({
         query: `Improve this company description: "${formData.description}"`,
-        systemPrompt: `You are an advertising copywriter. Improve this company description while keeping it under ${maxCharacters} characters. Make it more compelling, clear, and professional. Return ONLY the improved text without commentary.`
+        systemPrompt: `Improve this company description while keeping it under ${maxCharacters} characters. Make it more compelling, clear, and professional. Return ONLY the improved text without commentary.`
       });
       
       if (response.success) {
@@ -177,13 +177,13 @@ const CompanyInfoForm = ({
                       disabled={loadingSuggestion}
                     >
                       <Wand className="h-3 w-3 mr-1" />
-                      {loadingSuggestion ? "Generating..." : "AI Suggestion"}
+                      {loadingSuggestion ? "Generating..." : "Quick Suggestion"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[350px] p-4" align="end">
                     {suggestion ? (
                       <>
-                        <p className="text-sm font-medium mb-2">AI Suggested Description:</p>
+                        <p className="text-sm font-medium mb-2">Suggested Description:</p>
                         <p className="text-sm text-gray-700 mb-3">{suggestion}</p>
                         <div className="flex justify-end">
                           <Button 
@@ -198,7 +198,7 @@ const CompanyInfoForm = ({
                       </>
                     ) : (
                       <p className="text-sm text-gray-500">
-                        Click "AI Suggestion" to generate a description based on your company details.
+                        Click "Quick Suggestion" to generate a description based on your company details.
                       </p>
                     )}
                   </PopoverContent>
@@ -273,7 +273,7 @@ const CompanyInfoForm = ({
               )}
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Note: If there are any issues with your logo, our AI will use your company name as a text logo instead.
+              Note: If there are any issues with your logo, our system will use your company name as a text logo instead.
             </p>
           </div>
         </CardContent>

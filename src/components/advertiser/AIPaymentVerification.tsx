@@ -144,7 +144,7 @@ export const AIPaymentVerification: React.FC<PaymentVerificationProps> = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          Advanced Payment Verification
+          Payment Verification
         </CardTitle>
         <CardDescription>
           Our system verifies payment details for security
