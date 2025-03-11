@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Home, Settings, LogIn, UserPlus } from 'lucide-react';
@@ -11,41 +11,45 @@ interface LayoutProps {
 
 const Layout = ({ children }: LayoutProps) => {
   const { t } = useLanguage();
-
+  const location = useLocation();
+  const isIndexPage = location.pathname === '/';
+  
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <span className="text-xl font-bold text-primary">MedMed.AI</span>
-          </Link>
-          
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
-              <Link to="/">
-                <Home className="h-4 w-4 mr-1.5" />
-                {t("nav.home", "Home")}
-              </Link>
-            </Button>
+      {/* Header - Only show if not on the index page */}
+      {!isIndexPage && (
+        <header className="bg-white shadow-sm border-b">
+          <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <span className="text-xl font-bold text-primary">MedMed.AI</span>
+            </Link>
             
-            <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
-            
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/signin">
-                <LogIn className="h-4 w-4 mr-1.5" />
-                {t("nav.signin", "Sign In")}
-              </Link>
-            </Button>
-            <Button variant="default" size="sm" asChild>
-              <Link to="/signup">
-                <UserPlus className="h-4 w-4 mr-1.5" />
-                {t("nav.signup", "Sign Up")}
-              </Link>
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
+                <Link to="/">
+                  <Home className="h-4 w-4 mr-1.5" />
+                  {t("nav.home", "Home")}
+                </Link>
+              </Button>
+              
+              <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
+              
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/signin">
+                  <LogIn className="h-4 w-4 mr-1.5" />
+                  {t("nav.signin", "Sign In")}
+                </Link>
+              </Button>
+              <Button variant="default" size="sm" asChild>
+                <Link to="/signup">
+                  <UserPlus className="h-4 w-4 mr-1.5" />
+                  {t("nav.signup", "Sign Up")}
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">
