@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ArrowLeft, Upload } from "lucide-react";
+import { ArrowLeft, Upload, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -9,13 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
 
+// Updated ad packages with weekly pricing
 const adPackages = [
   {
     id: "standard",
     name: "Standard Ad Package",
-    price: "$5,000",
-    duration: "1 week",
+    price: 5000, // Price per week in dollars
     description: "Your brand featured in our partners section",
     features: [
       "Standard position in partners section",
@@ -27,8 +30,7 @@ const adPackages = [
   {
     id: "premium",
     name: "Premium Ad Package",
-    price: "$10,000",
-    duration: "1 week",
+    price: 10000, // Price per week in dollars
     description: "Premium placement with enhanced visibility",
     features: [
       "Top position in partners section",
@@ -39,6 +41,9 @@ const adPackages = [
     ]
   }
 ];
+
+// Maximum duration in weeks (13 weeks = 3 months)
+const MAX_DURATION_WEEKS = 13;
 
 const AdvertiserEnrollment = () => {
   const { toast } = useToast();
@@ -51,7 +56,9 @@ const AdvertiserEnrollment = () => {
   });
   const [logoPreview, setLogoPreview] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
+  const [durationWeeks, setDurationWeeks] = useState(1);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -75,6 +82,17 @@ const AdvertiserEnrollment = () => {
     }
   };
 
+  // Calculate total price based on package and duration
+  const calculateTotalPrice = () => {
+    const packagePrice = adPackages.find(p => p.id === selectedPackage)?.price || 0;
+    return packagePrice * durationWeeks;
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -93,12 +111,20 @@ const AdvertiserEnrollment = () => {
   };
 
   const handlePayment = () => {
-    // Simulate payment processing
+    // Simulate payment processing and AI verification
     toast({
       title: "Payment successful!",
-      description: "Your advertisement has been submitted for review.",
+      description: "Your advertisement has been submitted for verification and will go live soon.",
     });
     setIsPaymentDialogOpen(false);
+    
+    // Simulate AI verification and email notification
+    setTimeout(() => {
+      toast({
+        title: "Ad Verified",
+        description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
+      });
+    }, 3000);
     
     // Reset form
     setFormData({
@@ -110,6 +136,18 @@ const AdvertiserEnrollment = () => {
     });
     setLogoPreview("");
     setSelectedPackage("");
+    setDurationWeeks(1);
+    setPaymentMethod("card");
+  };
+
+  // Handle wire transfer selection
+  const handleWireTransferDetails = () => {
+    // Show wire transfer instructions for payments over $5000
+    toast({
+      title: "Wire Transfer Instructions Sent",
+      description: "Check your email for wire transfer instructions. Your ad space will be reserved for 48 hours pending payment.",
+    });
+    setIsPaymentDialogOpen(false);
   };
 
   return (
@@ -227,6 +265,9 @@ const AdvertiserEnrollment = () => {
                         </div>
                       )}
                     </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Note: If there are any issues with your logo, our AI will use your company name as a text logo instead.
+                    </p>
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -250,9 +291,8 @@ const AdvertiserEnrollment = () => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start">
                       <h3 className="font-medium">{pkg.name}</h3>
-                      <div className="text-primary font-bold">{pkg.price}</div>
+                      <div className="text-primary font-bold">{formatCurrency(pkg.price)}/week</div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{pkg.duration}</p>
                     <p className="text-sm mt-2">{pkg.description}</p>
                     
                     <ul className="mt-3 space-y-1">
@@ -277,6 +317,64 @@ const AdvertiserEnrollment = () => {
                   </CardContent>
                 </Card>
               ))}
+
+              {selectedPackage && (
+                <Card className="mt-6 border-primary/20">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Advertisement Duration</CardTitle>
+                    <CardDescription>
+                      Choose how long you want your ad to run (up to 3 months)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>1 week</span>
+                          <span>{MAX_DURATION_WEEKS} weeks (3 months)</span>
+                        </div>
+                        <Slider
+                          value={[durationWeeks]}
+                          min={1}
+                          max={MAX_DURATION_WEEKS}
+                          step={1}
+                          onValueChange={(value) => setDurationWeeks(value[0])}
+                        />
+                        <div className="text-center mt-2">
+                          <span className="text-lg font-semibold">{durationWeeks} {durationWeeks === 1 ? 'week' : 'weeks'}</span>
+                          {durationWeeks >= 4 && (
+                            <span className="text-sm text-gray-500 ml-2">
+                              ({Math.floor(durationWeeks / 4)} {Math.floor(durationWeeks / 4) === 1 ? 'month' : 'months'} 
+                              {durationWeeks % 4 > 0 ? ` and ${durationWeeks % 4} ${durationWeeks % 4 === 1 ? 'week' : 'weeks'}` : ''})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-primary/5 rounded-md">
+                        <h4 className="font-medium mb-2">Payment Summary</h4>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>{adPackages.find(p => p.id === selectedPackage)?.name}</span>
+                          <span>{formatCurrency(adPackages.find(p => p.id === selectedPackage)?.price || 0)}/week</span>
+                        </div>
+                        <div className="flex justify-between text-sm mb-3">
+                          <span>Duration</span>
+                          <span>{durationWeeks} {durationWeeks === 1 ? 'week' : 'weeks'}</span>
+                        </div>
+                        <Separator className="my-2" />
+                        <div className="flex justify-between font-bold mt-2">
+                          <span>Total</span>
+                          <span>{formatCurrency(calculateTotalPrice())}</span>
+                        </div>
+                        <div className="mt-3 text-xs flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded">
+                          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <p>All payments are upfront for the full duration. No refunds will be provided once the ad is approved and published.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
@@ -284,11 +382,11 @@ const AdvertiserEnrollment = () => {
       
       {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Complete Your Payment</DialogTitle>
             <DialogDescription>
-              Secure payment via Stripe and Whop
+              Select a payment method for your advertisement
             </DialogDescription>
           </DialogHeader>
           
@@ -297,35 +395,84 @@ const AdvertiserEnrollment = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{adPackages.find(p => p.id === selectedPackage)?.name}</p>
-                  <p className="text-sm text-gray-500">{adPackages.find(p => p.id === selectedPackage)?.duration}</p>
+                  <p className="text-sm text-gray-500">{durationWeeks} {durationWeeks === 1 ? 'week' : 'weeks'}</p>
                 </div>
-                <p className="font-bold">{adPackages.find(p => p.id === selectedPackage)?.price}</p>
+                <p className="font-bold">{formatCurrency(calculateTotalPrice())}</p>
               </div>
             </div>
             
-            {/* Payment form would go here - using a simplified version for demo purposes */}
             <div className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="cardNumber">Card Number</Label>
-                <Input id="cardNumber" placeholder="4242 4242 4242 4242" />
+              <div className="space-y-2">
+                <Label>Select Payment Method</Label>
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <div className="flex items-center space-x-2 p-2 rounded border border-gray-200 mb-2">
+                    <RadioGroupItem value="card" id="card" />
+                    <Label htmlFor="card" className="cursor-pointer flex-grow">
+                      Credit/Debit Card
+                      <p className="text-xs text-gray-500">Pay securely with your card</p>
+                    </Label>
+                  </div>
+                  
+                  <div className={`flex items-center space-x-2 p-2 rounded border ${calculateTotalPrice() >= 5000 ? 'border-gray-200' : 'border-gray-200 bg-gray-100'}`}>
+                    <RadioGroupItem 
+                      value="wire" 
+                      id="wire" 
+                      disabled={calculateTotalPrice() < 5000}
+                    />
+                    <Label 
+                      htmlFor="wire" 
+                      className={`cursor-pointer flex-grow ${calculateTotalPrice() < 5000 ? 'text-gray-400' : ''}`}
+                    >
+                      Wire Transfer
+                      <p className="text-xs text-gray-500">Available for payments over $5,000</p>
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label htmlFor="expiry">Expiration Date</Label>
-                  <Input id="expiry" placeholder="MM/YY" />
+              {paymentMethod === "card" ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="cardNumber">Card Number</Label>
+                    <Input id="cardNumber" placeholder="4242 4242 4242 4242" />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="expiry">Expiration Date</Label>
+                      <Input id="expiry" placeholder="MM/YY" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="cvc">CVC</Label>
+                      <Input id="cvc" placeholder="123" />
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500 mt-2">
+                    By proceeding with payment, you agree that no refunds will be provided once your advertisement is approved and published.
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="cvc">CVC</Label>
-                  <Input id="cvc" placeholder="123" />
+              ) : (
+                <div className="p-4 bg-blue-50 rounded-md text-sm">
+                  <p className="font-medium text-blue-700 mb-2">Wire Transfer Instructions</p>
+                  <p className="text-gray-700 mb-2">
+                    You'll receive detailed wire transfer instructions via email. Your ad space will be reserved for 48 hours pending payment confirmation.
+                  </p>
+                  <p className="text-gray-700">
+                    For wire transfers, please include your company name in the transfer reference.
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handlePayment}>Pay Now</Button>
+            {paymentMethod === "card" ? (
+              <Button onClick={handlePayment}>Pay Now</Button>
+            ) : (
+              <Button onClick={handleWireTransferDetails}>Get Wire Transfer Details</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
