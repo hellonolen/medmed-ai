@@ -15,6 +15,8 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import AdvertiserEnrollment from "./pages/AdvertiserEnrollment";
+import { MedicalSearchProvider } from './contexts/MedicalSearchContext';
+import { Toaster } from './components/ui/toaster';
 
 function App() {
   return (
@@ -23,19 +25,22 @@ function App() {
         <LanguageProvider>
           <AccessibilityProvider>
             <SubscriptionProvider>
-              <Router>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/subscription" element={<Subscription />} />
-                  <Route path="/symptom-checker" element={<SymptomChecker />} />
-                  <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
-                  <Route path="/interaction-checker" element={<InteractionChecker />} />
-                  <Route path="/favorites" element={<Favorites />} />
-                  <Route path="/medication/:id" element={<MedicationDetails />} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
-                </Routes>
-              </Router>
+              <MedicalSearchProvider>
+                <Router>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/subscription" element={<Subscription />} />
+                    <Route path="/symptom-checker" element={<SymptomChecker />} />
+                    <Route path="/pharmacy-finder" element={<PharmacyFinder />} />
+                    <Route path="/interaction-checker" element={<InteractionChecker />} />
+                    <Route path="/favorites" element={<Favorites />} />
+                    <Route path="/medication/:id" element={<MedicationDetails />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/advertiser-enrollment" element={<AdvertiserEnrollment />} />
+                  </Routes>
+                </Router>
+                <Toaster />
+              </MedicalSearchProvider>
             </SubscriptionProvider>
           </AccessibilityProvider>
         </LanguageProvider>
