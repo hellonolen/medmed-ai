@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
+import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
@@ -101,8 +102,14 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="mb-8 max-w-2xl mx-auto">
-            <SearchBar onSearch={handleSearch} />
+          <div className="mb-8 space-y-6">
+            <div className="max-w-2xl mx-auto">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+            
+            <div className="max-w-2xl mx-auto">
+              <AIChatInterface onSearch={handleSearch} />
+            </div>
           </div>
           
           <div className="mb-8 max-w-4xl mx-auto">
