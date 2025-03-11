@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { formatCurrency } from "@/utils/formatUtils";
 import { AdPackage } from "./AdPackageCard";
+import { AIPaymentVerification } from "./AIPaymentVerification";
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -39,6 +40,57 @@ const PaymentDialog = ({
   };
 
   const totalPrice = calculateTotalPrice();
+  const selectedPackageName = adPackages.find(p => p.id === selectedPackage)?.name || "";
+  
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<{
+    verified: boolean;
+    risk: "low" | "medium" | "high";
+    reason: string;
+  } | null>(null);
+
+  // Handle verification result
+  const handleVerificationComplete = (result: {
+    verified: boolean;
+    risk: "low" | "medium" | "high";
+    reason: string;
+  }) => {
+    setVerificationResult(result);
+    setIsVerifying(false);
+  };
+
+  // Prepare payment details for verification
+  const getPaymentDetailsForVerification = () => {
+    return {
+      amount: totalPrice,
+      cardNumber: cardNumber,
+      paymentMethod: paymentMethod,
+      packageName: selectedPackageName,
+      duration: durationWeeks,
+      isKnownCustomer: Math.random() > 0.5 // Simulated for demo
+    };
+  };
+
+  // Handle payment button click with verification
+  const handlePaymentClick = () => {
+    if (paymentMethod === "card" && !verificationResult) {
+      setIsVerifying(true);
+      return;
+    }
+    
+    // If verification failed, don't proceed
+    if (verificationResult && !verificationResult.verified) {
+      return;
+    }
+    
+    // If medium/high risk, could implement additional verification steps here
+    
+    // Proceed with payment
+    onPayment();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -94,19 +146,43 @@ const PaymentDialog = ({
               <div className="space-y-3">
                 <div className="space-y-1">
                   <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input id="cardNumber" placeholder="4242 4242 4242 4242" />
+                  <Input 
+                    id="cardNumber" 
+                    placeholder="4242 4242 4242 4242" 
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(e.target.value)}
+                  />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <Label htmlFor="expiry">Expiration Date</Label>
-                    <Input id="expiry" placeholder="MM/YY" />
+                    <Input 
+                      id="expiry" 
+                      placeholder="MM/YY" 
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="cvc">CVC</Label>
-                    <Input id="cvc" placeholder="123" />
+                    <Input 
+                      id="cvc" 
+                      placeholder="123" 
+                      value={cardCvc}
+                      onChange={(e) => setCardCvc(e.target.value)}
+                    />
                   </div>
                 </div>
+                
+                {(isVerifying || verificationResult) && (
+                  <div className="mt-4">
+                    <AIPaymentVerification
+                      paymentDetails={getPaymentDetailsForVerification()}
+                      onVerificationComplete={handleVerificationComplete}
+                    />
+                  </div>
+                )}
                 
                 <div className="text-xs text-gray-500 mt-2">
                   By proceeding with payment, you agree that no refunds will be provided once your advertisement is approved and published.
@@ -129,7 +205,12 @@ const PaymentDialog = ({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           {paymentMethod === "card" ? (
-            <Button onClick={onPayment}>Pay Now</Button>
+            <Button 
+              onClick={handlePaymentClick} 
+              disabled={isVerifying || (verificationResult && !verificationResult.verified)}
+            >
+              {isVerifying ? "Verifying..." : "Pay Now"}
+            </Button>
           ) : (
             <Button onClick={onWireTransferDetails}>Get Wire Transfer Details</Button>
           )}

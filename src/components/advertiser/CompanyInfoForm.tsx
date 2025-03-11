@@ -1,11 +1,14 @@
 
-import React from "react";
-import { Upload } from "lucide-react";
+import React, { useState } from "react";
+import { Upload, Wand } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { aiService } from "@/services/AIService";
+import { toast } from "sonner";
 
 export interface CompanyFormData {
   companyName: string;
@@ -34,6 +37,91 @@ const CompanyInfoForm = ({
   onSubmit,
   maxCharacters
 }: CompanyInfoFormProps) => {
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
+  const [improvingDescription, setImprovingDescription] = useState(false);
+  
+  // Get AI suggestion for description based on company name and website
+  const getDescriptionSuggestion = async () => {
+    if (!formData.companyName && !formData.website) {
+      toast.error("Please enter company name or website first");
+      return;
+    }
+    
+    setLoadingSuggestion(true);
+    
+    try {
+      const response = await aiService.askAI({
+        query: `Generate a concise, professional description for this company: Name: ${formData.companyName || "Unknown"}. Website: ${formData.website || "Not provided"}.`,
+        systemPrompt: `You are an advertising copywriter. Generate a compelling, concise company description in under ${maxCharacters} characters. Focus on value proposition, unique selling points, and professional tone. Do not use placeholder text. If website is provided, base description on the typical services of this type of business.`
+      });
+      
+      if (response.success) {
+        setSuggestion(response.content);
+      } else {
+        toast.error("Failed to generate suggestion");
+      }
+    } catch (error) {
+      console.error("Error generating description:", error);
+      toast.error("Failed to generate suggestion");
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  };
+  
+  // Improve existing description with AI
+  const improveDescription = async () => {
+    if (!formData.description) {
+      toast.error("Please enter a description first");
+      return;
+    }
+    
+    setImprovingDescription(true);
+    
+    try {
+      const response = await aiService.askAI({
+        query: `Improve this company description: "${formData.description}"`,
+        systemPrompt: `You are an advertising copywriter. Improve this company description while keeping it under ${maxCharacters} characters. Make it more compelling, clear, and professional. Return ONLY the improved text without commentary.`
+      });
+      
+      if (response.success) {
+        // Create a synthetic event to update the description
+        const event = {
+          target: {
+            name: "description",
+            value: response.content
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        
+        onInputChange(event);
+        toast.success("Description improved!");
+      } else {
+        toast.error("Failed to improve description");
+      }
+    } catch (error) {
+      console.error("Error improving description:", error);
+      toast.error("Failed to improve description");
+    } finally {
+      setImprovingDescription(false);
+    }
+  };
+  
+  // Apply suggestion to the form
+  const applySuggestion = () => {
+    if (!suggestion) return;
+    
+    // Create a synthetic event to update the description
+    const event = {
+      target: {
+        name: "description",
+        value: suggestion
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(event);
+    setSuggestion("");
+  };
+
   return (
     <form onSubmit={onSubmit}>
       <Card>
@@ -57,12 +145,66 @@ const CompanyInfoForm = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="description">
-              Description * 
-              <span className="text-xs text-gray-500 ml-2">
-                (Up to {maxCharacters} characters)
-              </span>
-            </Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="description">
+                Description * 
+                <span className="text-xs text-gray-500 ml-2">
+                  (Up to {maxCharacters} characters)
+                </span>
+              </Label>
+              <div className="flex gap-2">
+                {formData.description && (
+                  <Button 
+                    type="button" 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-8 px-2 text-xs"
+                    onClick={improveDescription}
+                    disabled={improvingDescription}
+                  >
+                    <Wand className="h-3 w-3 mr-1" />
+                    {improvingDescription ? "Improving..." : "Improve Text"}
+                  </Button>
+                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-8 px-2 text-xs"
+                      onClick={getDescriptionSuggestion}
+                      disabled={loadingSuggestion}
+                    >
+                      <Wand className="h-3 w-3 mr-1" />
+                      {loadingSuggestion ? "Generating..." : "AI Suggestion"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-4" align="end">
+                    {suggestion ? (
+                      <>
+                        <p className="text-sm font-medium mb-2">AI Suggested Description:</p>
+                        <p className="text-sm text-gray-700 mb-3">{suggestion}</p>
+                        <div className="flex justify-end">
+                          <Button 
+                            type="button" 
+                            size="sm" 
+                            variant="default" 
+                            onClick={applySuggestion}
+                          >
+                            Use This
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500">
+                        Click "AI Suggestion" to generate a description based on your company details.
+                      </p>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
             <Input 
               id="description" 
               name="description"

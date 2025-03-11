@@ -3,6 +3,7 @@ import React, { createContext, useContext, useCallback, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { aiService } from '@/services/AIService';
 
 interface SearchState {
   history: Array<{
@@ -70,64 +71,32 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
         isSymptomSearch 
       });
       
-      // Check if Perplexity API key is available
-      const apiKey = process.env.PERPLEXITY_API_KEY || window.localStorage.getItem('PERPLEXITY_API_KEY');
-      
       let results = [];
+      let systemPrompt = '';
       
-      if (apiKey) {
-        // Enhanced prompt for Perplexity API based on query type
-        let systemPrompt = '';
-        
-        if (isPharmacyLocationSearch) {
-          // Specialized pharmacy search
-          systemPrompt = 'You are a pharmacy search assistant. Return detailed information about pharmacies that match the query in JSON format: {"results": [{"name": "Pharmacy Name", "details": "Address and hours", "price": "N/A", "type": "Pharmacy", "source": "Pharmacy Database"}]}';
-        } else if (isSpecialistSearch) {
-          // Specialized doctor search
-          systemPrompt = 'You are a medical specialist search assistant. Return information about medical specialists based on the query in JSON format: {"results": [{"name": "Specialist Name", "details": "Specialization and qualifications", "price": "Consultation fee if available", "type": "Specialist", "source": "Medical Directory"}]}';
-        } else if (isSymptomSearch) {
-          // Symptom analysis prompt
-          systemPrompt = 'You are a symptom analysis assistant. Provide possible conditions, recommended specialists, and over-the-counter medications for these symptoms in JSON format: {"results": [{"name": "Possible Condition/Medication", "details": "Description and recommendations", "price": "Estimate if medication", "type": "Condition or Medication", "source": "Medical Database"}]}';
-        } else {
-          // Default medical search
-          systemPrompt = 'You are a medical search assistant. Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
-        }
+      if (isPharmacyLocationSearch) {
+        // Specialized pharmacy search
+        systemPrompt = 'You are a pharmacy search assistant. Return detailed information about pharmacies that match the query in JSON format: {"results": [{"name": "Pharmacy Name", "details": "Address and hours", "price": "N/A", "type": "Pharmacy", "source": "Pharmacy Database"}]}';
+      } else if (isSpecialistSearch) {
+        // Specialized doctor search
+        systemPrompt = 'You are a medical specialist search assistant. Return information about medical specialists based on the query in JSON format: {"results": [{"name": "Specialist Name", "details": "Specialization and qualifications", "price": "Consultation fee if available", "type": "Specialist", "source": "Medical Directory"}]}';
+      } else if (isSymptomSearch) {
+        // Symptom analysis prompt
+        systemPrompt = 'You are a symptom analysis assistant. Provide possible conditions, recommended specialists, and over-the-counter medications for these symptoms in JSON format: {"results": [{"name": "Possible Condition/Medication", "details": "Description and recommendations", "price": "Estimate if medication", "type": "Condition or Medication", "source": "Medical Database"}]}';
+      } else {
+        // Default medical search
+        systemPrompt = 'You are a medical search assistant. Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
+      }
       
-        // Call Perplexity API with enhanced context
-        const response = await fetch('https://api.perplexity.ai/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'llama-3.1-sonar-large-128k-online',
-            messages: [
-              {
-                role: 'system',
-                content: systemPrompt
-              },
-              {
-                role: 'user',
-                content: `Previous context:\n${recentContext}\n\nCurrent query: ${query}`
-              }
-            ],
-            temperature: 0.2,
-            max_tokens: 1000,
-            return_search: true
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Search failed with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("API response:", data);
-        
-        // Parse the content to extract results
+      // Use the centralized AI service
+      const aiResponse = await aiService.askAI({
+        query: `Previous context:\n${recentContext}\n\nCurrent query: ${query}`,
+        systemPrompt
+      });
+      
+      if (aiResponse.success) {
         try {
-          const content = data.choices[0].message.content;
+          const content = aiResponse.content;
           const parsedData = typeof content === 'string' 
             ? JSON.parse(content) 
             : content;
@@ -148,12 +117,12 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
           }));
           
         } catch (parseError) {
-          console.error("Error parsing API response:", parseError);
+          console.error("Error parsing AI response:", parseError);
           toast.error("Unable to process search results");
-          throw new Error("Invalid response format from API");
+          throw new Error("Invalid response format from AI");
         }
       } else {
-        console.log("No Perplexity API key found, using fallback data");
+        console.log("AI service unavailable, using fallback data");
         // Filter through fallback data based on search terms
         results = fallbackResults.filter(item => 
           item.name.toLowerCase().includes(queryLower) || 
@@ -166,9 +135,6 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
           // For medication searches, return a subset of fallback results
           results = fallbackResults.slice(0, 3);
         }
-        
-        // Add a short delay to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       // Update search history with new context

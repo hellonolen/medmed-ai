@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Building, Search, Globe } from "lucide-react";
+import { MapPin, Building, Search, Globe, Bot } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { aiService } from "@/services/AIService";
 
 interface PharmacySearchFormProps {
   onSearch: (searchTerm: string, searchType: 'zip' | 'city' | 'smart') => void;
@@ -19,6 +20,8 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
   const [city, setCity] = useState("");
   const [smartSearch, setSmartSearch] = useState("");
   const [activeTab, setActiveTab] = useState<'zip' | 'city' | 'smart'>('smart');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const { language } = useLanguage();
 
   // Set initial search term if provided
@@ -61,7 +64,51 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     // Keep the values but force a re-search if language changes
   }, [language]);
 
-  const handleSearch = (e: React.FormEvent) => {
+  // Generate search suggestions using AI
+  const generateSearchSuggestions = async (query: string) => {
+    if (!query || query.length < 3) return;
+    
+    setLoadingSuggestions(true);
+    
+    try {
+      const response = await aiService.askAI({
+        query: `Generate 3 pharmacy or healthcare provider search suggestions related to: ${query}`,
+        systemPrompt: 'You are a pharmacy search assistant. Generate 3 search suggestions related to the user\'s query. Return only a JSON array of strings with no additional text. For example: ["suggestion 1", "suggestion 2", "suggestion 3"]'
+      });
+      
+      if (response.success) {
+        try {
+          let suggestionsArr: string[] = [];
+          const content = response.content;
+          
+          if (content.startsWith('[') && content.endsWith(']')) {
+            suggestionsArr = JSON.parse(content);
+          } else {
+            const match = content.match(/\[(.*)\]/s);
+            if (match) {
+              suggestionsArr = JSON.parse(`[${match[1]}]`);
+            }
+          }
+          
+          if (Array.isArray(suggestionsArr) && suggestionsArr.length > 0) {
+            setSuggestions(suggestionsArr.slice(0, 3));
+          } else {
+            setSuggestions([]);
+          }
+        } catch (error) {
+          console.error("Error parsing suggestions:", error);
+          setSuggestions([]);
+        }
+      }
+    } catch (error) {
+      console.error("Error generating suggestions:", error);
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
+
+  // Enhanced search with AI analysis
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
     let searchTerm = "";
@@ -93,8 +140,70 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     // Add language context to search
     searchTerm = `${searchTerm} (${language})`;
     
+    // Analyze the search query with AI for better results
+    if (activeTab === 'smart') {
+      try {
+        const response = await aiService.askAI({
+          query: `Analyze this healthcare search query: "${searchTerm}"`,
+          systemPrompt: 'You are a healthcare search analyst. Determine if this query is looking for a pharmacy, medical specialist, healthcare facility, or specific medication. Return only a JSON object like {"type": "pharmacy|specialist|facility|medication", "enhancedQuery": "improved search query"}. No other text.'
+        });
+        
+        if (response.success) {
+          try {
+            const analysis = JSON.parse(response.content);
+            if (analysis.enhancedQuery) {
+              searchTerm = analysis.enhancedQuery;
+              console.log("AI enhanced query:", searchTerm);
+            }
+          } catch (error) {
+            console.error("Error parsing AI response:", error);
+          }
+        }
+      } catch (error) {
+        console.error("Error analyzing search query:", error);
+      }
+    }
+    
     console.log(`Searching with term: "${searchTerm}" using search type: ${activeTab}`);
     onSearch(searchTerm, activeTab);
+    setSuggestions([]);
+  };
+
+  // Apply suggestion to search field
+  const applySuggestion = (suggestion: string) => {
+    if (activeTab === 'smart') {
+      setSmartSearch(suggestion);
+    } else if (activeTab === 'city') {
+      setCity(suggestion);
+    }
+    
+    setTimeout(() => {
+      handleSearch(new Event('submit') as any);
+    }, 100);
+  };
+
+  // Handle input change with AI suggestions
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'smart' | 'zip' | 'city') => {
+    const value = e.target.value;
+    
+    if (field === 'smart') {
+      setSmartSearch(value);
+      if (value.length >= 3) {
+        generateSearchSuggestions(value);
+      } else {
+        setSuggestions([]);
+      }
+    } else if (field === 'zip') {
+      setZipCode(value);
+      setSuggestions([]);
+    } else if (field === 'city') {
+      setCity(value);
+      if (value.length >= 3) {
+        generateSearchSuggestions(value);
+      } else {
+        setSuggestions([]);
+      }
+    }
   };
 
   return (
@@ -110,7 +219,10 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
           value={activeTab}
           defaultValue="smart" 
           className="w-full"
-          onValueChange={(value) => setActiveTab(value as 'zip' | 'city' | 'smart')}
+          onValueChange={(value) => {
+            setActiveTab(value as 'zip' | 'city' | 'smart');
+            setSuggestions([]);
+          }}
         >
           <TabsList className="mb-4 grid grid-cols-3">
             <TabsTrigger value="smart">AI Smart Search</TabsTrigger>
@@ -127,8 +239,23 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
                   placeholder="Enter any healthcare professional, pharmacy, symptom, condition, or medication type..."
                   className="pl-9"
                   value={smartSearch}
-                  onChange={(e) => setSmartSearch(e.target.value)}
+                  onChange={(e) => handleInputChange(e, 'smart')}
                 />
+                {suggestions.length > 0 && (
+                  <div className="absolute w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        onClick={() => applySuggestion(suggestion)}
+                      >
+                        <Bot className="h-3 w-3 text-primary" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button type="submit" disabled={isSearching}>
                 {isSearching ? "Searching..." : "Find Healthcare"}
@@ -149,7 +276,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
                   placeholder="Enter ZIP or postal code (US, UK, Canada, etc.)"
                   className="pl-9"
                   value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value)}
+                  onChange={(e) => handleInputChange(e, 'zip')}
                 />
               </div>
               <Button type="submit" disabled={isSearching}>
@@ -170,8 +297,23 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
                   placeholder="Enter city, region or country"
                   className="pl-9"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => handleInputChange(e, 'city')}
                 />
+                {suggestions.length > 0 && (
+                  <div className="absolute w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    {suggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                        onClick={() => applySuggestion(suggestion)}
+                      >
+                        <Bot className="h-3 w-3 text-primary" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <Button type="submit" disabled={isSearching}>
                 {isSearching ? "Searching..." : "Find Healthcare"}

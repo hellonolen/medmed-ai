@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard } from "lucide-react";
+import { X, Heart, Clipboard, Map, Activity, Globe, CreditCard, MessageSquare } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,12 +14,16 @@ import { groupMedicationsByType, MatchedMedication } from "@/utils/medicationMat
 import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
+import { AIChat } from "@/components/AIChat";
+import { AIFAQ } from "@/components/AIFAQ";
+import { AIKeySetup } from "@/components/AIKeySetup";
 
 const Index = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ name: string; details: string; price: string; type?: string; source?: string }>>([]);
   const [searchPerformed, setSearchPerformed] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const { isAdmin } = useAdmin();
   const { addSearchToHistory, searchHistory } = useSearchHistory();
   const { t, language } = useLanguage();
@@ -72,7 +77,10 @@ const Index = () => {
     <TooltipProvider>
       <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
         <div className="container px-4 py-8 mx-auto">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between mb-4">
+            <div>
+              <AIKeySetup />
+            </div>
             {isSubscribed && (
               <Button size="sm" variant="outline" className="bg-primary/10 text-primary" disabled>
                 <span className="flex items-center gap-1.5">
@@ -97,7 +105,7 @@ const Index = () => {
           </div>
           
           <div className="mb-8 max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Clipboard className="h-4 w-4 text-primary" />
@@ -128,8 +136,27 @@ const Index = () => {
                   <span>{t("menu.premium", "Premium Plans")}</span>
                 </Button>
               </Link>
+              <Button 
+                variant="outline" 
+                className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card"
+                onClick={() => setShowAIChat(!showAIChat)}
+              >
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <span>{t("menu.ai_assistant", "AI Assistant")}</span>
+              </Button>
             </div>
           </div>
+
+          {showAIChat && (
+            <div className="mb-10 max-w-2xl mx-auto">
+              <AIChat
+                title="MedMed.AI Healthcare Assistant"
+                initialSystemPrompt="You are a helpful healthcare assistant for MedMed.AI. Provide informative, accurate but concise responses about medications, healthcare, medical conditions, and general health inquiries. Always include a disclaimer that you're not providing medical advice and serious concerns should be directed to a healthcare professional."
+                placeholder="Ask me about medications, symptoms, or health concerns..."
+                maxHeight="400px"
+              />
+            </div>
+          )}
 
           {searchPerformed && (
             <div className="max-w-4xl mx-auto">
@@ -194,9 +221,20 @@ const Index = () => {
             </div>
           )}
           
-          {!searchPerformed && !isSubscribed && (
-            <div className="mt-16 max-w-4xl mx-auto">
-              <SponsoredContent />
+          {!searchPerformed && (
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+              <div>
+                <AIFAQ 
+                  title="Healthcare FAQs"
+                  category="healthcare"
+                  showChat={false}
+                />
+              </div>
+              <div>
+                {!isSubscribed && (
+                  <SponsoredContent />
+                )}
+              </div>
             </div>
           )}
           
