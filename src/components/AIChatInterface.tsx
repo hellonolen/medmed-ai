@@ -47,7 +47,7 @@ export const AIChatInterface = ({
   useEffect(() => {
     if (messages.length === 0) {
       const initialMessage = {
-        content: "How can I help you with your healthcare search today?",
+        content: "What's going on?",
         type: 'ai' as const,
         timestamp: new Date()
       };
