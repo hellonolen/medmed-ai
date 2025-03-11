@@ -24,6 +24,7 @@ interface SponsorContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  resetPassword: (email: string) => Promise<boolean>;
   error: string | null;
   activeSponsors: Sponsor[];
   availableSlots: { premium: number; standard: number };
@@ -35,6 +36,7 @@ const SponsorContext = createContext<SponsorContextType>({
   isLoading: true,
   login: async () => false,
   logout: () => {},
+  resetPassword: async () => false,
   error: null,
   activeSponsors: [],
   availableSlots: { premium: PREMIUM_SLOTS, standard: STANDARD_SLOTS },
@@ -203,6 +205,28 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  // Password reset function
+  const resetPassword = async (email: string): Promise<boolean> => {
+    setError(null);
+    
+    // In a real app, this would send a password reset email
+    // For demo purposes, we'll just check if the sponsor exists
+    const sponsor = sponsors.find(s => s.email.toLowerCase() === email.toLowerCase());
+    
+    if (sponsor) {
+      // In a real app, this would generate a reset token and send an email
+      console.log(`Password reset requested for ${email}`);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      return true;
+    } else {
+      setError('No account found with this email');
+      return false;
+    }
+  };
+
   // Logout function
   const logout = () => {
     setCurrentSponsor(null);
@@ -215,6 +239,7 @@ export const SponsorProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isLoading, 
       login, 
       logout, 
+      resetPassword,
       error,
       activeSponsors,
       availableSlots
