@@ -228,11 +228,3 @@ export const VoiceSearchButton = ({
     </Button>
   );
 };
-
-// Add TypeScript interface for the Window object to include SpeechRecognition
-declare global {
-  interface Window {
-    SpeechRecognition?: typeof SpeechRecognition;
-    webkitSpeechRecognition?: typeof SpeechRecognition;
-  }
-}

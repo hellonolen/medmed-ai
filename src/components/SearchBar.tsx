@@ -22,7 +22,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   
   const { t } = useLanguage();
   const { searchWithContext } = useMedicalSearch();
-  const { isSubscribed, tier } = useSubscription();
+  const { tier } = useSubscription();
   const { toast } = useToast();
 
   const handleSearch = async (e?: React.FormEvent) => {
@@ -75,19 +75,12 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
               <span>{tier.charAt(0).toUpperCase() + tier.slice(1)}</span>
             </div>
           )}
-          
-          {!isSubscribed && (
-            <Link to="/subscription" className="ml-2 text-xs text-primary hover:underline hover:text-primary/80">
-              Upgrade for more results
-            </Link>
-          )}
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <VoiceSearchButton
             onResult={handleVoiceResult}
             isListening={isListening}
             setIsListening={setIsListening}
-            className="mr-2"
           />
           <AccessibilityPanel />
         </div>
