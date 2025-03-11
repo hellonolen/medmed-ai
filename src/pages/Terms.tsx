@@ -123,9 +123,7 @@ const Terms = () => {
             
             <div className="bg-primary/5 p-6 rounded-lg border border-primary/10 mb-8">
               <p className="text-gray-800 font-medium">MedMed.AI</p>
-              <p className="text-gray-600">terms@medmed.ai</p>
-              <p className="text-gray-600">123 Health Avenue, Medical District</p>
-              <p className="text-gray-600">San Francisco, CA 94102</p>
+              <p className="text-gray-600">support@medmed.ai</p>
             </div>
           </div>
         </div>
