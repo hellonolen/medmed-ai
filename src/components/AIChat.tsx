@@ -38,7 +38,8 @@ export const AIChat: React.FC<AIChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setHasApiKey(!!aiService.getApiKey());
+    // Fix: Pass 'perplexity' as the default provider to getApiKey
+    setHasApiKey(!!aiService.getApiKey('perplexity'));
   }, []);
 
   useEffect(() => {
