@@ -125,7 +125,7 @@ export const AIChatInterface = ({
 
   return (
     <Card className="w-full max-w-2xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="h-[300px] overflow-y-auto p-4 space-y-4">
+      <div className="h-[200px] overflow-y-auto p-4 space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
