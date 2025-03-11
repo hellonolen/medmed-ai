@@ -61,7 +61,7 @@ const PharmacyFinder = () => {
       setSearching(false);
       
       if (filteredPharmacies.length === 0) {
-        toast.info(`No pharmacies found for this search term. Try using the Smart Search for better results.`);
+        toast.info(`No pharmacies found for this search term. Try a different search.`);
       } else if (filteredPharmacies.some(p => p.distance === "International")) {
         toast.success(`Found ${filteredPharmacies.length} pharmacies worldwide including international locations.`);
       } else {
