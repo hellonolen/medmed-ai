@@ -39,6 +39,7 @@ export const AIChatInterface = ({
   const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { searchWithContext, loading: isSearching } = useMedicalSearch();
+  const [isListening, setIsListening] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -240,8 +241,8 @@ export const AIChatInterface = ({
           <AccessibilityPanel />
           <VoiceSearchButton
             onResult={handleVoiceResult}
-            isListening={false}
-            setIsListening={() => {}}
+            isListening={isListening}
+            setIsListening={setIsListening}
           />
           <Button type="submit" size="icon" disabled={isTyping || isSearching}>
             <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
