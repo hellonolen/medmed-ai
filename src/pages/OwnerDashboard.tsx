@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/contexts/AdminContext";
@@ -65,17 +66,17 @@ const mockSponsorData = [
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isOwner } = useAdmin();
   const { t } = useLanguage();
   const [searchHistory, setSearchHistory] = useState(mockSearchHistory);
   const [userData, setUserData] = useState(mockUserData);
   const [sponsorData, setSponsorData] = useState(mockSponsorData);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isAdmin && !isOwner) {
       navigate("/");
     }
-  }, [isAdmin, navigate]);
+  }, [isAdmin, isOwner, navigate]);
 
   const handleExportCSV = (dataType: string) => {
     let data: any[] = [];
@@ -128,7 +129,7 @@ const OwnerDashboard = () => {
     document.body.removeChild(link);
   };
 
-  if (!isAdmin) {
+  if (!isAdmin && !isOwner) {
     return null;
   }
 
@@ -137,7 +138,9 @@ const OwnerDashboard = () => {
       <header className="mb-10">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold text-gray-800">
-            {t("owner.dashboard.title", "Owner Dashboard")}
+            {isOwner 
+              ? t("owner.dashboard.owner_title", "Owner Dashboard") 
+              : t("owner.dashboard.title", "Admin Dashboard")}
           </h1>
           <Button variant="outline" className="gap-2">
             <Download className="h-4 w-4" />
@@ -145,7 +148,9 @@ const OwnerDashboard = () => {
           </Button>
         </div>
         <p className="text-gray-600 mt-2">
-          {t("owner.dashboard.welcome", "Welcome to your dashboard. Here you can manage and monitor all aspects of the MedMed.AI platform.")}
+          {isOwner
+            ? t("owner.dashboard.owner_welcome", "Welcome to your owner dashboard. Here you can manage and monitor all aspects of the MedMed.AI platform, including admin assignments.")
+            : t("owner.dashboard.welcome", "Welcome to your dashboard. Here you can manage and monitor all aspects of the MedMed.AI platform.")}
         </p>
       </header>
 

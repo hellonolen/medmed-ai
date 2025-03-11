@@ -1,9 +1,10 @@
-
 import React from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
+import AdminManagement from "./AdminManagement";
+import { useAdmin } from "@/contexts/AdminContext";
 
 interface TabsProps {
   handleExportCSV: (dataType: string) => void;
@@ -14,14 +15,18 @@ interface TabsProps {
 
 const DashboardTabs = ({ handleExportCSV, searchHistory, userData, sponsorData }: TabsProps) => {
   const { t } = useLanguage();
+  const { isOwner } = useAdmin();
 
   return (
     <Tabs defaultValue="analytics" className="w-full">
-      <TabsList className="grid grid-cols-4 mb-8">
+      <TabsList className={`grid ${isOwner ? 'grid-cols-5' : 'grid-cols-4'} mb-8`}>
         <TabsTrigger value="analytics">{t("owner.tabs.analytics", "Analytics")}</TabsTrigger>
         <TabsTrigger value="search_history">{t("owner.tabs.search_history", "Search History")}</TabsTrigger>
         <TabsTrigger value="users">{t("owner.tabs.users", "User Management")}</TabsTrigger>
         <TabsTrigger value="sponsors">{t("owner.tabs.sponsors", "Sponsor Management")}</TabsTrigger>
+        {isOwner && (
+          <TabsTrigger value="admin_management">{t("owner.tabs.admin_management", "Admin Management")}</TabsTrigger>
+        )}
       </TabsList>
 
       {/* Analytics Tab Content */}
@@ -34,9 +39,7 @@ const DashboardTabs = ({ handleExportCSV, searchHistory, userData, sponsorData }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Analytics content here */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Analytics Cards */}
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xl">{t("owner.analytics.searches", "Total Searches")}</CardTitle>
@@ -239,6 +242,13 @@ const DashboardTabs = ({ handleExportCSV, searchHistory, userData, sponsorData }
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Admin Management Tab Content - Only visible to Owner */}
+      {isOwner && (
+        <TabsContent value="admin_management" className="space-y-4">
+          <AdminManagement />
+        </TabsContent>
+      )}
     </Tabs>
   );
 };
