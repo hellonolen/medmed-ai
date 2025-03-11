@@ -7,12 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher"; // Fixed import
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { AccessibilityPanel } from "@/components/AccessibilityPanel";
 
 const Settings = () => {
   const { t } = useLanguage();
-  const { highContrast, setHighContrast, fontSize, setFontSize } = useAccessibility(); // Fixed property names
+  const { highContrast, setHighContrast, fontSize, setFontSize } = useAccessibility();
   const [darkMode, setDarkMode] = React.useState(false);
   const [notifications, setNotifications] = React.useState(true);
   const currentYear = new Date().getFullYear();
