@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -112,7 +111,7 @@ const Index = () => {
               <Link to="/pharmacy-finder">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Map className="h-4 w-4 text-primary" />
-                  <span className="text-center w-full truncate">{t("menu.pharmacy_finder", "Global Pharmacy Finder")}</span>
+                  <span className="text-center w-full truncate">{t("menu.pharmacy_finder", "Pharmacy Finder")}</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
