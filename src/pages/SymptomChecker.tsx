@@ -1,12 +1,12 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ArrowRight, Search, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search, AlertCircle, Loader2 } from "lucide-react";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 import { toast } from "sonner";
+import { aiService } from "@/services/AIService";
 
 const commonSymptoms = [
   "Headache", "Fever", "Cough", "Fatigue", "Nausea", 
@@ -28,6 +28,8 @@ const SymptomChecker = () => {
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [customSymptom, setCustomSymptom] = useState("");
   const [results, setResults] = useState<PossibleCondition[]>([]);
+  const [aiAnalysis, setAiAnalysis] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
   
   const handleSymptomToggle = (symptom: string) => {
     if (selectedSymptoms.includes(symptom)) {
@@ -49,68 +51,95 @@ const SymptomChecker = () => {
     setCustomSymptom("");
   };
   
-  const analyzeSymptoms = () => {
+  const analyzeSymptoms = async () => {
     if (selectedSymptoms.length === 0) {
       toast.error("Please select at least one symptom");
       return;
     }
     
-    // Find matching conditions based on selected symptoms
-    const conditionMatches: Record<string, { count: number, category: string, symptoms: string[], specialists: string[] }> = {};
+    setIsLoading(true);
     
-    selectedSymptoms.forEach(symptom => {
-      const matchedSymptoms = findMatchingSymptoms(symptom);
+    try {
+      const conditionMatches: Record<string, { count: number, category: string, symptoms: string[], specialists: string[] }> = {};
       
-      matchedSymptoms.forEach(match => {
-        match.relatedConditions.forEach(condition => {
-          const matchedCondition = medicalConditions.find(c => c.category === condition);
-          
-          if (matchedCondition) {
-            if (!conditionMatches[condition]) {
-              conditionMatches[condition] = { 
-                count: 0, 
-                category: condition,
-                symptoms: matchedCondition.symptoms,
-                specialists: matchedCondition.specialists
-              };
+      selectedSymptoms.forEach(symptom => {
+        const matchedSymptoms = findMatchingSymptoms(symptom);
+        
+        matchedSymptoms.forEach(match => {
+          match.relatedConditions.forEach(condition => {
+            const matchedCondition = medicalConditions.find(c => c.category === condition);
+            
+            if (matchedCondition) {
+              if (!conditionMatches[condition]) {
+                conditionMatches[condition] = { 
+                  count: 0, 
+                  category: condition,
+                  symptoms: matchedCondition.symptoms,
+                  specialists: matchedCondition.specialists
+                };
+              }
+              conditionMatches[condition].count += 1;
             }
-            conditionMatches[condition].count += 1;
-          }
+          });
         });
       });
-    });
-    
-    // Convert to array and sort by match count
-    const possibleConditions: PossibleCondition[] = Object.values(conditionMatches)
-      .map(match => {
-        // Calculate a simple probability based on symptom match ratio
-        const matchedSymptomsCount = match.count;
-        const totalCategorySymptoms = match.symptoms.length;
-        const selectedCount = selectedSymptoms.length;
-        
-        const probability = Math.min(
-          Math.round((matchedSymptomsCount / Math.max(selectedCount, 2)) * 100),
-          95 // Cap at 95% to avoid absolute certainty
-        );
-        
-        return {
-          name: match.category,
-          probability,
-          description: `This condition typically involves ${match.symptoms.slice(0, 3).join(", ")}${match.symptoms.length > 3 ? ", and more" : ""}`,
-          symptoms: match.symptoms,
-          specialists: match.specialists
-        };
-      })
-      .sort((a, b) => b.probability - a.probability)
-      .slice(0, 5); // Top 5 matches
-    
-    setResults(possibleConditions);
-    setStep(2);
+      
+      const possibleConditions: PossibleCondition[] = Object.values(conditionMatches)
+        .map(match => {
+          const matchedSymptomsCount = match.count;
+          const totalCategorySymptoms = match.symptoms.length;
+          const selectedCount = selectedSymptoms.length;
+          
+          const probability = Math.min(
+            Math.round((matchedSymptomsCount / Math.max(selectedCount, 2)) * 100),
+            95
+          );
+          
+          return {
+            name: match.category,
+            probability,
+            description: `This condition typically involves ${match.symptoms.slice(0, 3).join(", ")}${match.symptoms.length > 3 ? ", and more" : ""}`,
+            symptoms: match.symptoms,
+            specialists: match.specialists
+          };
+        })
+        .sort((a, b) => b.probability - a.probability)
+        .slice(0, 5);
+      
+      setResults(possibleConditions);
+      
+      const systemPrompt = 
+        "You are a healthcare AI assistant providing analysis of symptoms. " +
+        "Based on the symptoms provided, suggest possible conditions, their likelihood, and when the person should seek medical attention. " +
+        "Keep responses concise (maximum 3 paragraphs) and always include appropriate medical disclaimers. " +
+        "Focus on educational information only and avoid definitive diagnosis language.";
+      
+      const symptomsList = selectedSymptoms.join(", ");
+      const aiResponse = await aiService.askAI({
+        query: `Please analyze these symptoms: ${symptomsList}. What might they indicate and what kind of specialist should I consider seeing?`,
+        systemPrompt
+      });
+      
+      if (aiResponse.success) {
+        setAiAnalysis(aiResponse.content);
+      } else {
+        console.error("AI analysis error:", aiResponse.content);
+        setAiAnalysis("AI analysis unavailable. Please rely on the standard symptom matching results below.");
+      }
+      
+      setStep(2);
+    } catch (error) {
+      console.error("Error in symptom analysis:", error);
+      toast.error("An error occurred during analysis. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const restartChecker = () => {
     setSelectedSymptoms([]);
     setResults([]);
+    setAiAnalysis("");
     setStep(1);
   };
 
@@ -206,10 +235,19 @@ const SymptomChecker = () => {
             <div className="text-center">
               <Button 
                 onClick={analyzeSymptoms}
-                disabled={selectedSymptoms.length === 0}
+                disabled={selectedSymptoms.length === 0 || isLoading}
                 className="px-6"
               >
-                Analyze Symptoms <ArrowRight className="ml-2 h-4 w-4" />
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    Analyze Symptoms <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -225,6 +263,24 @@ const SymptomChecker = () => {
                 </p>
               </div>
             </div>
+            
+            {aiAnalysis && (
+              <Card className="backdrop-blur-md bg-primary/5 border-0 shadow-lg mb-8">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">AI Analysis</span>
+                    AI-Enhanced Analysis
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose prose-sm max-w-none text-gray-700">
+                    {aiAnalysis.split('\n').map((paragraph, idx) => (
+                      <p key={idx}>{paragraph}</p>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             
             <div className="mb-6">
               <h2 className="text-lg font-semibold mb-2">Your Symptoms:</h2>
@@ -320,3 +376,4 @@ const SymptomChecker = () => {
 };
 
 export default SymptomChecker;
+

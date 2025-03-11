@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Search, Plus, Trash2, AlertCircle, Check, X } from "lucide-react";
+import { ArrowLeft, Search, Plus, Trash2, AlertCircle, Check, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { aiService } from "@/services/AIService";
 
 type Severity = "high" | "moderate" | "low" | "none";
 
@@ -74,7 +74,9 @@ const InteractionChecker = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [aiRecommendation, setAiRecommendation] = useState<string>("");
   const [hasChecked, setHasChecked] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   const filteredSuggestions = commonMedications.filter(med => 
     med.toLowerCase().includes(searchTerm.toLowerCase()) && 
@@ -99,57 +101,83 @@ const InteractionChecker = () => {
   
   const removeMedication = (medication: string) => {
     setMedications(medications.filter(med => med !== medication));
-    // Clear interactions if they exist
     if (hasChecked) {
       setInteractions([]);
       setHasChecked(false);
     }
   };
   
-  const checkInteractions = () => {
+  const checkInteractions = async () => {
     if (medications.length < 2) {
       toast.error("Please add at least 2 medications to check for interactions");
       return;
     }
     
-    // Find all potential interaction pairs
-    const foundInteractions: Interaction[] = [];
+    setIsLoading(true);
     
-    for (let i = 0; i < medications.length; i++) {
-      for (let j = i + 1; j < medications.length; j++) {
-        const med1 = medications[i].toLowerCase();
-        const med2 = medications[j].toLowerCase();
-        
-        // Check both possible combinations
-        const key1 = `${med1}-${med2}`;
-        const key2 = `${med2}-${med1}`;
-        
-        if (mockInteractions[key1]) {
-          foundInteractions.push(...mockInteractions[key1]);
-        } else if (mockInteractions[key2]) {
-          foundInteractions.push(...mockInteractions[key2]);
-        } else {
-          // No known interaction found, create a "none" interaction
-          foundInteractions.push({
-            id: `${med1}-${med2}`,
-            medications: [medications[i], medications[j]],
-            severity: "none",
-            description: "No known interaction between these medications.",
-            recommendation: "Safe to use together based on available information."
-          });
+    try {
+      const foundInteractions: Interaction[] = [];
+      
+      for (let i = 0; i < medications.length; i++) {
+        for (let j = i + 1; j < medications.length; j++) {
+          const med1 = medications[i].toLowerCase();
+          const med2 = medications[j].toLowerCase();
+          
+          const key1 = `${med1}-${med2}`;
+          const key2 = `${med2}-${med1}`;
+          
+          if (mockInteractions[key1]) {
+            foundInteractions.push(...mockInteractions[key1]);
+          } else if (mockInteractions[key2]) {
+            foundInteractions.push(...mockInteractions[key2]);
+          } else {
+            foundInteractions.push({
+              id: `${med1}-${med2}`,
+              medications: [medications[i], medications[j]],
+              severity: "none",
+              description: "No known interaction between these medications.",
+              recommendation: "Safe to use together based on available information."
+            });
+          }
         }
       }
-    }
-    
-    setInteractions(foundInteractions);
-    setHasChecked(true);
-    
-    if (foundInteractions.some(i => i.severity === "high")) {
-      toast.error("Potential severe interaction detected. Please consult your doctor.");
-    } else if (foundInteractions.some(i => i.severity === "moderate")) {
-      toast.warning("Potential moderate interaction detected. Use caution.");
-    } else {
-      toast.success("No severe interactions found.");
+      
+      setInteractions(foundInteractions);
+      
+      const systemPrompt = 
+        "You are a medication interaction AI assistant. " +
+        "Analyze the provided medications for potential interactions, side effects, and safety concerns. " +
+        "Structure your response with these sections: OVERVIEW, RISK ASSESSMENT, and RECOMMENDATIONS. " +
+        "Be factual, concise, and always include appropriate medical disclaimers. " +
+        "Do not make definitive claims about safety without qualifiers.";
+      
+      const medicationsList = medications.join(", ");
+      const aiResponse = await aiService.askAI({
+        query: `Please analyze potential interactions between these medications: ${medicationsList}. What should I be aware of when taking these together?`,
+        systemPrompt
+      });
+      
+      if (aiResponse.success) {
+        setAiRecommendation(aiResponse.content);
+      } else {
+        console.error("AI analysis error:", aiResponse.content);
+        setAiRecommendation("AI analysis unavailable. Please rely on the standard interaction checking results below.");
+      }
+      
+      setHasChecked(true);
+      
+      if (foundInteractions.some(i => i.severity === "high")) {
+        toast.error("Potential severe interaction detected. Please consult your doctor.");
+      } else if (foundInteractions.some(i => i.severity === "moderate")) {
+        toast.warning("Potential moderate interaction detected. Use caution.");
+      } else {
+        toast.success("No severe interactions found.");
+      }
+    } catch (error) {
+      console.error("Error checking interactions:", error);
+      toast.error("An error occurred while checking interactions. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -284,6 +312,24 @@ const InteractionChecker = () => {
           {hasChecked && (
             <div>
               <h2 className="text-xl font-semibold mb-4">Interaction Results</h2>
+              
+              {aiRecommendation && (
+                <Card className="backdrop-blur-md bg-primary/5 border-0 shadow-lg mb-8">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                      <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">AI Analysis</span>
+                      AI-Enhanced Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="prose prose-sm max-w-none text-gray-700">
+                      {aiRecommendation.split('\n').map((paragraph, idx) => (
+                        <p key={idx}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
               
               {interactions.length === 0 ? (
                 <div className="text-center py-8 bg-green-50 rounded-lg">

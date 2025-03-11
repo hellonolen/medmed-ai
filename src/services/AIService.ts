@@ -341,8 +341,6 @@ class AIService {
     }
   }
 
-  // Add new methods to fix the TS errors
-  
   /**
    * Answers a FAQ question using the configured AI providers
    * @param question The question to answer
@@ -381,6 +379,99 @@ class AIService {
       query,
       systemPrompt: verificationSystemPrompt
     });
+  }
+
+  /**
+   * Specialized method for health-related AI queries with extra safety checks
+   * @param query The health-related question
+   * @param context Optional additional context
+   * @returns AI response with enhanced medical safety checks
+   */
+  public async getHealthAdvice(query: string, context?: string): Promise<AIResponse> {
+    // Create a specialized medical system prompt
+    const medicalSystemPrompt = 
+      "You are a healthcare information assistant providing educational information only. " +
+      "You are not a doctor and cannot provide medical advice, diagnosis, or treatment recommendations. " +
+      "Always include appropriate medical disclaimers in your responses. " +
+      "For any concerning symptoms or medical questions, recommend consulting a healthcare professional. " +
+      "Focus on providing factual, evidence-based health information while avoiding definitive statements about individual cases.";
+    
+    // Add safety prefixes/suffixes to the query
+    const safeQuery = `HEALTH INFORMATION REQUEST: ${query}\n\nProvide educational information only. Include appropriate disclaimers.`;
+    
+    // Use at least two providers for safety verification if available
+    const configuredProviders = this.getConfiguredProviders();
+    if (configuredProviders.length >= 2) {
+      // First provider
+      const primaryResponse = await this.callProvider(configuredProviders[0], safeQuery, medicalSystemPrompt);
+      
+      // Check if primary response is safe
+      if (!this.getMedicalSafetyVerification(primaryResponse.content)) {
+        // Get second opinion
+        const secondaryResponse = await this.callProvider(configuredProviders[1], safeQuery, medicalSystemPrompt);
+        
+        // If both are unsafe, return a generic safe response
+        if (!this.getMedicalSafetyVerification(secondaryResponse.content)) {
+          return {
+            success: true,
+            content: "I'm unable to provide specific health information on this topic. Please consult with a qualified healthcare professional for personalized advice.",
+            provider: "safety_system"
+          };
+        }
+        
+        // Return the safer of the two responses
+        return secondaryResponse;
+      }
+      
+      return primaryResponse;
+    } else {
+      // If we have only one provider, use it with extra safety parameters
+      return this.askAI({
+        query: safeQuery,
+        context,
+        systemPrompt: medicalSystemPrompt
+      });
+    }
+  }
+
+  /**
+   * Analyzes symptoms using AI to provide potential conditions and recommendations
+   * @param symptoms Array of symptoms to analyze
+   * @returns AI response with symptom analysis
+   */
+  public async analyzeSymptoms(symptoms: string[]): Promise<AIResponse> {
+    const symptomsList = symptoms.join(", ");
+    const specializedPrompt = 
+      "You are a symptom education assistant. Based on the symptoms provided, suggest possible " +
+      "general conditions they might be associated with (not a diagnosis). Clearly state when " +
+      "symptoms warrant immediate medical attention. Structure your response in sections: " +
+      "POSSIBLE ASSOCIATIONS, WHEN TO SEEK CARE, and GENERAL ADVICE. " +
+      "Always include a clear disclaimer about not being a substitute for professional medical advice.";
+    
+    return this.getHealthAdvice(
+      `Based on these symptoms (${symptomsList}), what educational information can you provide?`,
+      `User reports these symptoms: ${symptomsList}`
+    );
+  }
+
+  /**
+   * Analyzes medication interactions using AI
+   * @param medications Array of medications to check for interactions
+   * @returns AI response with interaction analysis
+   */
+  public async analyzeMedicationInteractions(medications: string[]): Promise<AIResponse> {
+    const medicationsList = medications.join(", ");
+    const specializedPrompt = 
+      "You are a medication information assistant. Analyze the provided medications for " +
+      "general educational information about known interactions. Structure your response " +
+      "with GENERAL INFORMATION and CONSIDERATIONS sections. " +
+      "Always include a disclaimer that this is educational only and not a substitute for " +
+      "pharmacist or physician advice.";
+    
+    return this.getHealthAdvice(
+      `What educational information can you provide about these medications (${medicationsList}) when taken together?`,
+      `User is asking about these medications: ${medicationsList}`
+    );
   }
 }
 
