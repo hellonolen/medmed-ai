@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BadgeCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { useSponsor } from '@/contexts/SponsorContext';
 
 interface SponsorProps {
@@ -102,13 +101,7 @@ export const SponsoredContent = () => {
           <p className="text-gray-600 max-w-xl mx-auto text-sm">
             We collaborate with trusted healthcare providers to bring you the best services
           </p>
-          <div className="flex justify-center mt-2">
-            <Link to="/sponsor-portal">
-              <Button variant="outline" size="sm" className="text-xs">
-                Become a Partner
-              </Button>
-            </Link>
-          </div>
+          {/* Removed "Become a Partner" button */}
         </div>
         
         {/* Premium sponsors in top row */}
