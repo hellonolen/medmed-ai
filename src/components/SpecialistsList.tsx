@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
@@ -77,6 +76,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
   const [allSpecialists, setAllSpecialists] = useState<string[]>([]);
   const [matchedProfessionals, setMatchedProfessionals] = useState<HealthcareProfessional[]>([]);
   
+  // Process the search query whenever it changes
   useEffect(() => {
     if (!searchQuery) {
       setAllSpecialists([]);
@@ -84,11 +84,20 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
       return;
     }
     
-    // First, search for specialists based on symptoms and conditions
-    const queryLower = searchQuery.toLowerCase();
+    console.log("Processing specialist search for query:", searchQuery);
     
+    // Normalize the query - remove language code if present
+    let queryLower = searchQuery.toLowerCase().trim();
+    const langCodeMatch = queryLower.match(/\s*\([a-z]{2}\)$/);
+    if (langCodeMatch) {
+      queryLower = queryLower.substring(0, queryLower.length - langCodeMatch[0].length).trim();
+    }
+    
+    console.log("Normalized specialist search query:", queryLower);
+    
+    // First, search for specialists based on symptoms and conditions
     // Get specialists from symptom mappings
-    const matchingSymptoms = findMatchingSymptoms(searchQuery);
+    const matchingSymptoms = findMatchingSymptoms(queryLower);
     const specialistsFromSymptoms = new Set(
       matchingSymptoms.flatMap(symptom => symptom.specialists)
     );
@@ -125,11 +134,15 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
       )
     ];
     
+    // Check for ZIP code patterns in the query (for location-based filtering)
+    const zipMatch = queryLower.match(/\b\d{5}\b/);
+    
     // If no specialists found and it's a non-empty search, show some default specialists
     const specialistsToDisplay = foundSpecialists.length > 0 
       ? foundSpecialists 
       : queryLower.trim() !== "" ? specialists.slice(0, 6) : [];
     
+    console.log(`Found ${specialistsToDisplay.length} matching specialists`);
     setAllSpecialists(specialistsToDisplay);
     
     // Next, search for healthcare professionals (doctors and nurses)
@@ -163,9 +176,15 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
         return true;
       }
       
+      // If there's a ZIP code in the query, match professionals from that area
+      if (zipMatch && prof.location.includes(zipMatch[0])) {
+        return true;
+      }
+      
       return false;
     });
     
+    console.log(`Found ${professionals.length} matching healthcare professionals`);
     setMatchedProfessionals(professionals);
     
     // If we're showing default specialists because none matched, notify the user

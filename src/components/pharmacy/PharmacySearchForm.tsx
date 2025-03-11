@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +18,11 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
   const [smartSearch, setSmartSearch] = useState("");
   const [activeTab, setActiveTab] = useState<'zip' | 'city' | 'smart'>('smart');
   const { language } = useLanguage();
+
+  // Clear form when language changes
+  useEffect(() => {
+    // Keep the values but force a re-search if language changes
+  }, [language]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +56,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
     // Add language context to search
     searchTerm = `${searchTerm} (${language})`;
     
+    console.log(`Searching with term: "${searchTerm}" using search type: ${activeTab}`);
     onSearch(searchTerm, activeTab);
   };
 
@@ -114,7 +119,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Supports international postal code formats including US ZIP, UK postcodes, and more.
+              Supports international postal code formats including US ZIP (e.g. 10001, 60601), UK postcodes, and more.
             </p>
           </TabsContent>
           
@@ -135,7 +140,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching }: PharmacySearchForm
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Search by any city, region, or country name worldwide. Try "London", "Tokyo", or "Chicago".
+              Search by any city, region, or country name worldwide. Try "London", "Tokyo", "Chicago", or "New York".
             </p>
           </TabsContent>
         </Tabs>

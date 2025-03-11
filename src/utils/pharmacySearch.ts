@@ -1,3 +1,4 @@
+
 import { Pharmacy, pharmacies } from "@/data/pharmacies";
 
 // Calculate a realistic distance based on ZIP code or location comparison
@@ -25,8 +26,16 @@ export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
   
   console.log("Searching ZIP code:", zipCode);
   
-  // Normalize input
-  const normalizedZip = zipCode.trim();
+  // Extract just the ZIP code if it's part of a larger string (e.g. includes language code)
+  let normalizedZip = zipCode.trim();
+  
+  // Check for ZIP code pattern in the string (5 digits for US)
+  const zipMatch = normalizedZip.match(/\b\d{5}\b/);
+  if (zipMatch) {
+    normalizedZip = zipMatch[0];
+  }
+  
+  console.log("Normalized ZIP:", normalizedZip);
   
   // Try exact match first
   let matchedPharmacies = pharmacies.filter(pharmacy => 
@@ -37,6 +46,13 @@ export const searchPharmaciesByZip = (zipCode: string): Pharmacy[] => {
   if (matchedPharmacies.length === 0 && normalizedZip.length >= 2) {
     matchedPharmacies = pharmacies.filter(pharmacy => 
       pharmacy.zipCode.startsWith(normalizedZip)
+    );
+  }
+  
+  // If still no results, try matching any part of the ZIP
+  if (matchedPharmacies.length === 0 && normalizedZip.length >= 2) {
+    matchedPharmacies = pharmacies.filter(pharmacy => 
+      pharmacy.zipCode.includes(normalizedZip)
     );
   }
   
@@ -61,7 +77,14 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   console.log("Searching city:", city);
   
   // Normalize input for better matching
-  const searchTerm = city.toLowerCase().trim();
+  // Remove language code if present (e.g., "New York (en)")
+  let searchTerm = city.toLowerCase().trim();
+  const langCodeMatch = searchTerm.match(/\s*\([a-z]{2}\)$/);
+  if (langCodeMatch) {
+    searchTerm = searchTerm.substring(0, searchTerm.length - langCodeMatch[0].length).trim();
+  }
+  
+  console.log("Normalized city search term:", searchTerm);
   
   // First try exact match with city names
   let matchedPharmacies = pharmacies.filter(pharmacy => 
@@ -104,6 +127,17 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
 // In a real app, this would connect to an API like Google Places or a global pharmacy database
 const getInternationalPharmacies = (location: string): Pharmacy[] => {
   console.log("Simulating international search for:", location);
+  
+  // Normalize the location input
+  let normalizedLocation = location.toLowerCase().trim();
+  
+  // Remove language code if present (e.g., "London (en)")
+  const langCodeMatch = normalizedLocation.match(/\s*\([a-z]{2}\)$/);
+  if (langCodeMatch) {
+    normalizedLocation = normalizedLocation.substring(0, normalizedLocation.length - langCodeMatch[0].length).trim();
+  }
+  
+  console.log("Normalized international location search:", normalizedLocation);
   
   // Enhanced global locations for worldwide coverage
   const internationalLocations = [
@@ -151,8 +185,6 @@ const getInternationalPharmacies = (location: string): Pharmacy[] => {
     { city: "lima", country: "Peru", count: 2 },
     { city: "santiago", country: "Chile", count: 2 }
   ];
-  
-  const normalizedLocation = location.toLowerCase().trim();
   
   // First check exact matches
   let matchedLocation = internationalLocations.find(loc => 
@@ -299,24 +331,41 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   if (!query) return [];
   
   console.log(`AI-enhanced search for: "${query}" in language: ${language}`);
-  const normalizedQuery = query.toLowerCase().trim();
+  
+  // Extract the actual query by removing language code if present
+  let normalizedQuery = query.toLowerCase().trim();
+  const langCodeMatch = normalizedQuery.match(/\s*\([a-z]{2}\)$/);
+  if (langCodeMatch) {
+    normalizedQuery = normalizedQuery.substring(0, normalizedQuery.length - langCodeMatch[0].length).trim();
+  }
+  
+  console.log("Normalized query for intelligent search:", normalizedQuery);
   
   // Try to determine if the query is a ZIP code or a city name
   const isZipCode = /^\d{5}(-\d{4})?$/.test(normalizedQuery) || // US format
                    /^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/.test(normalizedQuery) || // Canadian format
                    /^[A-Za-z]{1,2}\d{1,2}[A-Za-z]? ?\d[A-Za-z]{2}$/.test(normalizedQuery); // UK format
   
+  // Look for ZIP code patterns in the query
+  const zipMatch = normalizedQuery.match(/\b\d{5}\b/);  // US ZIP
+  const zipQuery = zipMatch ? zipMatch[0] : normalizedQuery;
+  
   // Get results from both search methods
-  const zipResults = searchPharmaciesByZip(normalizedQuery);
+  let zipResults: Pharmacy[] = [];
+  if (isZipCode || zipMatch) {
+    zipResults = searchPharmaciesByZip(zipQuery);
+  }
+  
   const cityResults = searchPharmaciesByCity(normalizedQuery);
   
-  // Combine and deduplicate results, prioritizing the more likely search type
+  // Combine and deduplicate results, prioritizing ZIP results if it's a ZIP code
   let combinedResults = isZipCode 
     ? [...zipResults, ...cityResults.filter(city => !zipResults.some(zip => zip.id === city.id))]
     : [...cityResults, ...zipResults.filter(zip => !cityResults.some(city => zip.id === city.id))];
   
   // If no results, try a more permissive search as a fallback
   if (combinedResults.length === 0) {
+    // Look for pharmacy names, chains, or addresses
     combinedResults = pharmacies.filter(pharmacy => 
       pharmacy.name.toLowerCase().includes(normalizedQuery) ||
       pharmacy.address.toLowerCase().includes(normalizedQuery) ||

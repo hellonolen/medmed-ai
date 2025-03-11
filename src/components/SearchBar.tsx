@@ -17,11 +17,10 @@ interface SearchBarProps {
 
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [isListening, setIsListening] = useState(false);
   
   const { t } = useLanguage();
-  const { searchWithContext } = useMedicalSearch();
+  const { searchWithContext, loading } = useMedicalSearch();
   const { tier } = useSubscription();
   const { toast } = useToast();
 
@@ -35,8 +34,6 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       return;
     }
     
-    setIsSearching(true);
-    
     try {
       const results = await searchWithContext(query);
       onSearch(query, results);
@@ -48,8 +45,6 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         variant: "destructive",
       });
       onSearch(query, []);
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -60,6 +55,19 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
   
   const handleVoiceResult = (text: string) => {
     setQuery(text);
+    // Automatically trigger search when voice input is received
+    if (text.trim()) {
+      searchWithContext(text).then(results => {
+        onSearch(text, results);
+      }).catch(error => {
+        console.error("Error in voice search:", error);
+        toast({
+          title: t("search.error.title", "Search Error"),
+          description: t("search.error.description", "There was an issue with your voice search. Please try again."),
+          variant: "destructive",
+        });
+      });
+    }
   };
 
   return (
@@ -112,12 +120,12 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         </div>
         <button 
           type="submit" 
-          className={`sr-only ${isSearching ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={isSearching}
+          className={`sr-only ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={loading}
         >
           {t("button.search", "Search")}
         </button>
-        {isSearching && (
+        {loading && (
           <div className="absolute right-14 top-1/2 transform -translate-y-1/2">
             <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
           </div>
