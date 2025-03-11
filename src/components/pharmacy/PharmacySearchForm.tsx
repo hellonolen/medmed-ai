@@ -92,7 +92,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     }
     
     // Add language context to search
-    const enhancedSearchTerm = `${searchTerm} (${language})`;
+    let searchQuery = `${searchTerm} (${language})`;
     
     // Determine the search type based on the content
     const termLower = searchTerm.toLowerCase();
@@ -111,7 +111,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     if (searchType === 'smart') {
       try {
         const response = await aiService.askAI({
-          query: `Analyze this healthcare search query: "${enhancedSearchTerm}"`,
+          query: `Analyze this healthcare search query: "${searchQuery}"`,
           systemPrompt: 'Determine if this query is looking for a pharmacy, medical specialist, healthcare facility, or specific medication. Return only a JSON object like {"type": "pharmacy|specialist|facility|medication", "enhancedQuery": "improved search query"}. No other text.'
         });
         
@@ -119,8 +119,8 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
           try {
             const analysis = JSON.parse(response.content);
             if (analysis.enhancedQuery) {
-              enhancedSearchTerm = analysis.enhancedQuery;
-              console.log("Enhanced query:", enhancedSearchTerm);
+              searchQuery = analysis.enhancedQuery;
+              console.log("Enhanced query:", searchQuery);
             }
           } catch (error) {
             console.error("Error parsing response:", error);
@@ -131,8 +131,8 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
       }
     }
     
-    console.log(`Searching with term: "${enhancedSearchTerm}" using search type: ${searchType}`);
-    onSearch(enhancedSearchTerm, searchType);
+    console.log(`Searching with term: "${searchQuery}" using search type: ${searchType}`);
+    onSearch(searchQuery, searchType);
     setSuggestions([]);
   };
 
