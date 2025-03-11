@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageCircle, User, ArrowRight, AlertTriangle } from 'lucide-react';
+import { MessageCircle, User, ArrowRight, AlertTriangle, Map } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { toast } from 'sonner';
@@ -75,37 +74,53 @@ export const AIChatInterface = ({
     setIsTyping(true);
 
     try {
-      // Parse what kind of search we might be doing based on keywords
       const normalizedInput = inputValue.toLowerCase();
       
-      // Detect pharmacy/med spa searches for potential redirection
+      const isLocationSearch = /\b(in|near|at|around)\b\s+([a-zA-Z]+)/.test(normalizedInput) || 
+                              /\b(new york|los angeles|chicago|houston|phoenix|philadelphia|san antonio|san diego|dallas|san jose|austin|jacksonville|fort worth|columbus|indianapolis|charlotte|san francisco|seattle|denver|washington|boston|el paso|nashville|detroit|portland|las vegas|oklahoma city|memphis|louisville|baltimore|milwaukee|albuquerque|tucson|fresno|sacramento|atlanta|kansas city|colorado springs|miami|raleigh|omaha|long beach|virginia beach|oakland|minneapolis|tampa|tulsa|arlington)\b/i.test(normalizedInput) ||
+                              /^[a-z\s]+$/.test(normalizedInput) && normalizedInput.length > 3 && !/\b(what|how|why|when|where|who|which|is|are|do|does|did|can|could|would|should|may|might)\b/.test(normalizedInput);
+      
       const isPharmacySearch = /pharmacy|drugstore|chemist|near|around|locate/.test(normalizedInput);
       const isMedSpaSearch = /med\s*spa|medi\s*spa|med-spa|spa|cosmetic|aesthetic|beauty/.test(normalizedInput);
-      const isLocationSearch = /in|near|at|around/.test(normalizedInput) && /[a-zA-Z]+/.test(normalizedInput);
       
-      // Use the centralized medical search context
-      const searchResults = await searchWithContext(inputValue);
+      const searchResults = await searchWithContext(inputValue, isLocationSearch ? 'location' : undefined);
       
-      // Pass search results to the parent component
       onSearch(inputValue, searchResults);
       
-      // Special handling for location-based searches
-      if ((isPharmacySearch || isMedSpaSearch) && isLocationSearch) {
-        // Check if it's a clear request for the pharmacy/med spa finder
-        const hasSearchIntent = /find|locate|list|show|search|where|what/.test(normalizedInput);
+      if ((isPharmacySearch || isMedSpaSearch || isLocationSearch)) {
+        const hasSearchIntent = /find|locate|list|show|search|where|what/.test(normalizedInput) || isLocationSearch;
         
         if (hasSearchIntent) {
-          // Add message before redirecting
           const redirectMessage: Message = {
-            content: t("ai.redirect", `Taking you to search results for ${isMedSpaSearch ? 'med spas' : 'pharmacies'}...`),
+            content: t("ai.location_search", `I found some results that might be near ${inputValue}. Would you like to see the pharmacy and med spa locations on a map?`),
             type: 'ai',
             timestamp: new Date()
           };
           setMessages(prev => [...prev, redirectMessage]);
           
-          // Redirect with a slight delay so user sees the message
           setTimeout(() => {
-            navigate(`/pharmacy-finder?query=${encodeURIComponent(inputValue)}`);
+            const mapButtonMessage: Message = {
+              content: `<button class="map-redirect-btn" data-location="${encodeURIComponent(inputValue)}">
+                <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg> View on Map</span>
+              </button>`,
+              type: 'ai',
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, mapButtonMessage]);
+            
+            setTimeout(() => {
+              const mapButtons = document.querySelectorAll('.map-redirect-btn');
+              mapButtons.forEach(btn => {
+                if (btn instanceof HTMLElement) {
+                  btn.addEventListener('click', () => {
+                    const location = btn.getAttribute('data-location');
+                    if (location) {
+                      navigate(`/pharmacy-finder?query=${location}`);
+                    }
+                  });
+                }
+              });
+            }, 100);
           }, 1000);
           
           setIsTyping(false);
@@ -113,7 +128,6 @@ export const AIChatInterface = ({
         }
       }
 
-      // Process AI response - with improved error handling
       try {
         const response = await aiService.getHealthAdvice(inputValue);
         
@@ -130,31 +144,75 @@ export const AIChatInterface = ({
       } catch (aiError) {
         console.error('AI Chat Error:', aiError);
         
-        // Add a fallback AI response that includes search results
-        let fallbackResponse = t("ai.error.with_results", 
-          "I found these results for you while my answering system is being updated:");
+        let fallbackResponse = "";
         
-        if (searchResults.length > 0) {
-          const topResults = searchResults.slice(0, 3);
-          fallbackResponse += "\n\n" + topResults.map(r => 
+        if (isLocationSearch) {
+          fallbackResponse = t("ai.location_fallback", 
+            `I noticed you're looking for information about "${inputValue}". Would you like to see local healthcare services in this area?`);
+            
+          const errorMessage: Message = {
+            content: fallbackResponse,
+            type: 'ai',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          
+          setTimeout(() => {
+            const mapButtonMessage: Message = {
+              content: `<button class="map-redirect-btn" data-location="${encodeURIComponent(inputValue)}">
+                <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg> Find Healthcare Services</span>
+              </button>`,
+              type: 'ai',
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, mapButtonMessage]);
+            
+            setTimeout(() => {
+              const mapButtons = document.querySelectorAll('.map-redirect-btn');
+              mapButtons.forEach(btn => {
+                if (btn instanceof HTMLElement) {
+                  btn.addEventListener('click', () => {
+                    const location = btn.getAttribute('data-location');
+                    if (location) {
+                      navigate(`/pharmacy-finder?query=${location}`);
+                    }
+                  });
+                }
+              });
+            }, 100);
+          }, 1000);
+        } else if (searchResults.length > 0) {
+          const resultTypes = new Set(searchResults.slice(0, 3).map(r => r.type));
+          const typeDescription = Array.from(resultTypes).join(", ");
+          
+          fallbackResponse = t("ai.error.with_results", 
+            `I found these results related to your search while my answering system is being updated:`);
+          
+          fallbackResponse += "\n\n" + searchResults.slice(0, 3).map(r => 
             `• ${r.name}: ${r.details}`
           ).join("\n");
+          
+          const errorMessage: Message = {
+            content: fallbackResponse,
+            type: 'ai',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
         } else {
           fallbackResponse = t("ai.error", 
             "I apologize, but I'm having trouble processing that. Could you try rephrasing your question?");
+            
+          const errorMessage: Message = {
+            content: fallbackResponse,
+            type: 'ai',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
         }
-        
-        const errorMessage: Message = {
-          content: fallbackResponse,
-          type: 'ai',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
       }
     } catch (error) {
       console.error('Search system error:', error);
       
-      // Add error message
       const errorMessage: Message = {
         content: t("search.error", "I'm sorry, but I encountered an error with the search system. Please try again."),
         type: 'error',
@@ -200,14 +258,16 @@ export const AIChatInterface = ({
                 <User className="h-3 w-3 sm:h-4 sm:w-4" />
               )}
             </div>
-            <div className={`rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[75%] sm:max-w-[80%] text-sm sm:text-base ${
-              message.type === 'ai' 
-                ? 'bg-primary/10 text-foreground' 
-                : message.type === 'error'
-                ? 'bg-destructive/10 text-destructive-foreground'
-                : 'bg-secondary text-secondary-foreground'
-            }`}>
-              {message.content}
+            <div 
+              className={`rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[75%] sm:max-w-[80%] text-sm sm:text-base ${
+                message.type === 'ai' 
+                  ? 'bg-primary/10 text-foreground' 
+                  : message.type === 'error'
+                  ? 'bg-destructive/10 text-destructive-foreground'
+                  : 'bg-secondary text-secondary-foreground'
+              }`}
+              dangerouslySetInnerHTML={{ __html: message.content }}
+            >
             </div>
           </div>
         ))}

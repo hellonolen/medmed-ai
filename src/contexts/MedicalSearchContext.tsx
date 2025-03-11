@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useCallback, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -153,28 +152,24 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       
       // Determine search type based on keywords and patterns
       const patternAnalysis = {
-        // Location patterns
-        location: /\b(in|near|at|around)\b\s+([a-zA-Z\s]+)|\b\d{5}\b|\bzip\s+\d{5}\b|\bin\s+[a-z]{2}\b|\bstate\s+of\s+[a-z\s]+\b|\bcity\s+of\s+[a-z\s]+\b|\bprovince\s+of\s+[a-z\s]+\b/i.test(queryLower),
+        // Location patterns - enhanced to better detect cities
+        location: /\b(in|near|at|around)\b\s+([a-zA-Z\s]+)|\b\d{5}\b|\bzip\s+\d{5}\b|\bin\s+[a-z]{2}\b|\bstate\s+of\s+[a-z\s]+\b|\bcity\s+of\s+[a-z\s]+\b|\bprovince\s+of\s+[a-z\s]+\b/i.test(queryLower) || 
+                  searchType === 'location' ||
+                  // Common US cities
+                  /\b(new york|los angeles|chicago|houston|phoenix|philadelphia|san antonio|san diego|dallas|san jose|austin|jacksonville|fort worth|columbus|indianapolis|charlotte|san francisco|seattle|denver|washington|boston|el paso|nashville|detroit|portland|las vegas|oklahoma city|memphis|louisville|baltimore|milwaukee|albuquerque|tucson|fresno|sacramento|atlanta|kansas city|colorado springs|miami|raleigh|omaha|long beach|virginia beach|oakland|minneapolis|tampa|tulsa|arlington)\b/i.test(queryLower),
         
-        // Pharmacy patterns
         pharmacy: /pharma(c|s|cy|cies)|drug\s?store|chemist|apothe(c|k)|dispensary|prescription|refill|rx|meds|medication store/i.test(queryLower),
         
-        // Med spa patterns
         medSpa: /med\s*spa|medi\s*spa|med-spa|spa|cosmetic|aesthetic|beauty|salon|wellness|massage|facial|botox|filler|injection|laser|skin|treatment|rejuvenation|wellness\s*center|beauty\s*clinic|day\s*spa|medical\s*spa|anti(\s|-)?aging|skin\s*care|dermatology\s*clinic/i.test(queryLower),
         
-        // Specialist patterns
         specialist: /doctor|physician|specialist|md|practitioner|surgeon|neurologist|cardiologist|dermatologist|pediatrician|therapist|clinician|provider|professional|expert|consultant|dentist|orthodontist/i.test(queryLower),
         
-        // Phone number patterns
         phone: /phone|call|contact|telephone|dial|number/.test(queryLower) || /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/.test(queryLower),
         
-        // Symptom patterns
         symptom: /symptom|pain|ache|fever|cough|headache|nausea|dizziness|check|diagnose|hurt|sore|suffering|experiencing/.test(queryLower),
         
-        // Medication patterns
         medication: /drug|medicine|pill|capsule|tablet|prescription|dose|dosage|take|medication|antibiotic|painkiller|treatment/.test(queryLower),
         
-        // Injection/injectable patterns
         injection: /injection|injectable|shot|botox|filler|needle|syringe|iv|intravenous|juvederm|restylane|dysport|xeomin/.test(queryLower)
       };
       
@@ -182,7 +177,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       
       // Extract location information if present
       const locationMatch = queryLower.match(/\b(in|near|at|around)\b\s+([a-zA-Z\s]+)/);
-      const locationInfo = locationMatch ? locationMatch[2].trim() : '';
+      const locationInfo = locationMatch ? locationMatch[2].trim() : queryLower;
       
       // Get recent context from history for continuity in conversation
       const recentContext = state.history
@@ -218,6 +213,10 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
           case 'doctors':
             searchPriority = ['Specialist', 'Med Spa', 'Pharmacy', 'Medication'];
             break;
+          case 'location':
+            // For location searches, prioritize pharmacies and med spas
+            searchPriority = ['Pharmacy', 'Med Spa', 'Specialist', 'Medication'];
+            break;
           default:
             // Automatic priority determination
             searchPriority = determineSearchPriority(patternAnalysis);
@@ -232,7 +231,34 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       // Combined results array
       let results: UnifiedSearchResult[] = [];
       
-      // Handle pharmacy and med spa location searches using the pharmacy search utility
+      // Handle location searches (cities, states, etc.)
+      if (patternAnalysis.location || 
+          (query.trim().split(/\s+/).length <= 2 && !/\d/.test(query) && query.length > 3)) {
+        console.log("Handling potential location search for:", query);
+        
+        // For pure location searches, try to find pharmacies and med spas
+        const locationResults = intelligentPharmacySearch(query, language);
+        
+        if (locationResults && locationResults.length > 0) {
+          console.log(`Found ${locationResults.length} location-based results`);
+          
+          // Format results for consistency
+          const formattedResults = locationResults.map(location => ({
+            name: location.name,
+            details: `${location.address} - ${location.hours || 'Hours vary'} - ${location.phone}`,
+            price: location.chain || "Independent",
+            type: location.type === "Med Spa" ? "Med Spa" : "Pharmacy",
+            source: location.distance ? `Distance: ${location.distance}` : "Healthcare Directory",
+            phone: location.phone,
+            address: location.address,
+            rating: location.rating || 4.0
+          }));
+          
+          results = [...results, ...formattedResults];
+        }
+      }
+      
+      // Handle pharmacy and med spa location searches
       if ((patternAnalysis.pharmacy || patternAnalysis.medSpa) && 
           (patternAnalysis.location || patternAnalysis.phone)) {
         console.log("Using enhanced location/phone search for pharmacy/med spa");
@@ -303,43 +329,94 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
         }
       }
       
-      // If we still need more results, use fallback data based on search priority
+      // If we still need more results, use appropriate fallback data
       if (results.length === 0) {
         console.log("Using fallback data for search");
         
-        // Generate results based on search priority
-        for (const priority of searchPriority) {
-          if (results.length >= 10) break; // Limit to 10 results
+        // For location searches, prioritize pharmacies and med spas
+        if (patternAnalysis.location || searchType === 'location') {
+          const cityName = query.trim();
           
-          let fallbackResults: UnifiedSearchResult[] = [];
+          // Generate location-specific placeholders
+          const localPharmacies = [
+            { 
+              name: `${cityName} Community Pharmacy`, 
+              details: `Local pharmacy serving the ${cityName} area`,
+              price: "Varies",
+              type: "Pharmacy",
+              source: "Pharmacy Directory",
+              phone: "+1-555-123-4567",
+              address: `123 Main St, ${cityName}`,
+              rating: 4.5
+            },
+            { 
+              name: `${cityName} Health Pharmacy`, 
+              details: `Full-service pharmacy in ${cityName} with prescription delivery`,
+              price: "Varies",
+              type: "Pharmacy",
+              source: "Pharmacy Directory",
+              phone: "+1-555-234-5678",
+              address: `456 Oak Ave, ${cityName}`,
+              rating: 4.3
+            },
+            { 
+              name: `${cityName} Wellness Center`, 
+              details: `Medical spa and wellness center in downtown ${cityName}`,
+              price: "$$$",
+              type: "Med Spa",
+              source: "Healthcare Directory",
+              phone: "+1-555-789-0123",
+              address: `789 Pine Blvd, ${cityName}`,
+              rating: 4.7
+            },
+            { 
+              name: `${cityName} Aesthetic Clinic`, 
+              details: `Premier med spa in ${cityName} offering injectable treatments and facials`,
+              price: "$$$$",
+              type: "Med Spa",
+              source: "Healthcare Directory",
+              phone: "+1-555-321-6549",
+              address: `321 Maple Dr, ${cityName}`,
+              rating: 4.8
+            }
+          ];
           
-          switch (priority) {
-            case 'Medication':
-              fallbackResults = filterFallbackData(medicationFallbacks, queryLower);
-              break;
-            case 'Med Spa':
-              fallbackResults = filterFallbackData(medSpaFallbacks, queryLower);
-              break;
-            case 'Specialist':
-              fallbackResults = filterFallbackData(specialistFallbacks, queryLower);
-              break;
-            case 'Pharmacy':
-              fallbackResults = filterFallbackData(pharmacyFallbacks, queryLower);
-              break;
-            default:
-              // Mix of different types
-              fallbackResults = [
-                ...filterFallbackData(medicationFallbacks, queryLower, 2),
-                ...filterFallbackData(medSpaFallbacks, queryLower, 2),
-                ...filterFallbackData(specialistFallbacks, queryLower, 2),
-                ...filterFallbackData(pharmacyFallbacks, queryLower, 2)
-              ];
-          }
-          
-          // Add fallback results, avoiding duplicates
-          for (const result of fallbackResults) {
-            if (!results.some(r => r.name === result.name)) {
-              results.push(result);
+          results = [...localPharmacies, ...results];
+        } else {
+          // Generate results based on search priority
+          for (const priority of searchPriority) {
+            if (results.length >= 10) break; // Limit to 10 results
+            
+            let fallbackResults: UnifiedSearchResult[] = [];
+            
+            switch (priority) {
+              case 'Medication':
+                fallbackResults = filterFallbackData(medicationFallbacks, queryLower);
+                break;
+              case 'Med Spa':
+                fallbackResults = filterFallbackData(medSpaFallbacks, queryLower);
+                break;
+              case 'Specialist':
+                fallbackResults = filterFallbackData(specialistFallbacks, queryLower);
+                break;
+              case 'Pharmacy':
+                fallbackResults = filterFallbackData(pharmacyFallbacks, queryLower);
+                break;
+              default:
+                // Mix of different types
+                fallbackResults = [
+                  ...filterFallbackData(medicationFallbacks, queryLower, 2),
+                  ...filterFallbackData(medSpaFallbacks, queryLower, 2),
+                  ...filterFallbackData(specialistFallbacks, queryLower, 2),
+                  ...filterFallbackData(pharmacyFallbacks, queryLower, 2)
+                ];
+            }
+            
+            // Add fallback results, avoiding duplicates
+            for (const result of fallbackResults) {
+              if (!results.some(r => r.name === result.name)) {
+                results.push(result);
+              }
             }
           }
         }
@@ -356,108 +433,4 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
               ? results.map(r => r.name).join(", ") 
               : "No relevant results",
             results: results,
-            timestamp: new Date()
-          }
-        ].slice(-10) // Keep last 10 searches
-      }));
-
-      console.log("Final search results:", results);
-      return results;
-    } catch (error) {
-      console.error('Search system error:', error);
-      
-      // Set the error state
-      setState(prev => ({ 
-        ...prev, 
-        lastError: error instanceof Error ? error.message : 'Unknown search error' 
-      }));
-      
-      // Show error toast
-      uiToast({
-        title: t("search.error.title", "Search Error"),
-        description: t("search.error.description", "Failed to perform search. Please try again."),
-        variant: "destructive"
-      });
-      
-      // Return emergency fallback results
-      return medicationFallbacks.slice(0, 5);
-    } finally {
-      setLoading(false);
-    }
-  }, [state.history, uiToast, t, language, medicationFallbacks, medSpaFallbacks, specialistFallbacks, pharmacyFallbacks]);
-  
-  // Helper function to determine search priority based on query analysis
-  function determineSearchPriority(analysis: Record<string, boolean>): SearchResultType[] {
-    // Starting with a base priority list
-    const priority: SearchResultType[] = ['Medication', 'Pharmacy', 'Med Spa', 'Specialist', 'Condition', 'Other'];
-    
-    // Reorder based on analysis
-    if (analysis.medSpa) {
-      // Med spa search takes highest priority
-      return ['Med Spa', 'Specialist', 'Pharmacy', 'Medication', 'Condition', 'Other'];
-    } else if (analysis.pharmacy) {
-      // Pharmacy search takes highest priority
-      return ['Pharmacy', 'Medication', 'Med Spa', 'Specialist', 'Condition', 'Other'];
-    } else if (analysis.specialist) {
-      // Specialist search takes highest priority
-      return ['Specialist', 'Med Spa', 'Pharmacy', 'Medication', 'Condition', 'Other'];
-    } else if (analysis.symptom) {
-      // Symptom search prioritizes conditions and specialists
-      return ['Condition', 'Specialist', 'Medication', 'Pharmacy', 'Med Spa', 'Other'];
-    } else if (analysis.injection) {
-      // Injectable searches prioritize med spas and specialists
-      return ['Med Spa', 'Specialist', 'Medication', 'Pharmacy', 'Condition', 'Other'];
-    } else if (analysis.medication) {
-      // Medication searches prioritize medications and pharmacies
-      return ['Medication', 'Pharmacy', 'Specialist', 'Med Spa', 'Condition', 'Other'];
-    }
-    
-    // Default priority
-    return priority;
-  }
-  
-  // Helper function to filter fallback data based on search terms
-  function filterFallbackData(
-    data: UnifiedSearchResult[], 
-    searchTerm: string, 
-    limit: number = 10
-  ): UnifiedSearchResult[] {
-    // Filter data that matches the search term
-    const matchedResults = data.filter(item => 
-      item.name.toLowerCase().includes(searchTerm) || 
-      item.details.toLowerCase().includes(searchTerm) ||
-      item.type.toLowerCase().includes(searchTerm) ||
-      (item.address && item.address.toLowerCase().includes(searchTerm))
-    );
-    
-    // If we found matches, return them (up to the limit)
-    if (matchedResults.length > 0) {
-      return matchedResults.slice(0, limit);
-    }
-    
-    // If no matches, return a subset of the data
-    return data
-      .sort(() => 0.5 - Math.random()) // Randomize the results
-      .slice(0, limit);
-  }
-
-  return (
-    <MedicalSearchContext.Provider value={{
-      searchWithContext,
-      searchHistory: state.history,
-      loading,
-      error: state.lastError,
-      clearError
-    }}>
-      {children}
-    </MedicalSearchContext.Provider>
-  );
-};
-
-export const useMedicalSearch = () => {
-  const context = useContext(MedicalSearchContext);
-  if (!context) {
-    throw new Error('useMedicalSearch must be used within a MedicalSearchProvider');
-  }
-  return context;
-};
+            timestamp: new
