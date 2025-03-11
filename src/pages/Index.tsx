@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -101,35 +102,35 @@ const Index = () => {
           </div>
           
           <div className="mb-8 max-w-4xl mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Clipboard className="h-4 w-4 text-primary" />
-                  <span>{t("menu.symptom_checker", "Symptom Checker")}</span>
+                  <span className="text-center w-full truncate">{t("menu.symptom_checker", "Symptom Checker")}</span>
                 </Button>
               </Link>
               <Link to="/pharmacy-finder">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Map className="h-4 w-4 text-primary" />
-                  <span>{t("menu.pharmacy_finder", "Global Pharmacy Finder")}</span>
+                  <span className="text-center w-full truncate">{t("menu.pharmacy_finder", "Global Pharmacy Finder")}</span>
                 </Button>
               </Link>
               <Link to="/interaction-checker">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Activity className="h-4 w-4 text-primary" />
-                  <span>{t("menu.interaction_checker", "Interaction Checker")}</span>
+                  <span className="text-center w-full truncate">{t("menu.interaction_checker", "Interaction Checker")}</span>
                 </Button>
               </Link>
-              <Link to="/favorites">
+              <Link to="/favorites" className="sm:col-span-3 md:col-span-1">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <Heart className="h-4 w-4 text-primary" />
-                  <span>{t("menu.favorites", "My Favorites")}</span>
+                  <span className="text-center w-full truncate">{t("menu.favorites", "My Favorites")}</span>
                 </Button>
               </Link>
-              <Link to="/subscription">
+              <Link to="/subscription" className="sm:col-span-3 md:col-span-1">
                 <Button variant="outline" className="w-full h-20 flex-col space-y-1 bg-card/90 backdrop-blur-md hover:bg-card">
                   <CreditCard className="h-4 w-4 text-primary" />
-                  <span>{t("menu.premium", "Premium Plans")}</span>
+                  <span className="text-center w-full truncate">{t("menu.premium", "Premium Plans")}</span>
                 </Button>
               </Link>
             </div>
