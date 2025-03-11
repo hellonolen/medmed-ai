@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 import { aiService } from '@/services/AIService';
+import { intelligentPharmacySearch } from '@/utils/pharmacySearch';
 
 interface SearchState {
   history: Array<{
@@ -25,7 +26,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
   const [state, setState] = React.useState<SearchState>({ history: [] });
   const [loading, setLoading] = useState(false);
   const { toast: uiToast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // Enhanced fallback results for when service is not available
   const fallbackResults = [
@@ -50,12 +51,15 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       const isPharmacyLocationSearch = /pharma(c|s|cy|cies)|drug\s?store|chemist|apothe(c|k)|dispensary/.test(queryLower) && 
         (/\b(in|near|at|around)\b\s+([a-zA-Z\s]+)|\b\d{5}\b/.test(queryLower) || /\bfind\b|\blocate\b|\bwhere\b/.test(queryLower));
       
+      // Check for med spa specific searches
+      const isMedSpaSearch = /med spa|medispa|med-spa|spa|cosmetic|aesthetic|beauty|salon|wellness|massage|facial|botox|laser|skin|treatment/.test(queryLower);
+      
       // Check for specialist-specific searches
       const isSpecialistSearch = /doctor|physician|specialist|md|practitioner|surgeon|neurologist|cardiologist|dermatologist|pediatrician/.test(queryLower);
       
       // Check for symptom-specific searches
       const isSymptomSearch = /symptom|pain|ache|fever|cough|headache|nausea|dizziness|check|diagnose/.test(queryLower) && 
-        !isPharmacyLocationSearch && !isSpecialistSearch;
+        !isPharmacyLocationSearch && !isSpecialistSearch && !isMedSpaSearch;
       
       // Get recent context from history for continuity in conversation
       const recentContext = state.history
@@ -67,6 +71,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       console.log("Using context:", recentContext);
       console.log("Query classification:", { 
         isPharmacyLocationSearch, 
+        isMedSpaSearch,
         isSpecialistSearch,
         isSymptomSearch 
       });
@@ -74,9 +79,19 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
       let results = [];
       let systemPrompt = '';
       
-      if (isPharmacyLocationSearch) {
-        // Specialized pharmacy search
-        systemPrompt = 'Return detailed information about pharmacies that match the query in JSON format: {"results": [{"name": "Pharmacy Name", "details": "Address and hours", "price": "N/A", "type": "Pharmacy", "source": "Pharmacy Database"}]}';
+      if (isPharmacyLocationSearch || isMedSpaSearch) {
+        // Use the enhanced pharmacy search utility for pharmacy and med spa searches
+        console.log("Using enhanced pharmacy/med spa search");
+        const pharmacyResults = intelligentPharmacySearch(query, language);
+        
+        // Format results for consistency with the medical search results
+        results = pharmacyResults.map(pharmacy => ({
+          name: pharmacy.name,
+          details: `${pharmacy.address} - ${pharmacy.hours} - ${pharmacy.phone}`,
+          price: pharmacy.chain || "Independent",
+          type: isMedSpaSearch ? "Med Spa" : "Pharmacy",
+          source: pharmacy.distance ? `Distance: ${pharmacy.distance}` : "Healthcare Database"
+        }));
       } else if (isSpecialistSearch) {
         // Specialized doctor search
         systemPrompt = 'Return information about medical specialists based on the query in JSON format: {"results": [{"name": "Specialist Name", "details": "Specialization and qualifications", "price": "Consultation fee if available", "type": "Specialist", "source": "Medical Directory"}]}';
@@ -88,52 +103,55 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
         systemPrompt = 'Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
       }
       
-      // Use the centralized service
-      const apiResponse = await aiService.askAI({
-        query: `Previous context:\n${recentContext}\n\nCurrent query: ${query}`,
-        systemPrompt
-      });
-      
-      if (apiResponse.success) {
-        try {
-          const content = apiResponse.content;
-          const parsedData = typeof content === 'string' 
-            ? JSON.parse(content) 
-            : content;
-          
-          results = parsedData.results || [];
-          
-          if (!Array.isArray(results)) {
-            throw new Error("Invalid results format");
-          }
-          
-          // Post-process results for consistency
-          results = results.map(result => ({
-            name: result.name || "Unknown",
-            details: result.details || "No details available",
-            price: result.price || "Price unavailable",
-            type: result.type || "Unknown",
-            source: result.source || "Medical Database"
-          }));
-          
-        } catch (parseError) {
-          console.error("Error parsing response:", parseError);
-          toast.error("Unable to process search results");
-          throw new Error("Invalid response format");
-        }
-      } else {
-        console.log("Service unavailable, using fallback data");
-        // Filter through fallback data based on search terms
-        results = fallbackResults.filter(item => 
-          item.name.toLowerCase().includes(queryLower) || 
-          item.details.toLowerCase().includes(queryLower) ||
-          item.type?.toLowerCase().includes(queryLower)
-        );
+      // Only use AI service if we haven't already found results from pharmacy search
+      if (results.length === 0) {
+        // Use the centralized service
+        const apiResponse = await aiService.askAI({
+          query: `Previous context:\n${recentContext}\n\nCurrent query: ${query}`,
+          systemPrompt
+        });
         
-        // If no direct matches, return some general results
-        if (results.length === 0 && !isPharmacyLocationSearch) {
-          // For medication searches, return a subset of fallback results
-          results = fallbackResults.slice(0, 3);
+        if (apiResponse.success) {
+          try {
+            const content = apiResponse.content;
+            const parsedData = typeof content === 'string' 
+              ? JSON.parse(content) 
+              : content;
+            
+            results = parsedData.results || [];
+            
+            if (!Array.isArray(results)) {
+              throw new Error("Invalid results format");
+            }
+            
+            // Post-process results for consistency
+            results = results.map(result => ({
+              name: result.name || "Unknown",
+              details: result.details || "No details available",
+              price: result.price || "Price unavailable",
+              type: result.type || "Unknown",
+              source: result.source || "Medical Database"
+            }));
+            
+          } catch (parseError) {
+            console.error("Error parsing response:", parseError);
+            toast.error("Unable to process search results");
+            throw new Error("Invalid response format");
+          }
+        } else {
+          console.log("Service unavailable, using fallback data");
+          // Filter through fallback data based on search terms
+          results = fallbackResults.filter(item => 
+            item.name.toLowerCase().includes(queryLower) || 
+            item.details.toLowerCase().includes(queryLower) ||
+            item.type?.toLowerCase().includes(queryLower)
+          );
+          
+          // If no direct matches, return some general results
+          if (results.length === 0 && !isPharmacyLocationSearch && !isMedSpaSearch) {
+            // For medication searches, return a subset of fallback results
+            results = fallbackResults.slice(0, 3);
+          }
         }
       }
       
@@ -164,7 +182,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
     } finally {
       setLoading(false);
     }
-  }, [state.history, uiToast, t, fallbackResults]);
+  }, [state.history, uiToast, t, language, fallbackResults]);
 
   return (
     <MedicalSearchContext.Provider value={{

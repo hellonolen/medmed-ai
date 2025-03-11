@@ -1,5 +1,4 @@
-
-// Enhanced search utilities for pharmacy locations
+// Enhanced search utilities for pharmacy and med spa locations
 
 import { Pharmacy, pharmacies } from "@/data/pharmacies";
 
@@ -110,12 +109,23 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
     "houston": "Houston, TX",
     "phoenix": "Phoenix, AZ",
     "philadelphia": "Philadelphia, PA",
-    "seattle": "Seattle, WA"
+    "seattle": "Seattle, WA",
+    "denver": "Denver, CO",
+    "austin": "Austin, TX",
+    "nashville": "Nashville, TN",
+    "portland": "Portland, OR",
+    "las vegas": "Las Vegas, NV",
+    "vegas": "Las Vegas, NV",
+    "charlotte": "Charlotte, NC",
+    "san diego": "San Diego, CA",
+    "orlando": "Orlando, FL",
+    "minneapolis": "Minneapolis, MN",
+    "new orleans": "New Orleans, LA"
   };
   
   // Check if this is a known US city
   if (searchTerm in usCities) {
-    // Generate realistic US-based pharmacies for this city
+    // Generate realistic US-based pharmacies and med spas for this city
     return generateUSCityPharmacies(usCities[searchTerm as keyof typeof usCities]);
   }
   
@@ -179,6 +189,216 @@ export const searchPharmaciesByCity = (city: string): Pharmacy[] => {
   }));
 };
 
+// Search by phone number
+export const searchPharmaciesByPhone = (phone: string): Pharmacy[] => {
+  if (!phone) return [];
+  
+  // Clean and normalize phone number (remove all non-digit characters)
+  const normalizedPhone = phone.replace(/\D/g, '');
+  console.log("Searching by phone:", normalizedPhone);
+  
+  if (normalizedPhone.length < 7) {
+    return []; // Too short to be a valid phone number
+  }
+  
+  // Try to match by phone number
+  let matchedPharmacies = pharmacies.filter(pharmacy => 
+    pharmacy.phone.replace(/\D/g, '').includes(normalizedPhone)
+  );
+  
+  // If no results, generate some plausible results with the phone number
+  if (matchedPharmacies.length === 0) {
+    // Generate some mock results since we don't have real phone data
+    matchedPharmacies = generatePhoneSearchResults(normalizedPhone);
+  }
+  
+  return matchedPharmacies;
+};
+
+// Search by facility name
+export const searchPharmaciesByName = (name: string): Pharmacy[] => {
+  if (!name) return [];
+  
+  const cleanedName = cleanSearchTerm(name);
+  const normalizedName = cleanedName.toLowerCase().trim();
+  console.log("Searching by name:", normalizedName);
+  
+  // Try to match by name
+  let matchedPharmacies = pharmacies.filter(pharmacy => 
+    pharmacy.name.toLowerCase().includes(normalizedName)
+  );
+  
+  // Also try to match by chain
+  const chainMatches = pharmacies.filter(pharmacy => 
+    pharmacy.chain && pharmacy.chain.toLowerCase().includes(normalizedName)
+  );
+  
+  // Combine results without duplicates
+  chainMatches.forEach(pharmacy => {
+    if (!matchedPharmacies.some(p => p.id === pharmacy.id)) {
+      matchedPharmacies.push(pharmacy);
+    }
+  });
+  
+  // If no results, check for med spa specific terms
+  if (matchedPharmacies.length === 0 && (
+    normalizedName.includes("spa") || 
+    normalizedName.includes("med") || 
+    normalizedName.includes("aesthetic") ||
+    normalizedName.includes("beauty") ||
+    normalizedName.includes("cosmetic") ||
+    normalizedName.includes("wellness")
+  )) {
+    // Generate med spa specific results
+    matchedPharmacies = generateMedSpaResults(normalizedName);
+  }
+  
+  return matchedPharmacies.map(pharmacy => ({
+    ...pharmacy,
+    distance: "Varies by location"
+  }));
+};
+
+// Generate mock phone search results
+const generatePhoneSearchResults = (phoneNumber: string): Pharmacy[] => {
+  console.log("Generating phone search results for:", phoneNumber);
+  
+  // Determine facility type based on last 4 digits
+  const lastFour = phoneNumber.slice(-4);
+  const digitSum = lastFour.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+  
+  let facilityType = "Pharmacy";
+  if (digitSum % 3 === 0) {
+    facilityType = "Med Spa";
+  } else if (digitSum % 3 === 1) {
+    facilityType = "Wellness Center";
+  }
+  
+  // Generate a city based on area code or first 3 digits
+  const areaCode = phoneNumber.slice(0, 3);
+  let city = "New York";
+  let state = "NY";
+  
+  // Simple mapping of some area codes to locations
+  const areaCodes: {[key: string]: {city: string, state: string}} = {
+    "212": {city: "New York", state: "NY"},
+    "213": {city: "Los Angeles", state: "CA"},
+    "305": {city: "Miami", state: "FL"},
+    "312": {city: "Chicago", state: "IL"},
+    "404": {city: "Atlanta", state: "GA"},
+    "415": {city: "San Francisco", state: "CA"},
+    "617": {city: "Boston", state: "MA"},
+    "713": {city: "Houston", state: "TX"},
+    "214": {city: "Dallas", state: "TX"},
+    "702": {city: "Las Vegas", state: "NV"},
+    "303": {city: "Denver", state: "CO"},
+    "615": {city: "Nashville", state: "TN"},
+    "503": {city: "Portland", state: "OR"},
+    "206": {city: "Seattle", state: "WA"}
+  };
+  
+  if (areaCode in areaCodes) {
+    city = areaCodes[areaCode].city;
+    state = areaCodes[areaCode].state;
+  }
+  
+  // Generate a facility name
+  const facilityNames = {
+    "Pharmacy": ["Quick Care Pharmacy", "Health Essentials Pharmacy", "Community Rx", "Wellness Pharmacy", "Total Care Rx"],
+    "Med Spa": ["Rejuvenate Med Spa", "Glow Aesthetics", "Elite Med Spa", "Radiance Beauty Clinic", "Refresh Wellness Spa"],
+    "Wellness Center": ["Vitality Wellness", "Optimal Health Center", "Balance Wellness", "Harmony Health", "Serenity Wellness"]
+  };
+  
+  const name = facilityNames[facilityType as keyof typeof facilityNames][Math.floor(Math.random() * 5)];
+  
+  // Format phone with proper formatting
+  const formattedPhone = `+1 ${phoneNumber.slice(0, 3)} ${phoneNumber.slice(3, 6)} ${phoneNumber.slice(6)}`;
+  
+  return [{
+    id: parseInt(lastFour) + 5000,
+    name: name,
+    address: `${Math.floor(Math.random() * 1000) + 100} Main St, ${city}, ${state}`,
+    phone: formattedPhone,
+    hours: Math.random() > 0.5 ? "8am - 8pm" : "9am - 7pm",
+    distance: "Found by phone",
+    rating: 3.5 + Math.random() * 1.5,
+    chain: name,
+    zipCode: "10001",
+    city: city,
+    state: state
+  }];
+};
+
+// Generate med spa specific results
+const generateMedSpaResults = (searchTerm: string): Pharmacy[] => {
+  console.log("Generating med spa results for:", searchTerm);
+  
+  // Med spa chains
+  const medSpaChains = [
+    "Ideal Image Med Spa",
+    "LaserAway",
+    "Pure Med Spa",
+    "Massage Envy",
+    "Hand & Stone Massage and Facial Spa",
+    "European Wax Center",
+    "Botanica Day Spa"
+  ];
+  
+  // Match search term with med spa chains
+  const matchingChains = medSpaChains.filter(chain => 
+    chain.toLowerCase().includes(searchTerm)
+  );
+  
+  // Use matching chains if found, otherwise pick random ones
+  const chainsToUse = matchingChains.length > 0 ? 
+    matchingChains : 
+    medSpaChains.sort(() => 0.5 - Math.random()).slice(0, 3);
+  
+  // US Cities with higher med spa density
+  const popularCities = [
+    {city: "Los Angeles", state: "CA"},
+    {city: "New York", state: "NY"},
+    {city: "Miami", state: "FL"},
+    {city: "Dallas", state: "TX"},
+    {city: "Houston", state: "TX"},
+    {city: "Chicago", state: "IL"},
+    {city: "Las Vegas", state: "NV"},
+    {city: "Phoenix", state: "AZ"},
+    {city: "San Diego", state: "CA"},
+    {city: "Atlanta", state: "GA"},
+    {city: "Denver", state: "CO"},
+    {city: "Scottsdale", state: "AZ"},
+    {city: "Beverly Hills", state: "CA"},
+    {city: "Newport Beach", state: "CA"}
+  ];
+  
+  // Generate 3-5 med spas
+  const count = Math.min(chainsToUse.length, 5);
+  
+  return Array.from({ length: count }, (_, i) => {
+    const location = popularCities[Math.floor(Math.random() * popularCities.length)];
+    const streetNumber = Math.floor(Math.random() * 9000) + 1000;
+    const streetName = "Main St";
+    const rating = (3.5 + Math.random() * 1.5);
+    const zipPrefix = location.city === "New York" ? "10" : location.city === "Los Angeles" ? "90" : "30";
+    const zipCode = zipPrefix + Math.floor(Math.random() * 100).toString().padStart(3, '0');
+    
+    return {
+      id: 3000 + Math.floor(Math.random() * 9000),
+      name: chainsToUse[i],
+      address: `${streetNumber} ${streetName}, ${location.city}, ${location.state}`,
+      phone: `+1 ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 9000) + 1000}`,
+      hours: Math.random() > 0.5 ? "9am - 7pm" : "10am - 6pm",
+      distance: (0.5 + Math.random() * 5).toFixed(1) + ' miles',
+      rating: rating,
+      chain: chainsToUse[i],
+      zipCode: zipCode,
+      city: location.city,
+      state: location.state
+    };
+  });
+};
+
 // Generate realistic US-based pharmacies for specific cities
 const generateUSCityPharmacies = (cityState: string): Pharmacy[] => {
   console.log("Generating US city pharmacies for:", cityState);
@@ -198,6 +418,17 @@ const generateUSCityPharmacies = (cityState: string): Pharmacy[] => {
     "Sam's Club Pharmacy"
   ];
   
+  // Med spa chains
+  const medSpaChains = [
+    "Ideal Image Med Spa",
+    "LaserAway",
+    "Pure Med Spa",
+    "Massage Envy",
+    "Hand & Stone Massage and Facial Spa",
+    "European Wax Center",
+    "Botanica Day Spa"
+  ];
+  
   // Street name templates
   const streetTemplates = [
     "Main St", "Broadway", "5th Ave", "Market St", "Oak St", "Washington Ave",
@@ -206,9 +437,15 @@ const generateUSCityPharmacies = (cityState: string): Pharmacy[] => {
   ];
   
   // Generate 3-5 pharmacies
-  const count = 3 + Math.floor(Math.random() * 3);
+  const pharmacyCount = 3 + Math.floor(Math.random() * 3);
   
-  return Array.from({ length: count }, (_, i) => {
+  // Generate 2-4 med spas
+  const medSpaCount = 2 + Math.floor(Math.random() * 3);
+  
+  let results: Pharmacy[] = [];
+  
+  // Add pharmacies
+  results = Array.from({ length: pharmacyCount }, (_, i) => {
     const chainName = usPharmacyChains[i % usPharmacyChains.length];
     const streetNumber = Math.floor(Math.random() * 9000) + 1000;
     const streetName = streetTemplates[Math.floor(Math.random() * streetTemplates.length)];
@@ -230,6 +467,32 @@ const generateUSCityPharmacies = (cityState: string): Pharmacy[] => {
       state: "USA"
     };
   });
+  
+  // Add med spas
+  const medSpas = Array.from({ length: medSpaCount }, (_, i) => {
+    const chainName = medSpaChains[i % medSpaChains.length];
+    const streetNumber = Math.floor(Math.random() * 9000) + 1000;
+    const streetName = streetTemplates[Math.floor(Math.random() * streetTemplates.length)];
+    const rating = (3.5 + Math.random() * 1.5);
+    const zipPrefix = city === "New York" ? "10" : city === "Los Angeles" ? "90" : "30";
+    const zipCode = zipPrefix + Math.floor(Math.random() * 100).toString().padStart(3, '0');
+    
+    return {
+      id: 4000 + Math.floor(Math.random() * 9000),
+      name: chainName,
+      address: `${streetNumber} ${streetName}, ${city}, ${state}`,
+      phone: `+1 ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 900) + 100} ${Math.floor(Math.random() * 9000) + 1000}`,
+      hours: "9am - 7pm",
+      distance: (0.5 + Math.random() * 5).toFixed(1) + ' miles',
+      rating: rating,
+      chain: chainName,
+      zipCode: zipCode,
+      city: city,
+      state: "USA"
+    };
+  });
+  
+  return [...results, ...medSpas];
 };
 
 // Function to simulate international pharmacy search
@@ -451,16 +714,19 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   
   console.log("Normalized query for intelligent search:", normalizedQuery);
   
-  // Check for pharmacy-specific terms
+  // Check for pharmacy or med spa specific terms
   const isPharmacySearch = /pharma(c|cy|cies|s)|drug\s?store|medication|pill|medicine|prescription/.test(normalizedQuery);
+  const isMedSpaSearch = /med spa|medispa|med-spa|spa|cosmetic|aesthetic|beauty|salon|wellness|massage|facial|botox|laser|skin|treatment/.test(normalizedQuery);
   
-  // Try to determine if the query is a ZIP code or a city name
+  // Try to determine if the query is a ZIP code, phone number, or a city name
   const isZipCode = /^\d{5}(-\d{4})?$/.test(normalizedQuery) || // US format
                    /^[A-Za-z]\d[A-Za-z] ?\d[A-Za-z]\d$/.test(normalizedQuery) || // Canadian format
                    /^[A-Za-z]{1,2}\d{1,2}[A-Za-z]? ?\d[A-Za-z]{2}$/.test(normalizedQuery); // UK format
   
+  const isPhoneNumber = /(\+\d{1,3})?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/.test(normalizedQuery);
+  
   // Check for location-based search patterns
-  const locationPattern = /(in|near|at)\s+([a-zA-Z\s]+)/;
+  const locationPattern = /(in|near|at|around)\s+([a-zA-Z\s]+)/;
   const hasLocation = locationPattern.test(normalizedQuery);
   let locationMatch = null;
   let locationName = "";
@@ -489,13 +755,44 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
   // Get results based on query type
   let results: Pharmacy[] = [];
   
-  if (isZipCode || zipMatch) {
-    // This is likely a ZIP code search
+  if (isPhoneNumber) {
+    // Phone number search
+    results = searchPharmaciesByPhone(normalizedQuery);
+  }
+  else if (isZipCode || zipMatch) {
+    // ZIP code search
     results = searchPharmaciesByZip(zipQuery);
   } 
   else if (hasLocation && locationName) {
-    // This is likely a location-based search
+    // Location-based search
     results = searchPharmaciesByCity(locationName);
+  }
+  else if (isMedSpaSearch) {
+    // Med spa specific search
+    results = generateMedSpaResults(normalizedQuery);
+    
+    // Also check if there are any location terms to filter by
+    const cityMatches = normalizedQuery.match(/\b(new york|chicago|los angeles|miami|tampa|boston|san francisco|alpharetta|atlanta)\b/gi);
+    if (cityMatches && cityMatches.length > 0) {
+      // Also get results by that city and add med spas
+      const cityResults = searchPharmaciesByCity(cityMatches[0]);
+      
+      // Filter for likely med spas based on name
+      const medSpaResults = cityResults.filter(p => 
+        p.name.toLowerCase().includes("spa") ||
+        p.name.toLowerCase().includes("wellness") ||
+        p.name.toLowerCase().includes("beauty") ||
+        p.name.toLowerCase().includes("clinic") ||
+        p.name.toLowerCase().includes("aesthetic")
+      );
+      
+      // Add any med spa results we found to the list
+      medSpaResults.forEach(spa => {
+        if (!results.some(r => r.id === spa.id)) {
+          results.push(spa);
+        }
+      });
+    }
   }
   else if (isPharmacySearch) {
     // Generic pharmacy search - check if there are any location terms in the query
@@ -518,7 +815,7 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
     // Try a hybrid approach - search both by city and generic terms
     const cityResults = searchPharmaciesByCity(normalizedQuery);
     
-    // Look for pharmacy names, chains, or addresses
+    // Look for pharmacy/med spa names, chains, or addresses
     const nameResults = pharmacies.filter(pharmacy => 
       pharmacy.name.toLowerCase().includes(normalizedQuery) ||
       pharmacy.address.toLowerCase().includes(normalizedQuery) ||
@@ -535,6 +832,11 @@ export const intelligentPharmacySearch = (query: string, language: string = 'en'
         });
       }
     });
+    
+    // If still no results, add some med spa results
+    if (results.length === 0) {
+      results = generateMedSpaResults(normalizedQuery);
+    }
     
     // If still no results, add some global results
     if (results.length === 0) {
