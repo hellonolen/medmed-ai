@@ -11,7 +11,7 @@ import { pharmacies } from '@/data/pharmacies';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Pharmacy } from '@/data/pharmacies';
 
-const INITIAL_MAP_CENTER = [40.7128, -74.0060]; // NYC
+const INITIAL_MAP_CENTER: [number, number] = [40.7128, -74.0060]; // NYC
 
 const PharmacyFinder = () => {
   const [searchParams] = useSearchParams();
@@ -30,7 +30,7 @@ const PharmacyFinder = () => {
     }
   }, [initialName]);
 
-  const handleSearch = (pharmacyResults: any[]) => {
+  const handleSearch = (pharmacyResults: Pharmacy[]) => {
     setLoading(true);
     setSearched(true);
     
@@ -107,16 +107,12 @@ const PharmacyFinder = () => {
               {selectedView === 'list' ? (
                 <PharmacyList 
                   pharmacies={results} 
-                  loading={loading} 
+                  isLoading={loading} 
                   onLocationSelect={handleLocationSelect}
                 />
               ) : (
                 <div className="h-[600px] rounded-lg overflow-hidden border">
-                  <PharmacyMap 
-                    pharmacies={results}
-                    center={mapCenter}
-                    zoom={mapZoom}
-                  />
+                  <PharmacyMap />
                 </div>
               )}
             </div>

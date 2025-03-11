@@ -9,9 +9,11 @@ export interface Pharmacy {
   distance: string;
   rating: number;
   chain: string;
-  zipCode: string; // Added ZIP code
-  city: string; // Added city
-  state: string; // Added state
+  zipCode: string;
+  city: string;
+  state: string;
+  coordinates?: [number, number]; // Added coordinates
+  relevance?: number; // For search relevance
 }
 
 export const pharmacies: Pharmacy[] = [
@@ -27,7 +29,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "CVS",
     zipCode: "10001",
     city: "New York",
-    state: "NY"
+    state: "NY",
+    coordinates: [40.7505, -73.9934]
   },
   {
     id: 2,
@@ -40,7 +43,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "CVS",
     zipCode: "60601",
     city: "Chicago",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.8781, -87.6298]
   },
   {
     id: 3,
@@ -53,7 +57,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "CVS",
     zipCode: "60432",
     city: "Joliet",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.5250, -88.0817]
   },
   {
     id: 10,
@@ -66,7 +71,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "CVS",
     zipCode: "33511",
     city: "Tampa",
-    state: "FL"
+    state: "FL",
+    coordinates: [27.9506, -82.4572]
   },
   // Walgreens Locations
   {
@@ -80,7 +86,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Walgreens",
     zipCode: "90001",
     city: "Los Angeles",
-    state: "CA"
+    state: "CA",
+    coordinates: [34.0522, -118.2437]
   },
   {
     id: 5,
@@ -93,7 +100,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Walgreens",
     zipCode: "33101",
     city: "Miami",
-    state: "FL"
+    state: "FL",
+    coordinates: [25.7617, -80.1918]
   },
   {
     id: 6,
@@ -106,7 +114,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Walgreens",
     zipCode: "60432",
     city: "Joliet",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.5250, -88.0817]
   },
   {
     id: 11,
@@ -119,7 +128,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Walgreens",
     zipCode: "33609",
     city: "Tampa",
-    state: "FL"
+    state: "FL",
+    coordinates: [27.9506, -82.4572]
   },
   {
     id: 12,
@@ -132,7 +142,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Walgreens",
     zipCode: "60603",
     city: "Chicago",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.8781, -87.6298]
   },
   // Independent Pharmacies
   {
@@ -146,7 +157,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "02101",
     city: "Boston",
-    state: "MA"
+    state: "MA",
+    coordinates: [42.3601, -71.0589]
   },
   {
     id: 8,
@@ -159,7 +171,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "94102",
     city: "San Francisco",
-    state: "CA"
+    state: "CA",
+    coordinates: [37.7749, -122.4194]
   },
   {
     id: 9,
@@ -172,7 +185,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "60432",
     city: "Joliet",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.5250, -88.0817]
   },
   {
     id: 13,
@@ -185,7 +199,8 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "33614",
     city: "Tampa",
-    state: "FL"
+    state: "FL",
+    coordinates: [27.9506, -82.4572]
   },
   {
     id: 14,
@@ -198,6 +213,7 @@ export const pharmacies: Pharmacy[] = [
     chain: "Independent",
     zipCode: "60605",
     city: "Chicago",
-    state: "IL"
+    state: "IL",
+    coordinates: [41.8781, -87.6298]
   }
 ];

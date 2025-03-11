@@ -43,7 +43,7 @@ export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({
     
     switch (searchType) {
       case 'zip':
-        results = pharmacies.filter(p => p.zip.includes(term));
+        results = pharmacies.filter(p => p.zipCode.includes(term));
         break;
       case 'city':
         results = pharmacies.filter(p => p.city.toLowerCase().includes(term));
@@ -55,7 +55,7 @@ export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({
           return p.name.toLowerCase().includes(term) || 
                  p.city.toLowerCase().includes(term) || 
                  (p.chain && p.chain.toLowerCase().includes(term)) ||
-                 p.zip.includes(term);
+                 p.zipCode.includes(term);
         });
     }
     
@@ -69,8 +69,8 @@ export const PharmacySearchForm: React.FC<PharmacySearchFormProps> = ({
       if (pharmacy.city.toLowerCase() === term) relevance += 8;
       else if (pharmacy.city.toLowerCase().includes(term)) relevance += 4;
       
-      if (pharmacy.zip === term) relevance += 9;
-      else if (pharmacy.zip.includes(term)) relevance += 4;
+      if (pharmacy.zipCode === term) relevance += 9;
+      else if (pharmacy.zipCode.includes(term)) relevance += 4;
       
       if (pharmacy.chain && pharmacy.chain.toLowerCase() === term) relevance += 7;
       else if (pharmacy.chain && pharmacy.chain.toLowerCase().includes(term)) relevance += 3;

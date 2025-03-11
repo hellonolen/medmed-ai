@@ -64,25 +64,33 @@ class SearchService {
   private searchMedications(query: string, limit: number): SearchResult[] {
     const results: SearchResult[] = [];
     
-    for (const med of medications) {
-      // Calculate relevance score based on name, description, and type
-      const relevanceScore = weightedSearch(
-        query,
-        { name: med.name, description: med.description, type: med.type },
-        { name: 10, description: 5, type: 3 }
-      );
-      
-      // Only include results with a minimum relevance
-      if (relevanceScore > 0) {
-        results.push({
-          id: med.id,
-          name: med.name,
-          details: med.description,
-          type: med.type,
-          price: med.price,
-          source: 'Internal Database',
-          relevanceScore
-        });
+    // Process each medication category
+    for (const category of medications) {
+      // Process each product in the category
+      for (const product of category.products) {
+        // Calculate relevance score based on name, details, and type
+        const relevanceScore = weightedSearch(
+          query,
+          { 
+            name: product.name, 
+            details: product.details, 
+            type: product.type 
+          },
+          { name: 10, details: 5, type: 3 }
+        );
+        
+        // Only include results with a minimum relevance
+        if (relevanceScore > 0) {
+          results.push({
+            id: `${medications.indexOf(category)}-${category.products.indexOf(product)}`,
+            name: product.name,
+            details: product.details,
+            type: product.type,
+            price: product.price,
+            source: 'Internal Database',
+            relevanceScore
+          });
+        }
       }
     }
     
@@ -147,11 +155,11 @@ class SearchService {
         results.push({
           id: pharmacy.id,
           name: pharmacy.name,
-          details: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zip}`,
+          details: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zipCode}`,
           type,
           source: 'Pharmacy Network',
           phone: pharmacy.phone || undefined,
-          address: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zip}`
+          address: `${pharmacy.address}, ${pharmacy.city}, ${pharmacy.state} ${pharmacy.zipCode}`
         });
       }
     }
