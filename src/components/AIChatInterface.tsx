@@ -178,8 +178,8 @@ export const AIChatInterface = ({
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="h-[200px] overflow-y-auto p-4 space-y-4">
+    <Card className="w-full max-w-full md:max-w-2xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="h-[200px] sm:h-[250px] md:h-[300px] overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-4">
         {messages.map((message, index) => (
           <div
             key={index}
@@ -187,19 +187,19 @@ export const AIChatInterface = ({
               message.type === 'user' ? 'items-start flex-row-reverse' : 'items-start'
             }`}
           >
-            <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+            <div className={`flex-shrink-0 h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center ${
               message.type === 'ai' ? 'bg-primary/10' : 
               message.type === 'error' ? 'bg-destructive/10' : 'bg-secondary'
             }`}>
               {message.type === 'ai' ? (
-                <MessageCircle className="h-4 w-4 text-primary" />
+                <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
               ) : message.type === 'error' ? (
-                <AlertTriangle className="h-4 w-4 text-destructive" />
+                <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
               ) : (
-                <User className="h-4 w-4" />
+                <User className="h-3 w-3 sm:h-4 sm:w-4" />
               )}
             </div>
-            <div className={`rounded-lg px-4 py-2 max-w-[80%] ${
+            <div className={`rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[75%] sm:max-w-[80%] text-sm sm:text-base ${
               message.type === 'ai' 
                 ? 'bg-primary/10 text-foreground' 
                 : message.type === 'error'
@@ -212,10 +212,10 @@ export const AIChatInterface = ({
         ))}
         {isTyping && (
           <div className="flex gap-2 items-start">
-            <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageCircle className="h-4 w-4 text-primary" />
+            <div className="flex-shrink-0 h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
             </div>
-            <div className="rounded-lg px-4 py-2 bg-primary/10 text-foreground">
+            <div className="rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 bg-primary/10 text-foreground">
               <span className="inline-flex gap-1">
                 <span className="animate-bounce">.</span>
                 <span className="animate-bounce delay-100">.</span>
@@ -227,24 +227,26 @@ export const AIChatInterface = ({
         <div ref={messagesEndRef} />
       </div>
       
-      <form onSubmit={handleSubmit} className="p-4 border-t flex gap-2">
+      <form onSubmit={handleSubmit} className="p-2 sm:p-4 border-t flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder={t("ai.input_placeholder", "Search medications, med spas, doctors, symptoms, find pharmacies worldwide...")}
-          className="flex-1 px-4 py-2 rounded-lg border border-input bg-background"
+          className="flex-1 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg border border-input bg-background"
           disabled={isTyping || isSearching}
         />
-        <AccessibilityPanel />
-        <VoiceSearchButton
-          onResult={handleVoiceResult}
-          isListening={false}
-          setIsListening={() => {}}
-        />
-        <Button type="submit" size="icon" disabled={isTyping || isSearching}>
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2 justify-end">
+          <AccessibilityPanel />
+          <VoiceSearchButton
+            onResult={handleVoiceResult}
+            isListening={false}
+            setIsListening={() => {}}
+          />
+          <Button type="submit" size="icon" disabled={isTyping || isSearching}>
+            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
+          </Button>
+        </div>
       </form>
     </Card>
   );
