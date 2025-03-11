@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SearchBar } from "@/components/SearchBar";
@@ -15,7 +14,6 @@ import { RecommendationSystem } from "@/components/RecommendationSystem";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SponsoredContent } from "@/components/SponsoredContent";
 import { AIChat } from "@/components/AIChat";
-import { AIFAQ } from "@/components/AIFAQ";
 import { AIKeySetup } from "@/components/AIKeySetup";
 
 const Index = () => {
@@ -222,14 +220,7 @@ const Index = () => {
           )}
           
           {!searchPerformed && (
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-              <div>
-                <AIFAQ 
-                  title="Healthcare FAQs"
-                  category="healthcare"
-                  showChat={false}
-                />
-              </div>
+            <div className="max-w-4xl mx-auto grid grid-cols-1 gap-8 mb-12">
               <div>
                 {!isSubscribed && (
                   <SponsoredContent />
