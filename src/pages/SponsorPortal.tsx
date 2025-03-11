@@ -195,22 +195,6 @@ const SponsorPortal = () => {
             )}
           </TabsContent>
         </Tabs>
-        
-        <div className="mt-10 bg-secondary/40 p-4 rounded-lg border">
-          <div className="max-w-lg mx-auto">
-            <h2 className="text-lg font-medium mb-2">Ready to partner with us?</h2>
-            <p className="mb-4 text-gray-600 text-sm">
-              Join our growing network of healthcare partners reaching thousands of users daily. Our AI-powered platform ensures optimal placement of your content.
-            </p>
-            <Button 
-              onClick={() => navigate('/advertiser-enrollment')}
-              size="sm"
-              className="w-full sm:w-auto"
-            >
-              Apply Now
-            </Button>
-          </div>
-        </div>
       </div>
     </Layout>
   );
