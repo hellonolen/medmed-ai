@@ -26,7 +26,11 @@ const PharmacyFinder = () => {
   
   useEffect(() => {
     if (initialName) {
-      handleSearch([{ name: initialName }]);
+      // Fix: Create a proper filter instead of an incomplete object
+      const filteredPharmacies = pharmacies.filter(p => 
+        p.name.toLowerCase().includes(initialName.toLowerCase())
+      );
+      handleSearch(filteredPharmacies);
     }
   }, [initialName]);
 

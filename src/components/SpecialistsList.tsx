@@ -412,7 +412,8 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
             {limitedSpecialists.map((specialist) => {
               const specialistInfo = specialistsInfo[specialist] || { 
                 name: specialist, 
-                description: "Healthcare specialist focused on specific medical conditions and treatments."
+                description: "Healthcare specialist focused on specific medical conditions and treatments.",
+                locations: [] // Add empty locations array as fallback
               };
               
               return (
@@ -459,7 +460,7 @@ export const SpecialistsList = ({ searchQuery }: SpecialistsListProps) => {
                     <TooltipContent className="max-w-xs p-4">
                       <h4 className="font-medium mb-1">{specialist}</h4>
                       <p className="text-sm">{specialistInfo.description}</p>
-                      {specialistInfo.locations && (
+                      {specialistInfo.locations && specialistInfo.locations.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-border">
                           <h5 className="text-xs font-medium mb-1">Available Locations:</h5>
                           <div className="text-xs text-gray-500">

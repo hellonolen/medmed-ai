@@ -1,4 +1,3 @@
-
 export interface Specialist {
   id: string | number;
   name: string;
@@ -18,6 +17,8 @@ export interface TopTreatmentLocation {
 export interface SpecialistInfo {
   locations?: string[];
   topTreatmentLocations?: TopTreatmentLocation[];
+  description?: string;
+  name?: string;
 }
 
 export const specialists: Specialist[] = [
@@ -68,7 +69,6 @@ export const specialists: Specialist[] = [
   }
 ];
 
-// Specialist additional information for detailed views
 export const specialistsInfo: Record<string, SpecialistInfo> = {
   "Endocrinology": {
     locations: ["New York", "Boston", "Chicago", "Los Angeles", "Houston"],
