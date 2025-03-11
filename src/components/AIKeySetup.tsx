@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, AlertCircle, Info } from "lucide-react";
 
-type AIProvider = 'perplexity' | 'openai' | 'claude' | 'specialized';
+type APIProvider = 'perplexity' | 'openai' | 'claude' | 'specialized';
 
 interface ProviderConfig {
   name: string;
@@ -20,41 +20,41 @@ interface ProviderConfig {
 
 export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<AIProvider>('perplexity');
-  const [apiKeys, setApiKeys] = useState<Record<AIProvider, string>>({
+  const [activeTab, setActiveTab] = useState<APIProvider>('perplexity');
+  const [apiKeys, setApiKeys] = useState<Record<APIProvider, string>>({
     perplexity: "",
     openai: "",
     claude: "",
     specialized: ""
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [configuredProviders, setConfiguredProviders] = useState<AIProvider[]>([]);
+  const [configuredProviders, setConfiguredProviders] = useState<APIProvider[]>([]);
 
   // Provider configuration data
-  const providers: Record<AIProvider, ProviderConfig> = {
+  const providers: Record<APIProvider, ProviderConfig> = {
     perplexity: {
-      name: "Perplexity AI",
-      description: "General purpose AI with good medical knowledge",
+      name: "Perplexity API",
+      description: "General purpose search with good medical knowledge",
       keyPlaceholder: "pplx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       docLink: "https://www.perplexity.ai/settings/api",
       recommended: true
     },
     openai: {
-      name: "OpenAI GPT-4o",
+      name: "OpenAI API",
       description: "Highly accurate with broad medical knowledge",
       keyPlaceholder: "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       docLink: "https://platform.openai.com/api-keys",
       recommended: true
     },
     claude: {
-      name: "Anthropic Claude",
+      name: "Anthropic API",
       description: "Known for thoughtful, nuanced responses",
       keyPlaceholder: "sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
       docLink: "https://console.anthropic.com/keys",
       recommended: false
     },
     specialized: {
-      name: "Specialized Healthcare AI",
+      name: "MedData API",
       description: "Domain-specific for medical applications",
       keyPlaceholder: "healthcare-xxxxxxxxxxxxxxxxxxxxxxxx",
       docLink: "#",
@@ -65,13 +65,13 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
   // Load saved API keys on component mount
   useEffect(() => {
     const loadKeys = () => {
-      const configured: AIProvider[] = [];
+      const configured: APIProvider[] = [];
       
       // Check for each provider
       Object.keys(providers).forEach((provider) => {
-        const key = aiService.getApiKey(provider as AIProvider);
+        const key = aiService.getApiKey(provider as APIProvider);
         if (key) {
-          configured.push(provider as AIProvider);
+          configured.push(provider as APIProvider);
           setApiKeys(prev => ({
             ...prev,
             [provider]: key
@@ -87,14 +87,14 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
 
   const handleSaveKey = async () => {
     if (!apiKeys[activeTab]?.trim()) {
-      toast.error(`Please enter a valid ${providers[activeTab].name} API key`);
+      toast.error(`Please enter a valid ${providers[activeTab].name} key`);
       return;
     }
 
     setIsSaving(true);
     try {
       aiService.setApiKey(activeTab, apiKeys[activeTab].trim());
-      toast.success(`${providers[activeTab].name} API key saved successfully`);
+      toast.success(`${providers[activeTab].name} key saved successfully`);
       
       // Update configured providers list
       if (!configuredProviders.includes(activeTab)) {
@@ -103,8 +103,8 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
       
       if (onKeySet) onKeySet();
     } catch (error) {
-      toast.error(`Failed to save ${providers[activeTab].name} API key`);
-      console.error(`Error saving ${providers[activeTab].name} API key:`, error);
+      toast.error(`Failed to save ${providers[activeTab].name} key`);
+      console.error(`Error saving ${providers[activeTab].name} key:`, error);
     } finally {
       setIsSaving(false);
     }
@@ -129,29 +129,29 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
         className={getButtonColor()}
       >
         {configuredProviders.length === 0 ? (
-          "Set AI Keys"
+          "Set API Keys"
         ) : configuredProviders.length === 1 ? (
-          <span className="flex items-center"><Check className="mr-1 h-3 w-3" /> 1 AI Provider</span>
+          <span className="flex items-center"><Check className="mr-1 h-3 w-3" /> 1 Provider</span>
         ) : (
-          <span className="flex items-center"><Check className="mr-1 h-3 w-3" /> {configuredProviders.length} AI Providers</span>
+          <span className="flex items-center"><Check className="mr-1 h-3 w-3" /> {configuredProviders.length} Providers</span>
         )}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
-            <DialogTitle>Configure AI Providers</DialogTitle>
+            <DialogTitle>Configure Data Providers</DialogTitle>
             <DialogDescription>
-              Add API keys for multiple AI providers to improve accuracy and safety of medical information
+              Add API keys for multiple providers to improve accuracy and safety of medical information
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as AIProvider)}>
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as APIProvider)}>
             <TabsList className="grid grid-cols-4">
               {Object.entries(providers).map(([key, provider]) => (
                 <TabsTrigger key={key} value={key} className="relative">
                   {provider.name.split(' ')[0]}
-                  {configuredProviders.includes(key as AIProvider) && (
+                  {configuredProviders.includes(key as APIProvider) && (
                     <span className="absolute -top-1 -right-1">
                       <Check className="h-3 w-3 text-green-500" />
                     </span>
@@ -183,7 +183,7 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
                       <Input
                         id={`${key}-apiKey`}
                         type="password"
-                        value={apiKeys[key as AIProvider]}
+                        value={apiKeys[key as APIProvider]}
                         onChange={(e) => setApiKeys(prev => ({
                           ...prev,
                           [key]: e.target.value
@@ -196,7 +196,7 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
                     <div className="col-span-4 flex items-start space-x-2 text-xs text-gray-500 mt-2">
                       <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p>Get your API key from <a href={provider.docLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{provider.name} API Settings</a></p>
+                        <p>Get your API key from <a href={provider.docLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{provider.name} Settings</a></p>
                         <p className="mt-1">This key is stored securely in your browser's local storage.</p>
                         
                         {key === 'perplexity' && (
@@ -209,21 +209,21 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
                         {key === 'openai' && (
                           <div className="mt-2 p-2 bg-amber-50 rounded text-amber-800">
                             <p className="font-medium">Why OpenAI?</p>
-                            <p>GPT-4o offers highly accurate healthcare information with advanced safety filters.</p>
+                            <p>Offers highly accurate healthcare information with advanced safety filters.</p>
                           </div>
                         )}
                         
                         {key === 'claude' && (
                           <div className="mt-2 p-2 bg-amber-50 rounded text-amber-800">
-                            <p className="font-medium">Why Claude?</p>
-                            <p>Claude is known for more nuanced, thoughtful responses, especially on sensitive topics.</p>
+                            <p className="font-medium">Why Anthropic?</p>
+                            <p>Known for more nuanced, thoughtful responses, especially on sensitive topics.</p>
                           </div>
                         )}
                         
                         {key === 'specialized' && (
                           <div className="mt-2 p-2 bg-amber-50 rounded text-amber-800">
-                            <p className="font-medium">Specialized Healthcare AI</p>
-                            <p>This is a placeholder for a dedicated healthcare AI service that would provide domain-specific expertise.</p>
+                            <p className="font-medium">Specialized Healthcare Data</p>
+                            <p>This is a placeholder for a dedicated healthcare data service that would provide domain-specific expertise.</p>
                           </div>
                         )}
                       </div>
@@ -239,7 +239,7 @@ export const AIKeySetup = ({ onKeySet }: { onKeySet?: () => void }) => {
               <AlertCircle className="h-4 w-4" />
               Multiple Provider Benefits
             </h4>
-            <p className="mt-1">Configuring multiple AI providers significantly improves the safety and accuracy of medical information by:</p>
+            <p className="mt-1">Configuring multiple API providers significantly improves the safety and accuracy of medical information by:</p>
             <ul className="list-disc ml-5 mt-1 space-y-1">
               <li>Cross-checking answers between providers</li>
               <li>Blocking unsafe advice through consensus verification</li>

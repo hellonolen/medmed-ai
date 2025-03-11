@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { CheckCircle, AlertCircle, AlertTriangle, ShieldCheck, Loader2 } from "lucide-react";
 import { aiService } from "@/services/AIService";
 
-interface AIPaymentVerificationProps {
+interface PaymentVerificationProps {
   paymentDetails: {
     amount: number;
     cardNumber?: string;
@@ -20,7 +20,7 @@ interface AIPaymentVerificationProps {
   }) => void;
 }
 
-export const AIPaymentVerification: React.FC<AIPaymentVerificationProps> = ({
+export const AIPaymentVerification: React.FC<PaymentVerificationProps> = ({
   paymentDetails,
   onVerificationComplete
 }) => {
@@ -50,7 +50,7 @@ export const AIPaymentVerification: React.FC<AIPaymentVerificationProps> = ({
         ...sanitizedDetails,
         timestamp: new Date().toISOString(),
         averagePackagePrice: 999, // Fictional average for context
-        requestIp: "Secure - Not shared with AI" // Privacy note
+        requestIp: "Secure - Not shared with API" // Privacy note
       };
 
       const response = await aiService.getPaymentVerification(contextEnhancedDetails);
@@ -75,7 +75,7 @@ export const AIPaymentVerification: React.FC<AIPaymentVerificationProps> = ({
         }
       } else {
         setVerificationResult({
-          verified: true, // Fallback to approval if AI service fails
+          verified: true, // Fallback to approval if service fails
           risk: "low",
           reason: "Automatic approval due to verification service unavailability."
         });
@@ -144,10 +144,10 @@ export const AIPaymentVerification: React.FC<AIPaymentVerificationProps> = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          AI Payment Verification
+          Advanced Payment Verification
         </CardTitle>
         <CardDescription>
-          Our AI system verifies payment details for security
+          Our system verifies payment details for security
         </CardDescription>
       </CardHeader>
       <CardContent>

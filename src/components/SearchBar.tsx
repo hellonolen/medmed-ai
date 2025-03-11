@@ -20,7 +20,7 @@ interface SearchBarProps {
 export const SearchBar = ({ onSearch }: SearchBarProps) => {
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [aiProcessing, setAiProcessing] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   
   const { t } = useLanguage();
@@ -36,7 +36,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
     }
   }, [query]);
 
-  // AI-powered search function that handles multiple query types
+  // Enhanced search function that handles multiple query types
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) {
       e.preventDefault();
@@ -47,10 +47,10 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       return;
     }
     
-    setAiProcessing(true);
+    setProcessing(true);
     
     try {
-      // AI analysis of query type
+      // Analysis of query type
       const normalizedQuery = query.toLowerCase().trim();
       
       // Check if query appears to be looking for pharmacy locations
@@ -76,7 +76,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       // If it's a pharmacy location search
       if (isPharmacySearch && (hasLocation || normalizedQuery.includes("find"))) {
         toast.info("Searching pharmacies...", {
-          icon: <Search className="h-4 w-4 text-primary animate-pulse" />,
+          icon: <Search className="h-4 w-4 text-primary" />,
         });
         
         // Quick show of pharmacy page for better user experience
@@ -94,7 +94,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       
       // For medical/medication searches
       toast.info("Searching global medical database...", {
-        icon: <Search className="h-4 w-4 text-primary animate-pulse" />,
+        icon: <Search className="h-4 w-4 text-primary" />,
         duration: 2000,
       });
       
@@ -106,7 +106,7 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         generateSearchSuggestions(query);
       }
     } catch (error) {
-      console.error("Error in AI-powered search:", error);
+      console.error("Error in search:", error);
       uiToast({
         title: t("search.error.title", "Search Error"),
         description: t("search.error.description", "There was an issue with your search. Please try again."),
@@ -114,11 +114,11 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
       });
       onSearch(query, []);
     } finally {
-      setAiProcessing(false);
+      setProcessing(false);
     }
   };
 
-  // Generate AI-powered search suggestions
+  // Generate search suggestions
   const generateSearchSuggestions = async (searchQuery: string) => {
     try {
       // Use the API key if available
@@ -237,8 +237,8 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
             type="submit"
             size="icon"
             variant="ghost"
-            className={`absolute right-14 top-1/2 transform -translate-y-1/2 text-primary ${aiProcessing || loading ? 'opacity-50' : ''}`}
-            disabled={loading || aiProcessing}
+            className={`absolute right-14 top-1/2 transform -translate-y-1/2 text-primary ${processing || loading ? 'opacity-50' : ''}`}
+            disabled={loading || processing}
             aria-label="Search"
           >
             <Search className="h-5 w-5" />
@@ -260,8 +260,8 @@ export const SearchBar = ({ onSearch }: SearchBarProps) => {
         
         <button 
           type="submit" 
-          className={`sr-only ${loading || aiProcessing ? "opacity-50 cursor-not-allowed" : ""}`}
-          disabled={loading || aiProcessing}
+          className={`sr-only ${loading || processing ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={loading || processing}
         >
           {t("button.search", "Search")}
         </button>

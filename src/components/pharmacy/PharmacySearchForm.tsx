@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Building, Search, Globe, Bot } from "lucide-react";
+import { MapPin, Building, Search, Globe, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { aiService } from "@/services/AIService";
@@ -64,7 +64,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     // Keep the values but force a re-search if language changes
   }, [language]);
 
-  // Generate search suggestions using AI
+  // Generate search suggestions
   const generateSearchSuggestions = async (query: string) => {
     if (!query || query.length < 3) return;
     
@@ -107,7 +107,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     }
   };
 
-  // Enhanced search with AI analysis
+  // Enhanced search
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -140,7 +140,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     // Add language context to search
     searchTerm = `${searchTerm} (${language})`;
     
-    // Analyze the search query with AI for better results
+    // Analyze the search query for better results
     if (activeTab === 'smart') {
       try {
         const response = await aiService.askAI({
@@ -153,10 +153,10 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
             const analysis = JSON.parse(response.content);
             if (analysis.enhancedQuery) {
               searchTerm = analysis.enhancedQuery;
-              console.log("AI enhanced query:", searchTerm);
+              console.log("Enhanced query:", searchTerm);
             }
           } catch (error) {
-            console.error("Error parsing AI response:", error);
+            console.error("Error parsing response:", error);
           }
         }
       } catch (error) {
@@ -182,7 +182,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
     }, 100);
   };
 
-  // Handle input change with AI suggestions
+  // Handle input change with suggestions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'smart' | 'zip' | 'city') => {
     const value = e.target.value;
     
@@ -225,7 +225,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
           }}
         >
           <TabsList className="mb-4 grid grid-cols-3">
-            <TabsTrigger value="smart">AI Smart Search</TabsTrigger>
+            <TabsTrigger value="smart">Smart Search</TabsTrigger>
             <TabsTrigger value="zip">Search by Postal Code</TabsTrigger>
             <TabsTrigger value="city">Search by Location</TabsTrigger>
           </TabsList>
@@ -250,7 +250,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
                         className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                         onClick={() => applySuggestion(suggestion)}
                       >
-                        <Bot className="h-3 w-3 text-primary" />
+                        <Sparkles className="h-3 w-3 text-primary" />
                         {suggestion}
                       </button>
                     ))}
@@ -262,7 +262,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
               </Button>
             </form>
             <p className="text-xs text-gray-500 mt-2">
-              Our AI-powered search automatically detects what you're looking for and searches globally. 
+              Our smart search automatically detects what you're looking for and searches globally. 
               Try searching for specific medication types like "tablets", "inhalers", "medical devices", "diagnostic tools", etc.
             </p>
           </TabsContent>
@@ -308,7 +308,7 @@ export const PharmacySearchForm = ({ onSearch, isSearching, initialSearchTerm = 
                         className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                         onClick={() => applySuggestion(suggestion)}
                       >
-                        <Bot className="h-3 w-3 text-primary" />
+                        <Sparkles className="h-3 w-3 text-primary" />
                         {suggestion}
                       </button>
                     ))}

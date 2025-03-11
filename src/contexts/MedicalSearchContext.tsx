@@ -37,13 +37,13 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
     { name: "Levothyroxine", details: "Synthetic thyroid hormone for hypothyroidism", price: "$11.99", type: "Tablet", source: "FDA Database" }
   ];
 
-  // AI-enhanced search function
+  // Enhanced search function
   const searchWithContext = useCallback(async (query: string) => {
     if (!query.trim()) return [];
     
     setLoading(true);
     try {
-      // Advanced query analysis with AI
+      // Advanced query analysis
       const queryLower = query.toLowerCase();
       
       // More comprehensive check for pharmacy-related queries
@@ -63,7 +63,7 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
         .map(item => `${item.query} - ${item.context}`)
         .join('\n');
 
-      console.log("AI analyzing search query:", query);
+      console.log("Analyzing search query:", query);
       console.log("Using context:", recentContext);
       console.log("Query classification:", { 
         isPharmacyLocationSearch, 
@@ -88,15 +88,15 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
         systemPrompt = 'You are a medical search assistant. Analyze the query and previous context to determine the most relevant medical information, medications, specialists, or conditions. Return structured data only in the following JSON format: {"results": [{"name": "Medication/Specialist Name", "details": "Brief description", "price": "Price if applicable", "type": "Category or type", "source": "Data source"}]}';
       }
       
-      // Use the centralized AI service
-      const aiResponse = await aiService.askAI({
+      // Use the centralized service
+      const apiResponse = await aiService.askAI({
         query: `Previous context:\n${recentContext}\n\nCurrent query: ${query}`,
         systemPrompt
       });
       
-      if (aiResponse.success) {
+      if (apiResponse.success) {
         try {
-          const content = aiResponse.content;
+          const content = apiResponse.content;
           const parsedData = typeof content === 'string' 
             ? JSON.parse(content) 
             : content;
@@ -117,12 +117,12 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
           }));
           
         } catch (parseError) {
-          console.error("Error parsing AI response:", parseError);
+          console.error("Error parsing response:", parseError);
           toast.error("Unable to process search results");
-          throw new Error("Invalid response format from AI");
+          throw new Error("Invalid response format");
         }
       } else {
-        console.log("AI service unavailable, using fallback data");
+        console.log("Service unavailable, using fallback data");
         // Filter through fallback data based on search terms
         results = fallbackResults.filter(item => 
           item.name.toLowerCase().includes(queryLower) || 
