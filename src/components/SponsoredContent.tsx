@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { ExternalLink, BarChart, LogIn } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -63,21 +63,9 @@ export const SponsoredContent = () => {
           We work with trusted healthcare providers to bring you the best services
         </p>
         <div className="flex justify-center gap-4 mt-4">
-          <Link to="/advertiser-enrollment">
+          <Link to="/sponsor-portal">
             <Button variant="outline" size="sm">
               Become a Partner
-            </Button>
-          </Link>
-          <Link to="/sponsor-login">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <LogIn className="h-4 w-4" />
-              Sponsor Login
-            </Button>
-          </Link>
-          <Link to="/sponsor-dashboard">
-            <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <BarChart className="h-4 w-4" />
-              Sponsor Dashboard
             </Button>
           </Link>
         </div>

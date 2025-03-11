@@ -195,6 +195,9 @@ const Index = () => {
               </div>
               
               <div className="flex items-center gap-6 mt-4 md:mt-0">
+                <Link to="/sponsor-portal" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
+                  <span>{t("footer.sponsors", "Sponsors")}</span>
+                </Link>
                 <Link to="/privacy" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
                   <Shield className="h-3.5 w-3.5" />
                   <span>{t("footer.privacy", "Privacy")}</span>
