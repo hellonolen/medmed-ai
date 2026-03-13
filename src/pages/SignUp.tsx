@@ -15,7 +15,7 @@ const SignUp = () => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,7 +25,7 @@ const SignUp = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       toast({
         variant: "destructive",
@@ -34,7 +34,7 @@ const SignUp = () => {
       });
       return;
     }
-    
+
     if (!agreeToTerms) {
       toast({
         variant: "destructive",
@@ -43,7 +43,7 @@ const SignUp = () => {
       });
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
@@ -68,7 +68,7 @@ const SignUp = () => {
   };
 
   return (
-    <Layout>
+    <Layout hideNav>
       <div className="flex justify-center items-center py-8">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
@@ -142,8 +142,8 @@ const SignUp = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="terms" 
+                <Checkbox
+                  id="terms"
                   checked={agreeToTerms}
                   onCheckedChange={(checked) => {
                     setAgreeToTerms(checked as boolean);

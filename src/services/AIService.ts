@@ -1,5 +1,9 @@
 // AIService.ts - Handles AI provider communication
+// Routes through MedMed.AI Cloudflare Worker (Gemini) as primary provider.
+// Falls back to direct provider calls if Worker is unavailable.
 import { toast } from "sonner";
+
+const WORKER_URL = (import.meta as any).env?.VITE_WORKER_URL || 'https://medmed-agent.hellonolen.workers.dev';
 
 interface AIResponse {
   success: boolean;
@@ -36,6 +40,34 @@ class AIService {
       AIService.instance = new AIService();
     }
     return AIService.instance;
+  }
+
+  // ─── Worker Integration ──────────────────────────────────────────────────
+
+  private async callWorker(
+    query: string,
+    systemPrompt?: string,
+    history?: Array<{ role: string; parts: [{ text: string }] }>,
+    searchType?: string
+  ): Promise<AIResponse> {
+    try {
+      const res = await fetch(`${WORKER_URL}/api/ai`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, systemPrompt, history, searchType }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) throw new Error(`Worker ${res.status}`);
+      const data: any = await res.json();
+      return {
+        success: data.success,
+        content: data.content,
+        provider: 'gemini',
+      };
+    } catch (e) {
+      // Worker unavailable — signal to fall back to direct providers
+      throw e;
+    }
   }
 
   public getApiKey(provider: string = 'perplexity'): string {
@@ -254,60 +286,55 @@ class AIService {
     const { query, systemPrompt = "", provider } = options;
 
     try {
-      // Get all configured providers
+      // ── Primary: Route through Gemini Worker ──────────────────────────
+      try {
+        return await this.callWorker(query, systemPrompt || undefined);
+      } catch {
+        // Worker unavailable — fall through to direct providers below
+      }
+
+      // ── Fallback: Direct provider calls (dev / no Worker) ─────────────
       const configuredProviders = this.getConfiguredProviders();
-      
+
       if (configuredProviders.length === 0) {
         return {
           success: false,
           content: "No AI providers configured. Please add at least one API key in settings."
         };
       }
-      
-      // If a specific provider is requested and configured, use only that one
+
       if (provider && this.getApiKey(provider)) {
         return this.callProvider(provider, query, systemPrompt);
       }
-      
-      // Use the first configured provider as primary
+
       const primaryProvider = configuredProviders[0];
       const primaryResponse = await this.callProvider(primaryProvider, query, systemPrompt);
-      
-      // If we only have one provider, return its response
+
       if (configuredProviders.length === 1) {
         return primaryResponse;
       }
-      
-      // For multiple providers, check if the response is safe
+
       const isSafe = this.getMedicalSafetyVerification(primaryResponse.content);
-      
-      // If primary response looks unsafe and we have other providers, cross-verify
+
       if (!isSafe && configuredProviders.length > 1) {
         toast.info("Cross-verifying medical information for safety...");
-        
-        // Get a second opinion from another provider
         const secondaryProvider = configuredProviders[1];
         const promptWithWarning = `${systemPrompt}\n\nIMPORTANT: The following medical question requires careful consideration for safety: "${query}"\n\nPlease provide accurate information and ensure your answer includes appropriate medical disclaimers and safety warnings.`;
-        
         const secondaryResponse = await this.callProvider(secondaryProvider, query, promptWithWarning);
-        
         if (!this.getMedicalSafetyVerification(secondaryResponse.content)) {
-          // Both providers returned potentially unsafe content - return safer response
           return {
             success: true,
             content: "I'm unable to provide specific guidance on this medical topic as it may require professional medical consultation. Please consult with a healthcare provider for personalized advice on this matter.",
             provider: "safety_system"
           };
         }
-        
-        // Return the secondary response with a note
         return {
           success: true,
           content: `${secondaryResponse.content}\n\n[Cross-verified by multiple medical AI systems for safety]`,
           provider: secondaryProvider
         };
       }
-      
+
       return primaryResponse;
     } catch (error) {
       console.error("Error in askAI:", error);

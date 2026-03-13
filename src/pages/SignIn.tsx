@@ -44,7 +44,7 @@ const SignIn = () => {
   };
 
   return (
-    <Layout>
+    <Layout hideNav>
       <div className="flex justify-center items-center py-8">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">

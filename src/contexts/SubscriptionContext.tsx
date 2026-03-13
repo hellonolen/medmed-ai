@@ -24,10 +24,10 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
   const [tier, setTier] = useState<SubscriptionTier>('free');
-  
+
   // Define features available for each subscription tier
   const getTierFeatures = (subTier: SubscriptionTier) => {
-    switch(subTier) {
+    switch (subTier) {
       case 'free':
         return {
           detailedMedicationInfo: false,
@@ -66,14 +66,14 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         };
     }
   };
-  
+
   const [features, setFeatures] = useState(getTierFeatures(tier));
-  
+
   // Update features when tier changes
   useEffect(() => {
     setFeatures(getTierFeatures(tier));
   }, [tier]);
-  
+
   const toggleSubscription = (newTier?: SubscriptionTier) => {
     if (newTier) {
       setTier(newTier);
@@ -86,19 +86,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setTier(nextTier);
       toast({
         title: "Subscription Updated",
-        description: nextTier === 'free' 
-          ? "Your subscription has been canceled." 
+        description: nextTier === 'free'
+          ? "Your subscription has been canceled."
           : "You are now a premium subscriber.",
       });
     }
   };
-  
+
   const isFeatureAvailable = (featureName: keyof typeof features) => {
     return features[featureName];
   };
-  
+
   return (
-    <SubscriptionContext.Provider 
+    <SubscriptionContext.Provider
       value={{
         tier,
         isSubscribed: tier !== 'free',

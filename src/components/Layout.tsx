@@ -7,14 +7,16 @@ import { Home, Settings, LogIn, UserPlus } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
+  hideNav?: boolean;
 }
 
-const Layout = ({ children }: LayoutProps) => {
+const Layout = ({ children, hideNav = false }: LayoutProps) => {
   const { t } = useLanguage();
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Header */}
+      {/* Header — hidden on auth pages */}
+      {!hideNav && (
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
@@ -46,6 +48,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         </div>
       </header>
+      )}
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">

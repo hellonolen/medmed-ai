@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { aiService } from '@/services/AIService';
 import { intelligentPharmacySearch } from '@/utils/pharmacySearch';
 
+const WORKER_URL = (import.meta as any).env?.VITE_WORKER_URL || 'https://medmed-agent.hellonolen.workers.dev';
+
 interface SearchState {
   history: Array<{
     query: string;
@@ -193,11 +195,35 @@ export const MedicalSearchProvider = ({ children }: { children: React.ReactNode 
   // Unified search function with comprehensive search capabilities
   const searchWithContext = useCallback(async (query: string, searchType?: string): Promise<UnifiedSearchResult[]> => {
     if (!query.trim()) return [];
-    
+
     setLoading(true);
     setState(prev => ({ ...prev, lastError: null }));
-    
+
     try {
+      // ── Primary: Ask the Gemini Worker for structured results ────────────
+      try {
+        const workerRes = await fetch(`${WORKER_URL}/api/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, searchType, language }),
+          signal: AbortSignal.timeout(12000),
+        });
+        if (workerRes.ok) {
+          const data: any = await workerRes.json();
+          if (data.success && Array.isArray(data.results) && data.results.length > 0) {
+            setState(prev => ({
+              ...prev,
+              history: [...prev.history, { query, context: searchType || 'auto', results: data.results, timestamp: new Date() }]
+            }));
+            setLoading(false);
+            return data.results as UnifiedSearchResult[];
+          }
+        }
+      } catch {
+        // Worker unavailable — fall through to existing logic below
+      }
+
+      // ── Fallback: existing pattern matching + hardcoded data ──────────
       console.log(`Advanced search beginning for: "${query}" with type: ${searchType || 'auto'}`);
       
       // Advanced query analysis

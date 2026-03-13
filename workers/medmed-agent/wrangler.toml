@@ -1,0 +1,23 @@
+name = "medmed-agent"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+WORKER_ENV = "production"
+
+# Secrets (set via: wrangler secret put KEY)
+# GEMINI_API_KEY
+# JWT_SECRET
+# POSTMARK_SERVER_TOKEN
+
+[[d1_databases]]
+binding = "DB"
+database_name = "medmed-db"
+database_id = "5156660e-c1c2-4ae3-a9bb-8173e494b67a"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "medmed-media"
+
+# Custom domain — connect via Cloudflare dashboard:
+# Workers & Pages → medmed-agent → Settings → Domains & Routes → Add Custom Domain → api.medmed.ai

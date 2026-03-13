@@ -34,7 +34,7 @@ const Index = () => {
   const { t } = useLanguage();
   const { tier, isSubscribed } = useSubscription();
   const navigate = useNavigate();
-  
+
   const handleSearch = (query: string, results: Array<{
     name: string;
     details: string;
@@ -47,7 +47,7 @@ const Index = () => {
     setSearchResults(results);
     setSearchQuery(query);
     setSearchPerformed(query !== '');
-    
+
     if (results.length > 0) {
       const resultTypes = new Set(results.map(r => r.type?.toLowerCase()));
       if (resultTypes.size === 1) {
@@ -67,14 +67,14 @@ const Index = () => {
 
   const removeResult = (index: number) => {
     setSearchResults(prev => prev.filter((_, i) => i !== index));
-    
+
     if (searchResults.length <= 1) {
       setSearchPerformed(false);
     }
   };
-  
+
   const currentYear = new Date().getFullYear();
-  
+
   const getResultId = (result: {
     name: string;
     details: string;
@@ -85,27 +85,27 @@ const Index = () => {
   const groupedResults = groupMedicationsByType(searchResults as MatchedMedication[]);
 
   const displayOrder = ["Injection", "Injectable Gel", "Capsule", "Tablet", "Spray", "Inhaler", "Ointment", "Cream", "Gel", "Liquid", "Powder", "Patch", "Other"];
-  
-  const medSpaResults = searchResults.filter(r => 
-    r.type?.toLowerCase().includes('spa') || 
+
+  const medSpaResults = searchResults.filter(r =>
+    r.type?.toLowerCase().includes('spa') ||
     r.type?.toLowerCase().includes('aesthetic') ||
     r.type?.toLowerCase().includes('beauty') ||
     r.name.toLowerCase().includes('spa')
   );
-  
-  const specialistResults = searchResults.filter(r => 
-    r.type?.toLowerCase().includes('specialist') || 
+
+  const specialistResults = searchResults.filter(r =>
+    r.type?.toLowerCase().includes('specialist') ||
     r.type?.toLowerCase().includes('doctor') ||
     r.type?.toLowerCase().includes('physician')
   );
-  
-  const pharmacyResults = searchResults.filter(r => 
-    r.type?.toLowerCase().includes('pharmacy') && 
+
+  const pharmacyResults = searchResults.filter(r =>
+    r.type?.toLowerCase().includes('pharmacy') &&
     !r.type?.toLowerCase().includes('spa')
   );
-  
-  const medicationResults = searchResults.filter(r => 
-    !r.type?.toLowerCase().includes('spa') && 
+
+  const medicationResults = searchResults.filter(r =>
+    !r.type?.toLowerCase().includes('spa') &&
     !r.type?.toLowerCase().includes('specialist') &&
     !r.type?.toLowerCase().includes('pharmacy') &&
     r.type !== undefined
@@ -119,10 +119,10 @@ const Index = () => {
             <Link to="/" className="flex items-center space-x-2">
               <span className="text-xl font-bold text-primary">MedMed.AI</span>
             </Link>
-            
+
             <div className="flex items-center space-x-3">
               <div className="hidden sm:block h-6 w-px bg-gray-200 mx-1"></div>
-              
+
               <Button variant="outline" size="sm" asChild>
                 <Link to="/signin">
                   <LogIn className="h-4 w-4 mr-1.5" />
@@ -142,9 +142,9 @@ const Index = () => {
         <div className="container px-4 py-8 mx-auto flex-grow">
           <div className="flex justify-end mb-4">
             {isSubscribed ? (
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="bg-primary/10 text-primary"
                 onClick={() => navigate('/user-portal')}
               >
@@ -207,7 +207,7 @@ const Index = () => {
                         {searchResults.length} worldwide results
                       </Badge>
                     </div>
-                    
+
                     <Tabs value={activeTab} onValueChange={setActiveTab}>
                       <TabsList className="w-full border-b rounded-none justify-start px-4">
                         <TabsTrigger value="all">All Results</TabsTrigger>
@@ -224,27 +224,27 @@ const Index = () => {
                           <TabsTrigger value="pharmacies">Pharmacies</TabsTrigger>
                         )}
                       </TabsList>
-                      
+
                       <TabsContent value="all" className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {searchResults.map((result, index) => (
                             <div key={index} className="relative">
                               <Link to={`/medication/${getResultId(result, index)}`}>
-                                <MedicationCardWrapper 
-                                  name={result.name} 
-                                  details={result.details} 
-                                  price={isAdmin ? result.price : t("medication.price", "Login to see pricing")} 
-                                  type={result.type} 
+                                <MedicationCardWrapper
+                                  name={result.name}
+                                  details={result.details}
+                                  price={isAdmin ? result.price : t("medication.price", "Login to see pricing")}
+                                  type={result.type}
                                   source={result.source}
                                   phone={result.phone}
                                   address={result.address}
                                 />
                               </Link>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                                onClick={() => removeResult(index)} 
+                                onClick={() => removeResult(index)}
                                 aria-label="Remove result"
                               >
                                 <X className="h-4 w-4" />
@@ -253,13 +253,13 @@ const Index = () => {
                           ))}
                         </div>
                       </TabsContent>
-                      
+
                       {medicationResults.length > 0 && (
                         <TabsContent value="medications" className="p-4">
                           {displayOrder.map(type => {
                             const typeResults = medicationResults.filter(r => r.type === type);
                             if (typeResults.length === 0) return null;
-                            
+
                             return (
                               <div key={type} className="mb-8">
                                 <h3 className="text-xl font-medium text-primary mb-4">{type}</h3>
@@ -269,19 +269,19 @@ const Index = () => {
                                     return (
                                       <div key={`${type}-${index}`} className="relative">
                                         <Link to={`/medication/${getResultId(result, overallIndex)}`}>
-                                          <MedicationCardWrapper 
-                                            name={result.name} 
-                                            details={result.details} 
-                                            price={isAdmin ? result.price : t("medication.price", "Login to see pricing")} 
-                                            type={result.type} 
+                                          <MedicationCardWrapper
+                                            name={result.name}
+                                            details={result.details}
+                                            price={isAdmin ? result.price : t("medication.price", "Login to see pricing")}
+                                            type={result.type}
                                             source={result.source}
                                           />
                                         </Link>
-                                        <Button 
-                                          variant="ghost" 
-                                          size="icon" 
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
                                           className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                                          onClick={() => removeResult(overallIndex)} 
+                                          onClick={() => removeResult(overallIndex)}
                                           aria-label="Remove result"
                                         >
                                           <X className="h-4 w-4" />
@@ -295,7 +295,7 @@ const Index = () => {
                           })}
                         </TabsContent>
                       )}
-                      
+
                       {medSpaResults.length > 0 && (
                         <TabsContent value="medspas" className="p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -304,21 +304,21 @@ const Index = () => {
                               return (
                                 <div key={`medspa-${index}`} className="relative">
                                   <Link to={`/pharmacy-finder?name=${encodeURIComponent(result.name)}`}>
-                                    <MedicationCardWrapper 
-                                      name={result.name} 
-                                      details={result.details} 
-                                      price={result.price} 
-                                      type="Med Spa" 
+                                    <MedicationCardWrapper
+                                      name={result.name}
+                                      details={result.details}
+                                      price={result.price}
+                                      type="Med Spa"
                                       source={result.source}
                                       phone={result.phone}
                                       address={result.address}
                                     />
                                   </Link>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                                    onClick={() => removeResult(overallIndex)} 
+                                    onClick={() => removeResult(overallIndex)}
                                     aria-label="Remove result"
                                   >
                                     <X className="h-4 w-4" />
@@ -329,7 +329,7 @@ const Index = () => {
                           </div>
                         </TabsContent>
                       )}
-                      
+
                       {specialistResults.length > 0 && (
                         <TabsContent value="specialists" className="p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -337,20 +337,20 @@ const Index = () => {
                               const overallIndex = searchResults.findIndex(r => r.name === result.name);
                               return (
                                 <div key={`specialist-${index}`} className="relative">
-                                  <MedicationCardWrapper 
-                                    name={result.name} 
-                                    details={result.details} 
-                                    price={result.price} 
-                                    type="Specialist" 
+                                  <MedicationCardWrapper
+                                    name={result.name}
+                                    details={result.details}
+                                    price={result.price}
+                                    type="Specialist"
                                     source={result.source}
                                     phone={result.phone}
                                     address={result.address}
                                   />
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                                    onClick={() => removeResult(overallIndex)} 
+                                    onClick={() => removeResult(overallIndex)}
                                     aria-label="Remove result"
                                   >
                                     <X className="h-4 w-4" />
@@ -361,7 +361,7 @@ const Index = () => {
                           </div>
                         </TabsContent>
                       )}
-                      
+
                       {pharmacyResults.length > 0 && (
                         <TabsContent value="pharmacies" className="p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -370,21 +370,21 @@ const Index = () => {
                               return (
                                 <div key={`pharmacy-${index}`} className="relative">
                                   <Link to={`/pharmacy-finder?name=${encodeURIComponent(result.name)}`}>
-                                    <MedicationCardWrapper 
-                                      name={result.name} 
-                                      details={result.details} 
-                                      price={result.price} 
-                                      type="Pharmacy" 
+                                    <MedicationCardWrapper
+                                      name={result.name}
+                                      details={result.details}
+                                      price={result.price}
+                                      type="Pharmacy"
                                       source={result.source}
                                       phone={result.phone}
                                       address={result.address}
                                     />
                                   </Link>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="absolute -right-2 -top-2 z-10 bg-background/80 hover:bg-background"
-                                    onClick={() => removeResult(overallIndex)} 
+                                    onClick={() => removeResult(overallIndex)}
                                     aria-label="Remove result"
                                   >
                                     <X className="h-4 w-4" />
@@ -399,9 +399,9 @@ const Index = () => {
                   </Card>
                 </div>
               )}
-              
+
               <SpecialistsList searchQuery={searchResults.length > 0 ? searchQuery : ''} />
-              
+
               {!searchResults.length && !document.querySelector('[data-specialist-found="true"]') && (
                 <div className="text-center py-8 mb-8 bg-card/50 rounded-lg">
                   <p className="text-gray-500">
@@ -411,7 +411,7 @@ const Index = () => {
               )}
             </div>
           )}
-          
+
           {!searchPerformed && (
             <div className="max-w-4xl mx-auto grid grid-cols-1 gap-8 mb-12">
               <div>
@@ -420,14 +420,14 @@ const Index = () => {
             </div>
           )}
         </div>
-        
+
         <footer className="w-full bg-white border-t border-gray-100">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <div className="text-gray-500 text-sm">
                 <p>© {currentYear} MedMed.AI. {t("app.footer.rights", "All rights reserved.")}</p>
               </div>
-              
+
               <div className="flex items-center gap-6 mt-4 md:mt-0">
                 <Link to="/sponsor-portal" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
                   <Shield className="h-3.5 w-3.5" />
