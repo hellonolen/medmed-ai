@@ -4,7 +4,7 @@ import { AIChatInterface } from "@/components/AIChatInterface";
 import { MedicationCardWrapper } from "@/components/MedicationCardWrapper";
 import { SpecialistsList } from "@/components/SpecialistsList";
 import { Button } from "@/components/ui/button";
-import { X, Clipboard, Map, Activity, Globe, Shield, FileText, Settings, Search, LogIn, UserPlus } from "lucide-react";
+import { X, Clipboard, Map, Activity, Globe, FileText, Settings, Search, LogIn } from "lucide-react";
 import { useAdmin } from "@/contexts/AdminContext";
 import { useSearchHistory } from "@/contexts/SearchHistoryContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -131,8 +131,7 @@ const Index = () => {
               </Button>
               <Button variant="default" size="sm" asChild>
                 <Link to="/signup">
-                  <UserPlus className="h-4 w-4 mr-1.5" />
-                  {t("nav.signup", "Sign Up")}
+                  {t("nav.signup", "Get started")}
                 </Link>
               </Button>
             </div>
@@ -158,10 +157,9 @@ const Index = () => {
           <div className="text-center mb-12">
             <h1 className="font-bold text-primary mb-4 flex items-center justify-center text-7xl">
               {t("app.name", "MedMed.AI")}
-              <Globe className="ml-2 h-6 w-6 text-primary/70" />
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {t("app.tagline", "Your AI-powered healthcare assistant. Ask anything about medications, symptoms, or find nearby healthcare services.")}
+              {t("app.tagline", "Your healthcare intelligence platform. Find medications, symptoms, and nearby healthcare services worldwide.")}
             </p>
           </div>
 
@@ -429,24 +427,24 @@ const Index = () => {
               </div>
 
               <div className="flex items-center gap-6 mt-4 md:mt-0">
-                <Link to="/sponsor-portal" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
-                  <Shield className="h-3.5 w-3.5" />
-                  <span>{t("footer.sponsors", "Sponsors")}</span>
+                <Link to="/sponsor-portal" className="text-gray-500 hover:text-primary text-sm transition-colors">
+                  {t("footer.sponsors", "Sponsors")}
                 </Link>
-                <Link to="/privacy" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
-                  <Shield className="h-3.5 w-3.5" />
-                  <span>{t("footer.privacy", "Privacy")}</span>
+                <Link to="/privacy" className="text-gray-500 hover:text-primary text-sm transition-colors">
+                  {t("footer.privacy", "Privacy")}
                 </Link>
-                <Link to="/terms" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
-                  <FileText className="h-3.5 w-3.5" />
-                  <span>{t("footer.terms", "Terms")}</span>
+                <Link to="/terms" className="text-gray-500 hover:text-primary text-sm transition-colors">
+                  {t("footer.terms", "Terms")}
                 </Link>
                 <Link to="/settings" className="text-gray-500 hover:text-primary text-sm flex items-center gap-1.5 transition-colors">
                   <Settings className="h-3.5 w-3.5" />
-                  <span>{t("footer.settings", "Settings")}</span>
+                  {t("footer.settings", "Settings")}
                 </Link>
               </div>
             </div>
+            <p className="text-xs text-gray-400 mt-3 text-center md:text-left">
+              Results vary. No specific health outcomes are guaranteed. MedMed.AI provides information only — not medical advice. Always consult a qualified healthcare professional.
+            </p>
           </div>
         </footer>
       </div>

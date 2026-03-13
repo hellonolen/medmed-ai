@@ -145,7 +145,7 @@ export const AIFAQ: React.FC<AIFAQProps> = ({
                 <div className="h-3 w-3 bg-primary/60 rounded-full"></div>
                 <div className="h-3 w-3 bg-primary/60 rounded-full"></div>
               </div>
-              <p className="text-sm text-gray-500">Generating AI-powered FAQs...</p>
+              <p className="text-sm text-gray-500">Generating answers...</p>
             </div>
           </div>
         ) : (
@@ -179,7 +179,7 @@ export const AIFAQ: React.FC<AIFAQProps> = ({
             {showChat && (
               <div className="mt-4">
                 <p className="text-sm text-gray-500 mb-3">
-                  Can't find what you're looking for? Ask our AI assistant:
+                  Can't find what you're looking for? Ask our healthcare assistant:
                 </p>
                 <AIChat 
                   title="Healthcare Assistant"

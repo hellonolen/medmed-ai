@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Settings, LogIn, UserPlus } from 'lucide-react';
+import { Home, Settings, LogIn } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,8 +41,7 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
             </Button>
             <Button variant="default" size="sm" asChild>
               <Link to="/signup">
-                <UserPlus className="h-4 w-4 mr-1.5" />
-                {t("nav.signup", "Sign Up")}
+                {t("nav.signup", "Get started")}
               </Link>
             </Button>
           </div>
@@ -78,6 +77,9 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
               </Link>
             </div>
           </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Results vary. No specific health outcomes are guaranteed. MedMed.AI provides information only — not medical advice.
+          </p>
         </div>
       </footer>
     </div>

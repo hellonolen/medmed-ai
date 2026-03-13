@@ -5,14 +5,14 @@
  * MedicalSearchContext.tsx call this Worker. Zero frontend UI changes.
  * 
  * Secrets (set via `wrangler secret put`):
- *   GEMINI_API_KEY
+ *   GOOGLE_GENAI_API_KEY
  *   JWT_SECRET
  */
 
 export interface Env {
   DB: D1Database;
   MEDIA: R2Bucket;
-  GEMINI_API_KEY: string;
+  GOOGLE_GENAI_API_KEY: string;
   JWT_SECRET: string;
   POSTMARK_SERVER_TOKEN: string;
   WORKER_ENV: string;
@@ -136,7 +136,7 @@ async function handleAI(req: Request, env: Env): Promise<Response> {
   const { query, systemPrompt, history, searchType } = body;
 
   if (!query) return err('query is required', 400, origin);
-  if (!env.GEMINI_API_KEY) return err('AI service not configured', 503, origin);
+  if (!env.GOOGLE_GENAI_API_KEY) return err('AI service not configured', 503, origin);
 
   try {
     // Build context-aware system prompt
@@ -148,7 +148,7 @@ async function handleAI(req: Request, env: Env): Promise<Response> {
     }
 
     const rawResponse = await callGemini(
-      env.GEMINI_API_KEY,
+      env.GOOGLE_GENAI_API_KEY,
       effectiveSystemPrompt,
       query,
       history || []
@@ -204,7 +204,7 @@ async function handleSearch(req: Request, env: Env): Promise<Response> {
 
   const { query, searchType, language } = body;
   if (!query) return err('query is required', 400, origin);
-  if (!env.GEMINI_API_KEY) return err('AI service not configured', 503, origin);
+  if (!env.GOOGLE_GENAI_API_KEY) return err('AI service not configured', 503, origin);
 
   const searchPrompt = `You are MedMed AI search engine. The user searched: "${query}"
 Search type hint: ${searchType || 'general'}
@@ -223,7 +223,7 @@ Return ONLY a JSON array. No other text. Return 6-10 relevant results.`;
 
   try {
     const rawResponse = await callGemini(
-      env.GEMINI_API_KEY,
+      env.GOOGLE_GENAI_API_KEY,
       searchPrompt,
       query
     );
