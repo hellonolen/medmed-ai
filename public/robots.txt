@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /sponsor-dashboard
+Disallow: /user-portal
+Disallow: /reset-password
+
+Sitemap: https://medmed.ai/sitemap.xml

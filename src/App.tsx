@@ -8,6 +8,7 @@ import PharmacyFinder from "./pages/PharmacyFinder";
 import InteractionChecker from "./pages/InteractionChecker";
 import Favorites from "./pages/Favorites";
 import MedicationDetails from "./pages/MedicationDetails";
+import MedicationDetail from "./pages/MedicationDetail";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SponsorDashboard from "./pages/SponsorDashboard";
 import SponsorLogin from "./pages/SponsorLogin";
@@ -30,9 +31,9 @@ import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
 import Layout from "./components/Layout";
 import Search from "./pages/Search";
+import NotFound from "./pages/NotFound";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// Create a client
 const queryClient = new QueryClient();
 
 function App() {
@@ -47,26 +48,37 @@ function App() {
                   <SponsorProvider>
                     <Router>
                       <Routes>
+                        {/* Main pages */}
                         <Route path="/" element={<Index />} />
+                        <Route path="/search" element={<Layout><Search /></Layout>} />
                         <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
                         <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
                         <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
                         <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
                         <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
                         <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
+                        <Route path="/medication-detail" element={<Layout><MedicationDetail /></Layout>} />
+
+                        {/* Auth pages — manage their own Layout with hideNav */}
+                        <Route path="/signin" element={<SignIn />} />
+                        <Route path="/signup" element={<SignUp />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
+
+                        {/* Sponsor & Admin */}
                         <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
                         <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
-                        <Route path="/sponsor-login" element={<Layout><SponsorLogin /></Layout>} />
+                        <Route path="/sponsor-login" element={<SponsorLogin />} />
                         <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
-                        <Route path="/reset-password" element={<Layout><ResetPassword /></Layout>} />
                         <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
+                        <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
+
+                        {/* Info pages */}
                         <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
                         <Route path="/terms" element={<Layout><Terms /></Layout>} />
                         <Route path="/settings" element={<Layout><Settings /></Layout>} />
-                        <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
-                        <Route path="/signin" element={<Layout><SignIn /></Layout>} />
-                        <Route path="/signup" element={<Layout><SignUp /></Layout>} />
-                        <Route path="/search" element={<Search />} />
+
+                        {/* 404 */}
+                        <Route path="*" element={<Layout><NotFound /></Layout>} />
                       </Routes>
                     </Router>
                     <Toaster />
