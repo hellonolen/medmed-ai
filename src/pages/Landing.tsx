@@ -117,10 +117,10 @@ export default function Landing() {
               Now available for everyone
             </div>
             <h1 className="text-5xl lg:text-[58px] font-bold text-gray-900 leading-[1.1] tracking-tight mb-5">
-              Healthcare answers,<br />instantly.
+              Health information,<br />powered by conversation.
             </h1>
             <p className="text-[17px] text-gray-500 mb-10 leading-relaxed max-w-md">
-              Search medications, check drug interactions, find pharmacies, and understand your symptoms — all in one place. No appointments. No waiting.
+              Ask about medications, symptoms, drug combinations, or pharmacy locations. Get clear, structured answers instantly — right in the chat.
             </p>
             <div className="flex gap-3 flex-wrap">
               <Link to="/pricing" className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors">
@@ -145,17 +145,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── SOCIAL PROOF BAR ── */}
-      <div className="border-y py-5 px-6" style={{ borderColor: "#e0d8cc", backgroundColor: "#f0ebe2" }}>
-        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 text-[13px] text-gray-500">
-          {["FDA drug database integrated", "Real-time pharmacy data", "Drug interaction checker", "HIPAA-aware design", "No ads. No data selling."].map((f) => (
-            <span key={f} className="flex items-center gap-2">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="7" fill="#d4c9b8" /><path d="M3.5 7l2.5 2.5 4.5-4.5" stroke="#4a4035" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              {f}
-            </span>
-          ))}
-        </div>
-      </div>
+
 
       {/* ── HOW IT WORKS ── */}
       <div id="how-it-works" />
@@ -241,15 +231,15 @@ export default function Landing() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[
-            { title: "Symptom Checker", desc: "Describe what you're feeling. Get educational context on possible conditions before you see a doctor.", emoji: "🩺" },
-            { title: "Pharmacy Finder", desc: "Find pharmacies near you, check hours, compare medication pricing, and confirm stock availability.", emoji: "🏥" },
-            { title: "Interaction Checker", desc: "List your medications and see known interactions, their severity levels, and what precautions to take.", emoji: "💊" },
-            { title: "Medication Database", desc: "Search any medication by name for dosing information, side effects, contraindications, and more.", emoji: "📋" },
-            { title: "Live Camera Analysis", desc: "Pro: Take a live photo of a visible health concern for detailed visual analysis and educational context.", emoji: "📷" },
-            { title: "Video Analysis", desc: "Pro: Record up to 45 seconds for a comprehensive visual health observation. Audio included.", emoji: "🎥" },
-          ].map(({ title, desc, emoji }) => (
+            { n: "01", title: "Symptom Checker", desc: "Describe what you're experiencing. Get structured educational context on possible conditions." },
+            { n: "02", title: "Pharmacy Finder", desc: "Locate nearby pharmacies, check hours, and get medication location information." },
+            { n: "03", title: "Interaction Checker", desc: "List your medications and see known interaction information and context." },
+            { n: "04", title: "Medication Search", desc: "Search any medication by name for general information, context, and educational details." },
+            { n: "05", title: "Live Camera", desc: "Pro: Take a live photo of a visible concern for visual description and educational context." },
+            { n: "06", title: "Video", desc: "Pro: Record up to 45 seconds for a comprehensive visual observation. Audio included." },
+          ].map(({ n, title, desc }) => (
             <div key={title} className="rounded-2xl p-6" style={card}>
-              <div className="text-[28px] mb-4">{emoji}</div>
+              <p className="text-[11px] font-bold text-gray-400 tracking-widest uppercase mb-3">{n}</p>
               <h3 className="text-[15px] font-bold text-gray-900 mb-2">{title}</h3>
               <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
             </div>
