@@ -946,7 +946,9 @@ const Index = () => {
             {" · "}
             <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
             {" · "}
-            <Link to="/contact" className="hover:text-gray-600 transition-colors">Support</Link>
+            <Link to="/chat" className="hover:text-gray-600 transition-colors">Support</Link>
+            {" · "}
+            <Link to="/contact" className="hover:text-gray-600 transition-colors">Contact</Link>
           </p>
         </div>
       </main>

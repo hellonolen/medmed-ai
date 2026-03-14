@@ -25,31 +25,31 @@ const faqs = [
     ],
   },
   {
-    category: "The AI & How It Works",
+    category: "How medmed.ai works",
     items: [
       {
-        q: "What AI is powering MedMed.AI?",
-        a: "MedMed.AI uses Google's Gemini AI model, customized with medical education context and your personal health profile. The AI is configured to provide clear, structured, educational health information — not diagnoses.",
+        q: "What is medmed.ai powered by?",
+        a: "medmed.ai uses Google's Gemini model, customised with medical education context and your personal health profile. It is configured to provide clear, structured, educational health information — not diagnoses.",
       },
       {
-        q: "How does the AI use my health profile?",
-        a: "When you fill out your health profile (age, sex, weight, conditions, allergies, current medications), the AI reads it before every response. This means it can give you context-aware answers without you needing to repeat your information each time.",
+        q: "How does medmed.ai use my health profile?",
+        a: "When you fill out your health profile (age, sex, weight, conditions, allergies, current medications), medmed.ai reads it before every response. This means it can give you context-aware answers without you needing to repeat your information each time.",
       },
       {
-        q: "Can MedMed.AI diagnose me?",
-        a: "No. MedMed.AI is an educational information tool only. It can provide context about symptoms, medications, and health topics — but it cannot diagnose medical conditions, prescribe treatment, or replace the judgment of a licensed healthcare provider. Always consult a doctor for medical decisions.",
+        q: "Can medmed.ai diagnose me?",
+        a: "No. medmed.ai is an educational information tool only. It can provide context about symptoms, medications, and health topics — but it cannot diagnose medical conditions, prescribe treatment, or replace the judgment of a licensed healthcare provider. Always consult a doctor for medical decisions.",
       },
       {
         q: "How accurate is the information?",
-        a: "MedMed AI draws from its training on medical literature and FDA drug information. While we strive for accuracy, AI systems can make mistakes. All responses include appropriate disclaimers. We always recommend verifying important information with a healthcare professional or pharmacist.",
+        a: "medmed.ai draws from medical literature and FDA drug information. While we strive for accuracy, all information systems can make mistakes. All responses include appropriate disclaimers. We always recommend verifying important information with a healthcare professional or pharmacist.",
       },
       {
         q: "What is the Interaction Checker?",
-        a: "The Interaction Checker is a specialized mode where you list two or more medications and the AI analyzes known interactions between them — categorized as major, moderate, or minor. It explains what each interaction involves and what precautions to consider. Always confirm with your pharmacist before changing medications.",
+        a: "The Interaction Checker is a specialised mode where you list two or more medications and medmed.ai analyzes known interactions between them — categorised as major, moderate, or minor. It explains what each interaction involves and what precautions to consider. Always confirm with your pharmacist before changing medications.",
       },
       {
         q: "What is the Symptom Checker?",
-        a: "Symptom Checker is a mode where you describe what you're experiencing in plain English. The AI provides a structured educational response with possible explanations, context about when symptoms typically resolve on their own, and guidance on when to seek professional care. It does not diagnose.",
+        a: "Symptom Checker is a mode where you describe what you're experiencing in plain English. medmed.ai provides a structured educational response with possible explanations, context about when symptoms typically resolve on their own, and guidance on when to seek professional care. It does not diagnose.",
       },
     ],
   },
@@ -70,7 +70,7 @@ const faqs = [
       },
       {
         q: "Can I delete my data?",
-        a: "Yes. You can request full account and data deletion at any time by contacting us through the Support page. We will process your request promptly.",
+        a: "Yes. You can request full account and data deletion at any time through the chat. We will process your request promptly.",
       },
     ],
   },
@@ -79,11 +79,11 @@ const faqs = [
     items: [
       {
         q: "What's included in the free plan?",
-        a: "The free plan includes access to the AI chat with a daily question limit, basic health information responses, and account creation. The Symptom Checker, Interaction Checker, and Pharmacy Finder tools require a Pro plan.",
+        a: "The free plan includes access to medmed.ai chat with a daily question limit, basic health information responses, and account creation. The Symptom Checker, Interaction Checker, and Pharmacy Finder tools require a Pro plan.",
       },
       {
         q: "What's included in Pro?",
-        a: "Pro includes unlimited AI questions, full health profile memory injected into every AI response, saved conversation history, access to all specialized tools, medication tracker, symptom journal, and priority response processing.",
+        a: "Pro includes unlimited questions, full health profile memory injected into every response, saved conversation history, access to all specialised tools, medication tracker, symptom journal, and priority response processing.",
       },
       {
         q: "Is there an annual discount?",
@@ -155,7 +155,7 @@ export default function FAQ() {
             Frequently asked questions
           </h1>
           <p className="text-[18px] text-gray-500 leading-relaxed">
-            Everything you want to know about MedMed.AI — the AI, the plans, your data, and how it all works.
+            Everything you want to know about medmed.ai — plans, your data, and how it all works.
           </p>
         </div>
       </section>
@@ -180,21 +180,22 @@ export default function FAQ() {
           style={{ backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" }}>
           <h3 className="text-xl font-bold text-gray-900 mb-3">Still have a question?</h3>
           <p className="text-[14px] text-gray-500 mb-6">
-            We're real people. Send us a message and we'll respond within one business day.
+            Ask in the chat — medmed.ai can help answer questions about your account and the platform.
           </p>
-          <Link to="/contact"
+          <Link to="/chat"
             className="px-6 py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors">
-            Contact support
+            Ask medmed.ai
           </Link>
         </div>
       </section>
 
       <footer className="border-t px-6 py-5" style={{ borderColor: "#e0d8cc", backgroundColor: "#f0ebe2" }}>
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
+          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} medmed.ai. For informational purposes only — not medical advice.</p>
           <div className="flex items-center gap-4 text-[12px] text-gray-500">
             <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
-            <Link to="/contact" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/chat" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/contact" className="hover:text-gray-900 transition-colors">Contact</Link>
           </div>
         </div>
       </footer>

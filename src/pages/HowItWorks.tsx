@@ -20,7 +20,7 @@ const steps = [
   {
     number: "04",
     title: "Get a structured, readable answer",
-    detail: "MedMed AI reads your question, applies your health profile context, and returns a clear, organized answer — with headers, bullet points, and educational context. Not a list of links. Not a wall of text.",
+    detail: "medmed.ai reads your question, applies your health profile context, and returns a clear, organized answer — with headers, bullet points, and educational context. Not a list of links. Not a wall of text.",
   },
   {
     number: "05",
@@ -75,7 +75,7 @@ export default function HowItWorks() {
             Simple by design
           </div>
           <h1 className="text-5xl font-bold text-gray-900 leading-[1.1] tracking-tight mb-6">
-            How MedMed.AI works
+            How medmed.ai works
           </h1>
           <p className="text-[18px] text-gray-500 leading-relaxed">
             From account creation to personalized AI answers in under two minutes. Here's exactly what happens — step by step.
@@ -139,7 +139,7 @@ export default function HowItWorks() {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Memory that actually works</h2>
           <p className="text-[16px] text-gray-600 leading-[1.75] mb-6">
-            Every time you talk to MedMed AI, it reads your health profile first. If you've told us you have Type 2 diabetes and a penicillin allergy, you'll never need to mention it again. Every answer already has that context baked in.
+            Every time you talk to medmed.ai, it reads your health profile first. If you've told us you have Type 2 diabetes and a penicillin allergy, you'll never need to mention it again. Every answer already has that context baked in.
           </p>
           <p className="text-[16px] text-gray-600 leading-[1.75]">
             You can update your health profile at any time from the sidebar. The AI uses the latest version of your profile on every new request — automatically.
@@ -160,10 +160,11 @@ export default function HowItWorks() {
 
       <footer className="border-t px-6 py-5" style={{ borderColor: "#e0d8cc", backgroundColor: "#f0ebe2" }}>
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
+          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} medmed.ai. For informational purposes only — not medical advice.</p>
           <div className="flex items-center gap-4 text-[12px] text-gray-500">
             <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
-            <Link to="/contact" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/chat" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/contact" className="hover:text-gray-900 transition-colors">Contact</Link>
           </div>
         </div>
       </footer>

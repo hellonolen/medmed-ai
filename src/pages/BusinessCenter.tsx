@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
 const NAV_ITEMS = [
-  { id: 'sponsor',    label: 'Sponsor',       to: '/sponsor-portal',        icon: '🤝' },
-  { id: 'advertiser', label: 'Advertiser',    to: '/advertiser-enrollment', icon: '📣' },
-  { id: 'affiliates', label: 'Affiliates',    to: '/referral',              icon: '🔗' },
-  { id: 'policy',    label: 'Policy Center',  to: '/policy',                icon: '📋' },
-  { id: 'support',   label: 'Support',        to: '/contact',               icon: '💬' },
+  { id: 'sponsor',    label: 'Sponsor',      to: '/sponsor-portal',        icon: '🤝' },
+  { id: 'advertiser', label: 'Advertiser',   to: '/advertiser-enrollment', icon: '📣' },
+  { id: 'affiliates', label: 'Affiliates',   to: '/referral',              icon: '🔗' },
+  { id: 'policy',    label: 'Policy Center', to: '/policy',                icon: '📋' },
 ];
 
 export default function BusinessCenter() {
@@ -14,10 +13,10 @@ export default function BusinessCenter() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen bg-[#f5f0e8] font-sans">
-      {/* Left Sidebar */}
+    <div className="flex bg-[#f5f0e8] font-sans" style={{ minHeight: '100vh' }}>
+      {/* Left Sidebar — sticky, stays in place while content scrolls */}
       <aside
-        className={`flex-shrink-0 bg-[#ede8df] border-r border-[#d9d2c7] flex flex-col transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}
+        className={`sticky top-0 self-start h-screen flex-shrink-0 bg-[#ede8df] border-r border-[#d9d2c7] flex flex-col transition-all duration-200 ${collapsed ? 'w-14' : 'w-56'}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-[#d9d2c7]">
@@ -31,14 +30,14 @@ export default function BusinessCenter() {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               {collapsed
-                ? <><polyline points="9,18 15,12 9,6" /></>
-                : <><polyline points="15,18 9,12 15,6" /></>}
+                ? <polyline points="9,18 15,12 9,6" />
+                : <polyline points="15,18 9,12 15,6" />}
             </svg>
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map(item => (
             <Link
               key={item.id}
@@ -70,9 +69,9 @@ export default function BusinessCenter() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+      {/* Main content — scrolls independently of sidebar */}
+      <main className="flex-1 min-w-0 overflow-y-auto">
+        {/* Page header */}
         <div className="border-b border-[#d9d2c7] bg-[#f5f0e8] px-8 py-5">
           <h1 className="text-xl font-semibold text-gray-900">Business Center</h1>
           <p className="text-[13px] text-gray-500 mt-0.5">
@@ -80,9 +79,9 @@ export default function BusinessCenter() {
           </p>
         </div>
 
-        {/* Landing cards */}
-        <div className="flex-1 overflow-y-auto px-8 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl">
+        {/* Cards */}
+        <div className="px-8 py-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
             {NAV_ITEMS.map(item => (
               <Link
                 key={item.id}
@@ -97,7 +96,6 @@ export default function BusinessCenter() {
                     {item.id === 'advertiser' && 'Run targeted health-focused campaigns.'}
                     {item.id === 'affiliates' && 'Earn commissions through referrals.'}
                     {item.id === 'policy'     && 'Review platform policies and terms.'}
-                    {item.id === 'support'    && 'Get help from our team.'}
                   </p>
                 </div>
               </Link>

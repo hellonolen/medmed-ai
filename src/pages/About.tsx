@@ -42,7 +42,7 @@ export default function About() {
             We believe everyone deserves to understand their health.
           </h1>
           <p className="text-[18px] text-gray-500 leading-relaxed max-w-2xl">
-            MedMed.AI is an artificial intelligence company. We build technology that makes health information accessible, clear, and personal — through conversation.
+            medmed.ai is a health technology company. We build technology that makes health information accessible, clear, and personal — through conversation.
           </p>
         </div>
       </section>
@@ -98,10 +98,11 @@ export default function About() {
       {/* Footer */}
       <footer className="border-t px-6 py-5" style={{ borderColor: "#e0d8cc", backgroundColor: "#f0ebe2" }}>
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
+          <p className="text-[12px] text-gray-500">© {new Date().getFullYear()} medmed.ai. For informational purposes only — not medical advice.</p>
           <div className="flex items-center gap-4 text-[12px] text-gray-500">
             <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
-            <Link to="/contact" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/chat" className="hover:text-gray-900 transition-colors">Support</Link>
+            <Link to="/contact" className="hover:text-gray-900 transition-colors">Contact</Link>
           </div>
         </div>
       </footer>
