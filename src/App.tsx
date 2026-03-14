@@ -47,6 +47,9 @@ import MedicationTracker from "./pages/MedicationTracker";
 import SymptomJournal from "./pages/SymptomJournal";
 import ConversationHistory from "./pages/ConversationHistory";
 import ReferralPage from "./pages/ReferralPage";
+import About from "./pages/About";
+import HowItWorks from "./pages/HowItWorks";
+import FAQ from "./pages/FAQ";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -111,6 +114,11 @@ function App() {
                           <Route path="/journal" element={<Layout><SymptomJournal /></Layout>} />
                           <Route path="/history" element={<Layout><ConversationHistory /></Layout>} />
                           <Route path="/referral" element={<Layout><ReferralPage /></Layout>} />
+
+                          {/* Standalone info pages */}
+                          <Route path="/about" element={<About />} />
+                          <Route path="/how-it-works" element={<HowItWorks />} />
+                          <Route path="/faq" element={<FAQ />} />
 
                           {/* 404 */}
                           <Route path="*" element={<Layout><NotFound /></Layout>} />

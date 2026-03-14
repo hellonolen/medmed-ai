@@ -8,9 +8,9 @@ export function SiteNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: "About", href: "/#about" },
-    { label: "How It Works", href: "/#how-it-works" },
-    { label: "FAQ", href: "/#faq" },
+    { label: "About", href: "/about" },
+    { label: "How It Works", href: "/how-it-works" },
+    { label: "FAQ", href: "/faq" },
     { label: "Pricing", href: "/pricing" },
   ];
 

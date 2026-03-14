@@ -64,6 +64,46 @@ function PanelIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function CustomizeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
+
+function ChatsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ProjectsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ArtifactsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
 /* ─── Plus / Tool Picker ────────────────────────────── */
 function ToolPicker({ onSelect }: { onSelect: (mode: Mode) => void }) {
   const [open, setOpen] = useState(false);
@@ -434,26 +474,59 @@ const Index = () => {
             </button>
           </div>
 
-          {/* Tools — inline mode buttons */}
-          <div className="px-3 mb-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Tools</p>
-          </div>
-          <nav className="px-3 space-y-0.5 flex-shrink-0">
-            {([
-              { mode: "symptom" as Mode, label: "Symptom Checker" },
-              { mode: "pharmacy" as Mode, label: "Pharmacy Finder" },
-              { mode: "interaction" as Mode, label: "Interaction Checker" },
-            ]).map(({ mode: m, label }) => (
-              <button
-                key={m}
-                onClick={() => activateMode(m)}
-                className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] transition-colors ${
-                  mode === m ? "bg-primary/10 text-primary font-medium" : "text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900"
-                }`}
-              >
+          {/* Nav sections matching attachment */}
+          <nav className="px-3 space-y-0.5 flex-shrink-0 mt-1">
+            {[
+              { label: "Search", icon: SearchIcon, action: () => {} },
+              { label: "Customize", icon: CustomizeIcon, action: () => navigate("/settings") },
+            ].map(({ label, icon: Icon, action }) => (
+              <button key={label} onClick={action}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                <Icon />
                 {label}
               </button>
             ))}
+          </nav>
+
+          {/* Chats */}
+          <div className="px-3 mt-4 mb-1 flex-shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Chats</p>
+          </div>
+          <nav className="px-3 space-y-0.5 flex-shrink-0">
+            <Link to="/history" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <ChatsIcon />
+              All conversations
+            </Link>
+          </nav>
+
+          {/* Projects */}
+          <div className="px-3 mt-4 mb-1 flex-shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Projects</p>
+          </div>
+          <nav className="px-3 space-y-0.5 flex-shrink-0">
+            <Link to="/medications" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <ProjectsIcon />
+              Medication Tracker
+            </Link>
+            <Link to="/journal" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <ProjectsIcon />
+              Symptom Journal
+            </Link>
+            <Link to="/health-profile" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <ProjectsIcon />
+              Health Profile
+            </Link>
+          </nav>
+
+          {/* Artifacts */}
+          <div className="px-3 mt-4 mb-1 flex-shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Artifacts</p>
+          </div>
+          <nav className="px-3 space-y-0.5 flex-shrink-0">
+            <Link to="/referral" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <ArtifactsIcon />
+              Referral Program
+            </Link>
           </nav>
 
           {/* Business */}
@@ -462,8 +535,10 @@ const Index = () => {
           </div>
           <nav className="px-3 space-y-0.5 flex-shrink-0">
             {[
-              { to: "/sponsor-portal", label: "Sponsor Portal" },
-              { to: "/advertiser-enrollment", label: "Advertiser Access" },
+              { to: "/sponsor-portal", label: "Sponsor" },
+              { to: "/advertiser-enrollment", label: "Advertiser" },
+              { to: "/referral", label: "Affiliates" },
+              { to: "/policy", label: "Policy Center" },
             ].map(({ to, label }) => (
               <Link key={to} to={to}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
@@ -527,10 +602,10 @@ const Index = () => {
           <div className="flex flex-col items-center justify-center flex-1 px-6">
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
             {InputBox}
-            <p className="text-[11px] text-gray-400 mt-3 text-center">
+          <p className="text-[11px] text-gray-400 mt-3 text-right max-w-2xl w-full">
               <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
               {" · "}
-              <button onClick={newChat} className="hover:text-gray-600 transition-colors">Support</button>
+              <Link to="/contact" className="hover:text-gray-600 transition-colors">Support</Link>
             </p>
           </div>
         ) : (
@@ -571,10 +646,10 @@ const Index = () => {
             <div className="flex-shrink-0 flex justify-center px-6 pb-4 pt-2">
               {InputBox}
             </div>
-            <p className="text-center text-[11px] text-gray-400 pb-3">
+            <p className="text-right text-[11px] text-gray-400 pb-3 px-6">
               <Link to="/policy" className="hover:text-gray-600">Policy Center</Link>
               {" · "}
-              <button onClick={newChat} className="hover:text-gray-600">Support</button>
+              <Link to="/contact" className="hover:text-gray-600">Support</Link>
             </p>
           </>
         )}
