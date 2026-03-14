@@ -47,14 +47,14 @@ export default function Pricing() {
   const individualPlans = [
     {
       name: "Free",
-      tagline: "Get started",
-      price: "$0",
-      priceNote: "Always free",
-      cta: "Get started",
+      tagline: "3-day free trial",
+      price: "Free",
+      priceNote: "3 days free, then choose a plan",
+      cta: "Start free trial",
       ctaHref: "/signup?from=pricing",
       featured: false,
       features: [
-        "5 questions per session",
+        "3 days full access",
         "Symptom Checker",
         "Pharmacy Finder",
         "Interaction Checker",
@@ -82,10 +82,10 @@ export default function Pricing() {
     {
       name: "Max",
       tagline: "Get the most from MedMed.AI",
-      price: "$100",
-      priceNote: "Per month, billed monthly",
+      price: billing === "annual" ? "$85" : "$100",
+      priceNote: billing === "annual" ? "Per month, billed $1,020/year" : "Per month",
       cta: "Get Max",
-      ctaHref: WHOP.max_5x,
+      ctaHref: billing === "annual" ? WHOP.max_20x : WHOP.max_5x,
       featured: false,
       features: [
         "Everything in Pro",
@@ -209,16 +209,16 @@ export default function Pricing() {
               <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Large organizations</p>
               <h2 className="text-[22px] font-bold text-gray-900 mb-2">Enterprise</h2>
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-[32px] font-bold text-gray-900 leading-none">$100</span>
+                <span className="text-[32px] font-bold text-gray-900 leading-none">$25</span>
                 <span className="text-[13px] text-gray-400 mb-1">/seat/mo</span>
               </div>
-              <p className="text-[12px] text-gray-400 mb-6">Billed annually. Volume discounts available.</p>
+              <p className="text-[12px] text-gray-400 mb-6">Billed monthly.</p>
               <a href={WHOP.enterprise} target="_blank" rel="noopener noreferrer"
                 className="block w-full text-center py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors mb-6">
                 Get Enterprise plan
               </a>
               <ul className="space-y-3">
-                {["Everything in Team", "HIPAA-ready configuration", "Role-based access controls", "Audit logs", "Custom data retention", "Dedicated onboarding support", "SLA guarantees"].map((f) => (
+                {["Everything in Team", "Role-based access controls", "Audit logs", "Custom data retention", "Dedicated onboarding support", "SLA guarantees"].map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-[13px] text-gray-700"><Check />{f}</li>
                 ))}
               </ul>
@@ -251,8 +251,8 @@ export default function Pricing() {
           <h2 className="text-[26px] font-bold text-gray-900 mb-3">Ready to get started?</h2>
           <p className="text-[15px] text-gray-500 mb-8">Free to start. No credit card required.</p>
           <div className="flex justify-center gap-3 flex-wrap">
-            <Link to="/signup" className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors">
-              Create free account
+            <Link to="/signup?from=pricing" className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors">
+              Start free trial
             </Link>
             <a href={WHOP.pro_monthly} target="_blank" rel="noopener noreferrer"
               className="px-8 py-3.5 rounded-xl font-semibold text-[15px] text-gray-700 hover:bg-[#e4ddd0] transition-colors" style={{ border: "1px solid #c8b89a" }}>

@@ -375,7 +375,7 @@ export default function Landing() {
             </p>
             <div className="space-y-3 mb-8">
               {[
-                { tier: "Free", price: "$0", note: "5 questions per session, all tools accessible" },
+                { tier: "Free trial", price: "3 days free", note: "Full access for 3 days, then choose a plan" },
                 { tier: "Pro", price: "$20/mo", note: "Unlimited questions, camera, video, history" },
                 { tier: "Max", price: "$100/mo", note: "5× usage, priority access, early features" },
               ].map(({ tier, price, note }) => (
