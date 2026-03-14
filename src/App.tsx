@@ -53,6 +53,7 @@ import FAQ from "./pages/FAQ";
 import AdminCenter from "./pages/AdminCenter";
 import BusinessCenter from "./pages/BusinessCenter";
 import AuthVerify from "./pages/AuthVerify";
+import Checkout from "./pages/Checkout";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -111,6 +112,7 @@ function App() {
                           <Route path="/contact" element={<Contact />} />
                           <Route path="/onboarding" element={<Onboarding />} />
                           <Route path="/settings" element={<Layout><Settings /></Layout>} />
+                          <Route path="/checkout" element={<Checkout />} />
 
                           {/* Health tools */}
                           <Route path="/health-profile" element={<Layout><HealthProfile /></Layout>} />

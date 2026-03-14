@@ -2,14 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav } from "@/components/SiteNav";
 
-/* ─── Whop checkout links ─── */
-const WHOP = {
-  free:       'https://whop.com/checkout/prod_m4YcsLjLvqgJv/',
-  pro:        'https://whop.com/checkout/prod_OXayRSUGg4pkO/',
-  max:        'https://whop.com/checkout/prod_bWovo3uiTso3D/',
-  team:       'https://whop.com/checkout/prod_jceMMMPVZWTEK/',
-  enterprise: 'https://whop.com/checkout/prod_kAKGW5R49G3EH/',
-};
+/* ─── Plan keys map to our internal /checkout page ─── */
 
 type Tab = "individual" | "team";
 
@@ -49,7 +42,7 @@ export default function Pricing() {
       price: "Free",
       priceNote: "3-day trial, then choose a plan",
       cta: "Start free trial",
-      ctaHref: WHOP.free,
+      ctaHref: "/checkout?plan=free",
       featured: false,
       features: [
         "3 days full access",
@@ -65,7 +58,7 @@ export default function Pricing() {
       price: "$20",
       priceNote: "Per month",
       cta: "Get Pro",
-      ctaHref: WHOP.pro,
+      ctaHref: "/checkout?plan=pro",
       featured: true,
       features: [
         "Everything in Free",
@@ -83,7 +76,7 @@ export default function Pricing() {
       price: "$100",
       priceNote: "Per month",
       cta: "Get Max",
-      ctaHref: WHOP.max,
+      ctaHref: "/checkout?plan=max",
       featured: false,
       features: [
         "Everything in Pro",
@@ -147,12 +140,10 @@ export default function Pricing() {
                   </div>
                   <p className="text-[12px] text-gray-400 mb-5">{plan.priceNote}</p>
 
-                  <a href={plan.ctaHref}
-                    target={plan.ctaHref.startsWith("http") ? "_blank" : undefined}
-                    rel="noopener noreferrer"
+                  <Link to={plan.ctaHref}
                     className="block w-full text-center py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors mb-6">
                     {plan.cta}
-                  </a>
+                  </Link>
 
                   <ul className="space-y-3 flex-1">
                     {plan.features.map((f) => (
@@ -178,10 +169,10 @@ export default function Pricing() {
                 <span className="text-[13px] text-gray-400 mb-1">/seat/mo</span>
               </div>
               <p className="text-[12px] text-gray-400 mb-6">Billed annually. $25 if monthly.</p>
-              <a href={WHOP.team} target="_blank" rel="noopener noreferrer"
+              <Link to="/checkout?plan=team"
                 className="block w-full text-center py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors mb-6">
                 Get Team plan
-              </a>
+              </Link>
               <ul className="space-y-3">
                 {["Everything in Pro", "Central billing and team management", "Shared conversation history", "Admin controls", "Custom usage limits per member", "Priority support"].map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-[13px] text-gray-600"><Check />{f}</li>
@@ -198,10 +189,10 @@ export default function Pricing() {
                 <span className="text-[13px] text-gray-400 mb-1">/seat/mo</span>
               </div>
               <p className="text-[12px] text-gray-400 mb-6">Billed monthly.</p>
-              <a href={WHOP.enterprise} target="_blank" rel="noopener noreferrer"
+              <Link to="/checkout?plan=enterprise"
                 className="block w-full text-center py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors mb-6">
                 Get Enterprise plan
-              </a>
+              </Link>
               <ul className="space-y-3">
                 {["Everything in Team", "Role-based access controls", "Audit logs", "Custom data retention", "Dedicated onboarding support", "SLA guarantees"].map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-[13px] text-gray-700"><Check />{f}</li>
