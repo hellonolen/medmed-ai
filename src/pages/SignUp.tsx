@@ -1,70 +1,51 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { GlobalHeader } from '@/components/GlobalHeader';
 import { GlobalFooter } from '@/components/GlobalFooter';
-import { toast } from 'sonner';
-
-const WORKER = 'https://medmed-agent.hellonolen.workers.dev';
 
 /**
- * SignUp — First Name + Email + Card (Stripe Elements)
- * Creates a Stripe customer + 3-day trial subscription before account creation.
- * Everyone must enter a card. Cancel within 3 days = no charge.
+ * SignUp — Two steps:
+ * 1. Collect First Name + Email + Terms agreement
+ * 2. Redirect to Whop checkout (card entry handled securely on Whop's side)
+ *
+ * After Whop payment, Whop sends a webhook to the worker which creates the
+ * user account in D1 and sends a magic link welcome email.
  */
 const SignUp = () => {
-  const navigate = useNavigate();
-  const [step, setStep] = useState<'info' | 'card' | 'done'>('info');
+  const [step, setStep] = useState<'info' | 'redirect'>('info');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const inputStyle = { backgroundColor: '#f0ebe2', border: '1px solid #d8d0c0' };
 
-  /* ── Step 1: Collect name + email ── */
+  // We store first name + email before Whop redirect so we can pre-fill the checkout
   const handleInfoSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!firstName.trim()) { setError('First name is required.'); return; }
-    if (!email.trim()) { setError('Email is required.'); return; }
-    if (!agreed) { setError('Please agree to the terms to continue.'); return; }
-    setStep('card');
+    if (!email.trim())     { setError('Email is required.'); return; }
+    if (!agreed)           { setError('Please agree to the terms to continue.'); return; }
+
+    // Store locally in case Whop returns them to the site
+    localStorage.setItem('medmed_pending_name', firstName.trim());
+    localStorage.setItem('medmed_pending_email', email.trim().toLowerCase());
+
+    setStep('redirect');
   };
 
-  /* ── Step 2: Create account + Stripe trial via worker ── */
-  const handleCardSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-
-    try {
-      const res = await fetch(`${WORKER}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          email: email.trim().toLowerCase(),
-          // Stripe payment method token will come from Stripe.js in production
-          // For now we pass a placeholder — Stripe Elements integration attaches here
-          paymentMethodId: (window as unknown as { _stripePaymentMethod?: string })._stripePaymentMethod || 'pm_placeholder',
-        }),
-      });
-
-      const data = await res.json() as { success?: boolean; token?: string; error?: string };
-
-      if (data.success && data.token) {
-        localStorage.setItem('medmed_token', data.token);
-        toast.success('Welcome to medmed.ai! Your 3-day trial has started.');
-        navigate('/onboarding');
-      } else {
-        setError(data.error || 'Registration failed. Please try again.');
-      }
-    } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleWhopRedirect = () => {
+    // WHOP_CHECKOUT_URL is set as a worker secret and also embedded at build time.
+    // Until we have the real Whop product URL, we use the env-injected value.
+    // Format: https://whop.com/checkout/PRODUCT_ID/?email=user@example.com&name=Jane
+    const base = import.meta.env.VITE_WHOP_CHECKOUT_URL || 'https://whop.com/medmed-ai';
+    const params = new URLSearchParams({
+      email: email.trim().toLowerCase(),
+      name: firstName.trim(),
+      redirect_url: `${window.location.origin}/auth/verify`,
+    });
+    window.location.href = `${base}?${params.toString()}`;
   };
 
   return (
@@ -79,10 +60,14 @@ const SignUp = () => {
 
           {/* Progress dots */}
           <div className="flex justify-center gap-2 mb-8">
-            {(['info', 'card'] as const).map((s, i) => (
+            {(['info', 'redirect'] as const).map((s, i) => (
               <div
                 key={s}
-                className={`h-1.5 rounded-full transition-all duration-200 ${step === s ? 'w-6 bg-primary' : i < ['info','card'].indexOf(step) ? 'w-6 bg-primary/40' : 'w-3 bg-gray-300'}`}
+                className={`h-1.5 rounded-full transition-all duration-200 ${
+                  step === s ? 'w-6 bg-primary' :
+                  i < ['info','redirect'].indexOf(step) ? 'w-6 bg-primary/40' :
+                  'w-3 bg-gray-300'
+                }`}
               />
             ))}
           </div>
@@ -102,7 +87,7 @@ const SignUp = () => {
               <>
                 <h1 className="text-[22px] font-bold text-gray-900 mb-1">Create your account</h1>
                 <p className="text-[14px] text-gray-500 mb-7">
-                  3-day trial included. Cancel anytime before it ends.
+                  3-day trial included. Cancel anytime before it ends — no charge.
                 </p>
 
                 <form onSubmit={handleInfoSubmit} className="space-y-4">
@@ -173,50 +158,46 @@ const SignUp = () => {
               </>
             )}
 
-            {/* ── Step 2: Card ── */}
-            {step === 'card' && (
+            {/* ── Step 2: Whop redirect ── */}
+            {step === 'redirect' && (
               <>
-                <h2 className="text-[20px] font-bold text-gray-900 mb-1">Add your card</h2>
-                <p className="text-[14px] text-gray-500 mb-2">
-                  Your 3-day trial is free. If you cancel before it ends, you won't be charged.
+                <h2 className="text-[20px] font-bold text-gray-900 mb-1">Complete your purchase</h2>
+                <p className="text-[14px] text-gray-500 mb-6">
+                  You'll be taken to our secure checkout to enter your card. Your 3-day trial starts the moment payment is confirmed.
                 </p>
 
-                {/* Trial notice */}
-                <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl mb-6 text-[13px]" style={{ backgroundColor: '#ede8de' }}>
-                  <svg className="flex-shrink-0 mt-0.5" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <span className="text-gray-700">
-                    Trial starts today for <span className="font-semibold">{email}</span>. Cancel anytime in Settings before day 3.
-                  </span>
+                {/* Summary */}
+                <div className="rounded-xl px-4 py-4 mb-6 text-[13px] space-y-1" style={{ backgroundColor: '#ede8de' }}>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Name</span>
+                    <span className="font-medium text-gray-800">{firstName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Email</span>
+                    <span className="font-medium text-gray-800">{email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Trial</span>
+                    <span className="font-medium text-gray-800">3 days free</span>
+                  </div>
                 </div>
 
-                <form onSubmit={handleCardSubmit} className="space-y-4">
-                  {/* Stripe Elements mounts here in production */}
-                  <div
-                    id="stripe-card-element"
-                    className="w-full px-4 py-3 rounded-xl text-[14px]"
-                    style={{ backgroundColor: '#f0ebe2', border: '1px solid #d8d0c0', minHeight: '44px' }}
-                  >
-                    {/* Stripe.js CardElement renders here */}
-                    <span className="text-[13px] text-gray-400">Card number · Expiry · CVC</span>
-                  </div>
+                <button
+                  onClick={handleWhopRedirect}
+                  className="w-full py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Go to secure checkout →
+                </button>
 
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? 'Starting your trial…' : 'Start 3-day trial'}
-                  </button>
-                </form>
-
-                <button onClick={() => setStep('info')} className="mt-4 text-[13px] text-gray-400 hover:text-gray-700 w-full text-center transition-colors">
+                <button
+                  onClick={() => setStep('info')}
+                  className="mt-4 text-[13px] text-gray-400 hover:text-gray-700 w-full text-center transition-colors"
+                >
                   ← Back
                 </button>
 
                 <p className="text-center text-[11px] text-gray-400 mt-5 leading-relaxed">
-                  Card charged only if you stay past day 3. Cancel anytime in Settings.
+                  Payment is processed securely by Whop. Cancel anytime within 3 days — no charge.
                 </p>
               </>
             )}

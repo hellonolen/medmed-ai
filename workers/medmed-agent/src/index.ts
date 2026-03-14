@@ -25,10 +25,13 @@ export interface Env {
   ADMIN_SECRET: string;
   WORKER_ENV: string;
   // Admin access control
-  OWNER_EMAIL: string;    // hellonolen@gmail.com
-  ADMIN_EMAILS: string;   // comma-separated admin emails
-  // Stripe price IDs
+  OWNER_EMAIL: string;
+  ADMIN_EMAILS: string;
+  // Stripe price IDs (kept for sponsor checkout)
   STRIPE_BUSINESS_PRICE_ID: string;
+  // Whop payment
+  WHOP_CHECKOUT_URL: string;
+  WHOP_WEBHOOK_SECRET: string;
 }
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -1404,6 +1407,84 @@ async function handleAuthProfile(req: Request, env: Env): Promise<Response> {
   return json({ success: true }, 200, origin);
 }
 
+// ─── Whop Webhook ──────────────────────────────────────────────────────────────
+
+async function handleWhopWebhook(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const body = await req.text();
+
+  // Verify Whop HMAC-SHA256 signature
+  if (env.WHOP_WEBHOOK_SECRET) {
+    const sig = req.headers.get('whop-signature') || '';
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.WHOP_WEBHOOK_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const expected = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+    const expectedHex = Array.from(new Uint8Array(expected)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (sig !== expectedHex) return new Response('Invalid signature', { status: 401 });
+  }
+
+  let event: { event?: string; data?: { membership?: { user?: { email?: string; username?: string; name?: string }; product?: { name?: string } } } };
+  try { event = JSON.parse(body); } catch { return new Response('Bad JSON', { status: 400 }); }
+
+  // Only process successful membership activations
+  if (event.event !== 'membership.went_valid') {
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
+  }
+
+  const memberEmail = event.data?.membership?.user?.email || '';
+  const memberName  = event.data?.membership?.user?.name || event.data?.membership?.user?.username || '';
+  if (!memberEmail) return new Response('No email in event', { status: 400 });
+
+  const emailLower = memberEmail.trim().toLowerCase();
+  const firstName  = (memberName || '').split(' ')[0] || memberEmail.split('@')[0];
+
+  // Create user if not exists
+  let userId: string;
+  const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`).bind(emailLower).first<{ id: string }>();
+  if (existing) {
+    userId = existing.id;
+    // If they somehow already exist, just upgrade their plan
+    await env.DB.prepare(`UPDATE users SET plan = 'trial', tier = 'pro' WHERE id = ?`).bind(userId).run();
+  } else {
+    userId = crypto.randomUUID();
+    const trialEndsAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 3;
+    await env.DB.prepare(
+      `INSERT INTO users (id, email, name, password_hash, tier, role, plan, trial_ends_at, created_at)
+       VALUES (?, ?, ?, 'magic-link-only', 'pro', 'user', 'trial', ?, datetime('now'))`
+    ).bind(userId, emailLower, memberName.trim() || firstName, trialEndsAt).run();
+  }
+
+  // Send welcome magic link
+  const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
+  await env.DB.prepare(`DELETE FROM magic_links WHERE user_id = ?`).bind(userId).run();
+  await env.DB.prepare(`INSERT INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`).bind(token, userId, expiresAt).run();
+
+  const welcomeLink = `https://medmed.pages.dev/auth/verify?token=${token}`;
+  if (env.POSTMARK_SERVER_TOKEN) {
+    await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Postmark-Server-Token': env.POSTMARK_SERVER_TOKEN },
+      body: JSON.stringify({
+        From: 'noreply@medmed.ai',
+        To: emailLower,
+        Subject: 'Welcome to medmed.ai — your trial has started',
+        HtmlBody: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#faf8f4">
+  <p style="font-size:17px;font-weight:700;color:#111">medmed.ai</p>
+  <h2 style="font-size:22px;font-weight:700;color:#111;margin:24px 0 8px">Welcome, ${firstName}!</h2>
+  <p style="color:#555;font-size:15px;line-height:1.6">Your 3-day trial is active. Click below to access your account.</p>
+  <a href="${welcomeLink}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#7c3aed;color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none">Access medmed.ai</a>
+  <p style="color:#999;font-size:12px;margin-top:24px">This link expires in 1 hour. Reply to this email if you need help.</p>
+</div>`,
+        TextBody: `Welcome to medmed.ai, ${firstName}!\n\nAccess your account:\n${welcomeLink}`,
+        MessageStream: 'outbound',
+      }),
+    }).catch(() => {});
+  }
+
+  return new Response(JSON.stringify({ received: true }), { status: 200 });
+}
+
 // ─── Magic Link Auth ─────────────────────────────────────────────────────────
 
 async function handleMagicLink(req: Request, env: Env): Promise<Response> {
@@ -1557,6 +1638,9 @@ export default {
       // AI & Search
       if (path === '/api/ai'                     && req.method === 'POST') return handleAI(req, env);
       if (path === '/api/search'                 && req.method === 'POST') return handleSearch(req, env);
+
+      // Whop webhook
+      if (path === '/api/whop/webhook' && req.method === 'POST') return handleWhopWebhook(req, env);
 
       // Magic Link Auth (new — replaces password login)
       if (path === '/api/auth/magic-link' && req.method === 'POST') return handleMagicLink(req, env);
