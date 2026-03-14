@@ -1,12 +1,13 @@
+import GlobalFooter from "../components/GlobalFooter"
+
 import { Link } from 'react-router-dom'
 import Nav from '../components/Nav'
-import Footer from '../components/Footer'
 
 function LegalPage({ title, tag, sections }: { title: string; tag: string; sections: { heading: string; body: string }[] }) {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--off-white)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--off-white)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <div style={{ paddingTop: 56, maxWidth: 760, margin: '0 auto', padding: '64px 40px' }}>
+      <div style={{ flex: 1, paddingTop: 56, maxWidth: 760, margin: '0 auto', padding: '64px 40px', width: '100%', boxSizing: 'border-box' }}>
         <div className="tag" style={{ marginBottom: 12 }}>{tag}</div>
         <h1 style={{ marginBottom: 8 }}>{title}</h1>
         <p style={{ fontSize: 12, color: 'var(--mid-gray)', marginBottom: 40 }}>Last updated: March 1, 2026</p>
@@ -18,13 +19,14 @@ function LegalPage({ title, tag, sections }: { title: string; tag: string; secti
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 40, display: 'flex', gap: 16, fontSize: 12, color: 'var(--mid-gray)' }}>
-          <Link to="/" style={{ textDecoration: 'underline' }}>← Back to Home</Link>
-          <Link to="/privacy" style={{ textDecoration: 'underline' }}>Privacy Policy</Link>
-          <Link to="/terms" style={{ textDecoration: 'underline' }}>Terms of Use</Link>
+        <div style={{ marginTop: 40, display: 'flex', gap: 16, fontSize: 12, color: 'var(--mid-gray)', flexDirection: 'column' }}>
+          <Link to="/" style={{ textDecoration: 'underline', alignSelf: 'flex-start' }}>← Back to Home</Link>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <Link to="/privacy" style={{ textDecoration: 'underline' }}>Privacy Policy</Link>
+            <Link to="/terms" style={{ textDecoration: 'underline' }}>Terms of Use</Link>
+          </div>
         </div>
       </div>
-      <Footer />
     </div>
   )
 }
@@ -40,17 +42,17 @@ export function Privacy() {
 
 export function Terms() {
   return <LegalPage tag="Policy Center" title="Terms of Use" sections={[
-    { heading: 'Acceptance', body: 'By using medmed.ai you agree to these terms. If you do not agree, please do not use the service.' },
-    { heading: 'Informational Content Only', body: 'medmed.ai provides general information for educational purposes only. Nothing on this platform constitutes advice, diagnosis, or recommendation. Always consult a qualified care provider for health decisions.' },
+    { heading: 'Acceptance', body: 'By using medmed you agree to these terms. If you do not agree, please do not use the service.' },
+    { heading: 'Informational Content Only', body: 'medmed provides general information for educational purposes only. Nothing on this platform constitutes advice, diagnosis, or recommendation. Always consult a qualified care provider for health decisions.' },
     { heading: 'Subscriptions & Billing', body: 'Paid subscriptions are billed monthly. You may cancel at any time; your access continues until the end of the current billing period.' },
-    { heading: 'Acceptable Use', body: 'You agree not to use medmed.ai to generate, distribute, or act on misinformation, or to circumvent any access controls on the platform.' },
-    { heading: 'Limitation of Liability', body: 'medmed.ai is provided "as is." We are not liable for any harm arising from reliance on information provided by the platform.' },
+    { heading: 'Acceptable Use', body: 'You agree not to use medmed to generate, distribute, or act on misinformation, or to circumvent any access controls on the platform.' },
+    { heading: 'Limitation of Liability', body: 'medmed is provided "as is." We are not liable for any harm arising from reliance on information provided by the platform.' },
   ]} />
 }
 
 export function Policy() {
   return <LegalPage tag="Policy Center" title="Acceptable Use Policy" sections={[
-    { heading: 'Prohibited Usage', body: 'Users are prohibited from using medmed.ai for any unlawful purpose, to transmit harmful code, or to generate content that is intentionally misleading or harmful.' },
+    { heading: 'Prohibited Usage', body: 'Users are prohibited from using medmed for any unlawful purpose, to transmit harmful code, or to generate content that is intentionally misleading or harmful.' },
     { heading: 'Security', body: 'You may not attempt to gain unauthorized access to any portion of the service or any other systems or networks connected to the service.' },
     { heading: 'Fair Usage', body: 'We reserve the right to limit or terminate access for users who exceed reasonable usage limits or attempt to automate scraping of the platform.' }
   ]} />
@@ -58,27 +60,30 @@ export function Policy() {
 
 export function Support() {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--off-white)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--off-white)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <div style={{ paddingTop: 56, maxWidth: 760, margin: '0 auto', padding: '64px 40px' }}>
+      <div style={{ flex: 1, paddingTop: 56, maxWidth: 760, margin: '0 auto', padding: '64px 40px', width: '100%', boxSizing: 'border-box' }}>
         <div className="tag" style={{ marginBottom: 12 }}>Customer Care</div>
         <h1 style={{ marginBottom: 8 }}>Help & Support</h1>
-        <p style={{ fontSize: 16, color: 'var(--dark-gray)', marginBottom: 40, fontWeight: 300 }}>We are here to help you get the most out of medmed.ai.</p>
+        <p style={{ fontSize: 16, color: 'var(--dark-gray)', marginBottom: 40, fontWeight: 300 }}>
+          All questions within the app should go directly to the chatbot. 
+          If you need something outside of the prompt, our concierge is stationed via email.
+        </p>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-          <div style={{ padding: 24, border: '1px solid var(--border)', background: 'var(--white)' }}>
-            <h3 style={{ marginBottom: 12 }}>Contact Us</h3>
-            <p style={{ fontSize: 13, color: 'var(--dark-gray)', lineHeight: 1.6, marginBottom: 16 }}>Need help with your account or billing? Reach out to our team.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ padding: 24, border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 8 }}>
+            <h3 style={{ marginBottom: 12 }}>Contact Concierge</h3>
+            <p style={{ fontSize: 13, color: 'var(--dark-gray)', lineHeight: 1.6, marginBottom: 16 }}>Need help with your account or billing? Send an email and an assistant will respond and route your request immediately.</p>
             <a href="mailto:support@medmed.ai" style={{ fontWeight: 600, color: 'var(--black)', textDecoration: 'underline', fontSize: 13 }}>support@medmed.ai</a>
           </div>
-          <div style={{ padding: 24, border: '1px solid var(--border)', background: 'var(--white)' }}>
+          <div style={{ padding: 24, border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 8 }}>
             <h3 style={{ marginBottom: 12 }}>Documentation</h3>
             <p style={{ fontSize: 13, color: 'var(--dark-gray)', lineHeight: 1.6, marginBottom: 16 }}>Learn how to use our tools and manage your history.</p>
             <Link to="/how-it-works" style={{ fontWeight: 600, color: 'var(--black)', textDecoration: 'underline', fontSize: 13 }}>View How It Works</Link>
           </div>
         </div>
       </div>
-      <Footer />
+      <GlobalFooter />
     </div>
   )
 }

@@ -20,6 +20,7 @@ import Signup from './pages/Signup'
 
 // App
 import Dashboard from './pages/Dashboard'
+import Chat from './pages/Chat'
 import SymptomChecker from './pages/SymptomChecker'
 import Interactions from './pages/Interactions'
 import Pharmacy from './pages/Pharmacy'
@@ -50,6 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
             {/* App */}
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/symptom-checker" element={<SymptomChecker />} />
             <Route path="/interactions" element={<Interactions />} />
             <Route path="/pharmacy" element={<Pharmacy />} />

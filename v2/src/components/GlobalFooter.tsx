@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function Footer() {
+export default function GlobalFooter() {
   return (
     <footer style={{
       width: '100%',
@@ -10,11 +10,10 @@ export default function Footer() {
       alignItems: 'center',
       gap: 20,
       flexWrap: 'wrap',
-      background: 'transparent',
       boxSizing: 'border-box'
     }}>
-      <span style={{ fontSize: 11, color: 'var(--mid-gray)' }}>
-        © {new Date().getFullYear()} medmed
+      <span style={{ fontSize: 11, color: 'var(--mid-gray)', fontWeight: 500 }}>
+        © {new Date().getFullYear()} MedMed.AI • All rights reserved
       </span>
       <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
         {[

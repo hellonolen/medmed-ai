@@ -103,7 +103,7 @@ Format: {"results": [...], "answer": "..."}`
               </div>
             ))}
             <div style={{ marginTop: 20, padding: '12px 16px', border: '1px solid var(--border)', background: 'var(--off-white)', fontSize: 11, color: 'var(--mid-gray)' }}>
-              Results are AI-generated and may not reflect current hours or availability. Always call ahead to confirm.
+              Results are system-generated and may not reflect current hours or availability. Always call ahead to confirm.
             </div>
           </>
         )}

@@ -1,27 +1,28 @@
+import GlobalFooter from "../components/GlobalFooter"
+
 import { Link } from 'react-router-dom'
 import Nav from '../components/Nav'
-import Footer from '../components/Footer'
 
 export default function About() {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--off-white)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--off-white)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <div style={{ paddingTop: 56 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 56 }}>
         {/* Hero */}
-        <div style={{ maxWidth: 860, margin: '0 auto', padding: '72px 40px 56px', borderBottom: '1px solid var(--border)' }}>
-          <div className="tag" style={{ marginBottom: 16 }}>About medmed.ai</div>
+        <div style={{ maxWidth: 860, margin: '0 auto', padding: '72px 40px 56px', borderBottom: '1px solid var(--border)', width: '100%', boxSizing: 'border-box' }}>
+          <div className="tag" style={{ marginBottom: 16 }}>About medmed</div>
           <h1 style={{ maxWidth: 540 }}>We built the health research<br />companion we always wanted</h1>
         </div>
 
         {/* Mission */}
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 0, borderBottom: '1px solid var(--border)' }}>
             <div style={{ padding: '48px 40px', borderRight: '1px solid var(--border)' }}>
               <div className="tag">Our Mission</div>
             </div>
             <div style={{ padding: '48px 40px' }}>
               <p style={{ fontSize: 17, fontWeight: 300, lineHeight: 1.75, color: 'var(--dark-gray)', marginBottom: 20 }}>
-                Health information is abundant but clarity is rare. We built medmed.ai to cut through the noise — giving people the structured, plain-language answers they need to make informed decisions and have better conversations with their care teams.
+                Health information is abundant but clarity is rare. We built medmed to cut through the noise — giving people the structured, plain-language answers they need to make informed decisions and have better conversations with their care teams.
               </p>
               <p style={{ fontSize: 15, fontWeight: 300, lineHeight: 1.75, color: 'var(--dark-gray)' }}>
                 We are not a replacement for your care provider. We are the tool you reach for at 2am when something doesn't feel right and you need a clear answer — not ten contradictory forum posts.
@@ -39,7 +40,7 @@ export default function About() {
               {[
                 { title: 'Clarity over volume', body: 'We prioritize structured, scannable answers over long-form walls of text. Your health questions deserve real answers, not ad-stuffed articles.' },
                 { title: 'Privacy first', body: 'Your conversations are yours. We do not sell your data, share it with insurers, or use it to target you with advertising.' },
-                { title: 'Transparent about what we are', body: 'medmed.ai is an informational tool. Every response includes clear guidance for when to speak with a professional.' },
+                { title: 'Transparent about what we are', body: 'medmed is an informational tool. Every response includes clear guidance for when to speak with a professional.' },
                 { title: 'Accessible pricing', body: 'We offer a generous free trial and straightforward pricing for individuals, teams, and enterprise organizations — no hidden fees.' },
               ].map((v, i) => (
                 <div key={v.title} style={{
@@ -65,17 +66,13 @@ export default function About() {
                 padding: '13px 28px', background: 'var(--black)', color: 'var(--white)',
                 fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none',
               }}>Try It Free</Link>
-              <Link to="/pricing" style={{
-                padding: '13px 28px', border: '1px solid var(--border)', background: 'transparent',
-                fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none', color: 'var(--dark-gray)',
-              }}>See Pricing</Link>
             </div>
           </div>
         </div>
 
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
-          <Footer />
+        <div style={{ marginTop: 'auto', maxWidth: 860, margin: '0 auto', width: '100%' }}>
         </div>
+        <GlobalFooter />
       </div>
     </div>
   )

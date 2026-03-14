@@ -52,7 +52,7 @@ export default function Checkout() {
       {/* Page header */}
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 40px 28px', borderBottom: '1px solid var(--border)' }}>
         <div className="tag" style={{ marginBottom: 10 }}>Checkout</div>
-        <h1>Get started with<br />medmed.ai</h1>
+        <h1>Get started with<br />medmed</h1>
       </div>
 
       {/* Plan selector */}
@@ -151,7 +151,7 @@ export default function Checkout() {
           <div style={{ background: 'var(--white)', width: '100%', maxWidth: 460, height: 580, display: 'flex', flexDirection: 'column', border: 'none' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 16, fontWeight: 300 }}>medmed.ai — Secure Payment</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 16, fontWeight: 300 }}>medmed — Secure Payment</div>
                 <div className="tag" style={{ marginTop: 2 }}>{plan.name}{isTeam ? ` · ${seats} seats` : ''} · {priceStr}/mo</div>
               </div>
               <button onClick={() => setShowModal(false)} style={{ fontSize: 18, color: 'var(--mid-gray)', cursor: 'pointer', padding: 4 }}>✕</button>

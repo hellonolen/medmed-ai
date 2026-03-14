@@ -69,6 +69,22 @@ export default function Sidebar() {
           )
         })}
       </nav>
+      {/* Bottom Legal/Business Nav */}
+      <div style={{ padding: '12px 10px', marginTop: 'auto' }}>
+         {[
+           { label: 'Policy Center', path: '/policy' },
+           { label: 'Business Center', path: '/about' },
+           { label: 'Support', path: '/support' },
+           { label: 'Contact', path: '/contact' },
+         ].map(l => (
+           <Link key={l.label} to={l.path} style={{
+             display: 'block', padding: '6px 12px', fontSize: 11, fontWeight: 500, color: 'var(--mid-gray)', textDecoration: 'none',
+             borderRadius: 6, transition: 'all 0.1s', marginBottom: 2
+           }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--off-white)'; e.currentTarget.style.color = 'var(--black)' }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--mid-gray)' }}>
+             {l.label}
+           </Link>
+         ))}
+      </div>
 
       <div style={{ borderTop: '1px solid var(--border)', padding: '14px 16px' }}>
         {/* Tier badge */}

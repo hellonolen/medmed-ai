@@ -889,7 +889,7 @@ async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
     return err('Unauthorized', 401, origin);
   }
 
-  if (userTier !== 'premium' && userTier !== 'business') {
+  if (userTier === 'free' || userTier === 'trial') {
     return err('Pro membership required', 403, origin);
   }
 
@@ -940,6 +940,67 @@ async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
     .bind(analysis, id).run();
 
   return json({ analysis }, 200, origin);
+}
+
+async function handleMediaHistory(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!auth) return err('Unauthorized', 401, origin);
+  let userId: string;
+  try {
+    const payload = await verifyJWT(auth, env.JWT_SECRET);
+    if (!payload) return err('Unauthorized', 401, origin);
+    userId = payload.userId as string;
+  } catch { return err('Unauthorized', 401, origin); }
+
+  const records = await env.DB.prepare(
+    `SELECT id, type, analysis, created_at FROM media_captures WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`
+  ).bind(userId).all();
+
+  return json({ history: records.results || [] }, 200, origin);
+}
+
+async function handleMediaFile(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const origin = req.headers.get('Origin') || '*';
+  const id = url.pathname.split('/').pop();
+  if (!id) return err('ID required', 400, origin);
+
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      }
+    });
+  }
+
+  const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!auth) return err('Unauthorized', 401, origin);
+  let userId: string;
+  try {
+    const payload = await verifyJWT(auth, env.JWT_SECRET);
+    if (!payload) return err('Unauthorized', 401, origin);
+    userId = payload.userId as string;
+  } catch { return err('Unauthorized', 401, origin); }
+
+  const record = await env.DB.prepare(
+    `SELECT r2_key, type FROM media_captures WHERE id = ? AND user_id = ?`
+  ).bind(id, userId).first<{ r2_key: string, type: string }>();
+
+  if (!record) return err('Not found', 404, origin);
+
+  const obj = await env.MEDIA.get(record.r2_key);
+  if (!obj) return err('File not found', 404, origin);
+
+  const headers = new Headers();
+  obj.writeHttpMetadata(headers);
+  headers.set('etag', obj.httpEtag);
+  headers.set('Access-Control-Allow-Origin', origin);
+  headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  return new Response(obj.body, { headers });
 }
 
 // ─── /api/media/visual ─────────────────────────────────────────────────────────
@@ -1524,6 +1585,8 @@ export default {
       if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
       if (path === '/api/media/upload'           && req.method === 'POST') return handleMediaUpload(req, env);
       if (path === '/api/media/analyze'          && req.method === 'POST') return handleMediaAnalyze(req, env);
+      if (path === '/api/media/history'          && req.method === 'GET')  return handleMediaHistory(req, env);
+      if (path.startsWith('/api/media/file/')    && (req.method === 'GET' || req.method === 'OPTIONS'))  return handleMediaFile(req, env);
       if (path === '/api/media/visual'           && req.method === 'POST') return handleMediaVisual(req, env);
       if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v3' });
 

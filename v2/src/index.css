@@ -51,7 +51,7 @@ button {
   font-family: var(--font-sans);
   font-weight: 500;
   cursor: pointer;
-  border-radius: 0;
+  border-radius: 5px;
   letter-spacing: 0.06em;
   border: none;
   background: none;
@@ -101,19 +101,33 @@ button {
 }
 .nav-links a:hover { color: var(--black); }
 
-.btn-nav {
+.nav-links a.btn-nav {
   padding: 8px 20px;
   background: var(--black);
-  color: var(--white);
+  color: var(--white) !important;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  border-radius: 0;
+  border-radius: 5px;
+  border: 1px solid var(--black);
+  transition: all 0.2s;
+}
+.nav-links a.btn-nav:hover {
+  background: var(--white);
+  color: var(--black) !important;
 }
 
 /* ─── Page wrapper ───────────────────────────────── */
-.page { padding-top: 56px; }
+.page { 
+  padding-top: 56px; 
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.page-content {
+  flex: 1;
+}
 
 /* ─── Hero ───────────────────────────────────────── */
 .hero {
@@ -148,6 +162,7 @@ button {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  border-radius: 5px;
 }
 .btn-ghost {
   padding: 12px 28px;
@@ -158,6 +173,7 @@ button {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   background: transparent;
+  border-radius: 5px;
 }
 .btn-ghost:hover { border-color: var(--black); color: var(--black); }
 
@@ -258,9 +274,10 @@ button {
   display: block;
   text-align: center;
   transition: all 0.15s;
+  border-radius: 5px;
 }
 .btn-plan:hover { border-color: var(--black); color: var(--black); }
-.btn-plan.primary { background: var(--white); color: var(--black); border-color: var(--white); }
+.btn-plan.primary { background: var(--white); color: var(--black); border-color: var(--white); border-radius: 5px; }
 .btn-plan.primary:hover { background: var(--off-white); }
 
 /* ─── Seat counter ───────────────────────────────── */
@@ -277,7 +294,7 @@ button {
   background: var(--white);
   font-size: 16px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 0;
+  border-radius: 5px;
 }
 .seat-total { margin-left: auto; font-weight: 700; font-size: 17px; }
 
@@ -315,7 +332,7 @@ button {
   font-size: 14px;
   font-weight: 300;
   color: var(--black);
-  border-radius: 0;
+  border-radius: 5px;
   outline: none;
 }
 .form-group input:focus { border-color: var(--black); }
@@ -329,6 +346,7 @@ button {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-top: 8px;
+  border-radius: 5px;
 }
 .btn-submit:disabled { background: var(--light-gray); color: var(--mid-gray); cursor: not-allowed; }
 
@@ -354,6 +372,69 @@ button {
   .plans-grid { grid-template-columns: 1fr; }
   .plan-card { border-right: none; border-bottom: 1px solid var(--border); }
   .checkout-layout { grid-template-columns: 1fr; }
-  .nav { padding: 0 20px; }
+  .nav { display: none; }
   .hero { padding: 60px 20px; }
+}
+
+/* ─── Mobile Sidebar ─────────────────────────────── */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+}
+.mobile-overlay.open { display: block; }
+
+.mobile-header {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 56px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.mobile-header.transparent {
+  background: var(--off-white);
+  border-bottom: none;
+}
+.mobile-header button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--black);
+}
+
+.sidebar-container {
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 50;
+}
+.main-content {
+  transition: margin-left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .sidebar-container {
+    transform: translateX(-100%);
+  }
+  .sidebar-container.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0 !important;
+  }
+  .mobile-header {
+    display: flex;
+  }
 }

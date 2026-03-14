@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import AppShell from '../components/AppShell'
 import Nav from '../components/Nav'
-import Footer from '../components/Footer'
 import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../contexts/SubscriptionContext'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { apiChat, type ChatMessage } from '../lib/api'
 
 interface Message { id: number; role: 'user' | 'assistant'; content: string; ts: Date }
@@ -54,25 +53,10 @@ function inlineMd(text: string): React.ReactNode {
   })
 }
 
-const SUGGESTED = [
-  { q: 'What causes frequent headaches?', icon: '◉' },
-  { q: 'Is ibuprofen safe with blood thinners?', icon: '⬡' },
-  { q: 'Find a 24hr pharmacy nearby', icon: '▤' },
-  { q: 'Explain Type 2 diabetes risk factors', icon: '◈' },
-  { q: 'What are factors of low iron?', icon: '◉' },
-  { q: 'Compare Ozempic vs Wegovy', icon: '⬡' },
-]
-
-const QUICK_TOOLS = [
-  { icon: '◉', label: 'Symptoms', path: '/symptom-checker' },
-  { icon: '⬡', label: 'Interactions', path: '/interactions' },
-  { icon: '▤', label: 'Finder', path: '/pharmacy' },
-  { icon: '⊙', label: 'Visualization', path: '/camera' },
-]
-
 export default function Dashboard() {
   const { user, isAuthed, trialExpiresAt, isTrialExpired } = useAuth()
   const { tier } = useSubscription()
+  const nav = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -117,86 +101,104 @@ export default function Dashboard() {
     }
   }
 
+  const handleAction = (type: 'camera' | 'video') => {
+    if (tier === 'free') {
+      nav('/pricing')
+    } else {
+      nav('/camera')
+    }
+  }
+
   const empty = messages.length === 0
   const daysLeft = trialExpiresAt ? Math.max(0, Math.ceil((new Date(trialExpiresAt).getTime() - Date.now()) / 86400000)) : null
   const hasBanner = isAuthed && tier === 'free' && daysLeft !== null
 
   return (
-    <AppShell>
-      {hasBanner && (
-        <div style={{
-          background: isTrialExpired ? '#7f1d1d' : daysLeft <= 1 ? '#92400e' : 'var(--black)',
-          color: 'var(--white)', padding: '9px 28px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          fontSize: 11.5, letterSpacing: '0.04em',
-          position: 'fixed', top: 56, left: 220, right: 0, zIndex: 80,
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-        }}>
-          <span>
-            {isTrialExpired ? 'Your free trial has ended. Upgrade to keep access.' : `Free trial — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.`}
-          </span>
-          <Link to="/pricing" style={{ color: 'var(--white)', textDecoration: 'underline', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>
-            UPGRADE →
-          </Link>
-        </div>
-      )}
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', background: '#fdfbf7', overflow: 'hidden' }}>
+      
+      {/* Left Sidebar (Claude Style) */}
+      <div style={{ width: 260, borderRight: '1px solid var(--border)', background: '#f5f4ef', display: 'flex', flexDirection: 'column', padding: '20px 16px', flexShrink: 0 }}>
+        <Link to="/" style={{ fontFamily: 'var(--font-sans)', fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--black)', marginBottom: 24, paddingLeft: 8 }}>
+          MedMed.AI
+        </Link>
+        
+        <button onClick={() => { setMessages([]); historyRef.current = []; setInput(''); }} style={{ width: '100%', padding: '10px 14px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 5, textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--black)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: 16 }}>+</span> New Chat
+        </button>
 
-      <div style={{
-        display: 'flex', flexDirection: 'column',
-        height: 'calc(100vh - 56px)',
-        paddingTop: hasBanner ? 36 : 0,
-        background: 'var(--off-white)',
-      }}>
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {empty ? (
-            <div style={{ maxWidth: 680, margin: '0 auto', padding: '52px 28px 20px' }}>
-              <div style={{ marginBottom: 40 }}>
-                <div className="tag" style={{ marginBottom: 12 }}>Research Dashboard</div>
-                <h1 style={{ fontSize: 36, fontWeight: 300, lineHeight: 1.15, marginBottom: 14, letterSpacing: '-0.02em' }}>
-                  {isAuthed ? <>Good to have you back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}.<br />What are we looking into today?</> : <>What can I help<br />you understand?</>}
-                </h1>
-                <p style={{ fontSize: 15, color: 'var(--dark-gray)', lineHeight: 1.7, maxWidth: 500 }}>
-                  Ask any health question — medications, symptoms, conditions, interactions. I will give you clear, organized information — never a diagnosis.
-                </p>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mid-gray)', marginBottom: 12, paddingLeft: 8 }}>Recent Chats</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {!empty && (
+              <div style={{ padding: '8px 12px', borderRadius: 5, background: 'var(--white)', fontSize: 13, color: 'var(--black)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', border: '1px solid var(--border)' }}>
+                Current Conversation
               </div>
-              <div style={{ marginBottom: 40 }}>
-                <div className="tag" style={{ marginBottom: 12 }}>Suggested</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {SUGGESTED.map(s => (
-                    <button key={s.q} onClick={() => send(s.q)} style={{ padding: '14px 16px', textAlign: 'left', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 13.5, color: 'var(--dark-gray)', lineHeight: 1.4, cursor: 'pointer', transition: 'all 0.1s', display: 'flex', gap: 10, alignItems: 'flex-start' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--black)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                      <span style={{ color: 'var(--mid-gray)', flexShrink: 0, fontSize: 12 }}>{s.icon}</span>
-                      {s.q}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ marginBottom: 28 }}>
-                <div className="tag" style={{ marginBottom: 12 }}>Specialized Tools</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {QUICK_TOOLS.map(t => (
-                    <Link key={t.path} to={t.path} style={{ padding: '9px 16px', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12.5, color: 'var(--dark-gray)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, transition: 'all 0.1s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--black)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                      <span style={{ fontSize: 13 }}>{t.icon}</span>
-                      {t.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-              {!isAuthed && (
-                <div style={{ padding: '14px 16px', border: '1px solid var(--border)', background: 'var(--white)', fontSize: 13, color: 'var(--dark-gray)', lineHeight: 1.6 }}>
-                  <Link to="/signup" style={{ fontWeight: 600, textDecoration: 'underline' }}>Create a free account</Link> to save your conversation history and unlock personalized responses.
-                </div>
-              )}
+            )}
+            <div style={{ padding: '8px 12px', borderRadius: 5, fontSize: 13, color: 'var(--dark-gray)', cursor: 'pointer' }}>Aspirin interactions</div>
+            <div style={{ padding: '8px 12px', borderRadius: 5, fontSize: 13, color: 'var(--dark-gray)', cursor: 'pointer' }}>Tylenol dosage for kids</div>
+          </div>
+
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mid-gray)', marginTop: 32, marginBottom: 12, paddingLeft: 8 }}>Your Files (Pro)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ padding: '8px 12px', borderRadius: 5, fontSize: 12, color: 'var(--dark-gray)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'var(--mid-gray)' }}>📄</span> Lab_Results_May.pdf
             </div>
+            <div style={{ padding: '8px 12px', borderRadius: 5, fontSize: 12, color: 'var(--dark-gray)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: 'var(--mid-gray)' }}>🖼️</span> Rash_Day_2.jpg
+            </div>
+          </div>
+        </div>
+
+        <div style={{ paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '0 8px', marginBottom: 20 }}>
+            <Link to="/business" style={{ fontSize: 12, color: 'var(--dark-gray)', textDecoration: 'none', fontWeight: 500 }}>Business Center</Link>
+            <Link to="/sponsors" style={{ fontSize: 12, color: 'var(--dark-gray)', textDecoration: 'none', fontWeight: 500 }}>Sponsors</Link>
+            <Link to="/support" style={{ fontSize: 12, color: 'var(--dark-gray)', textDecoration: 'none', fontWeight: 500 }}>Support</Link>
+          </div>
+          <div style={{ padding: '8px', fontSize: 12, color: 'var(--dark-gray)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontWeight: 600, whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.name || 'User Account'}</div>
+              <div style={{ fontSize: 10, color: 'var(--mid-gray)', textTransform: 'uppercase' }}>{tier} Plan</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        
+        {hasBanner && (
+          <div style={{
+            background: isTrialExpired ? '#7f1d1d' : daysLeft <= 1 ? '#92400e' : 'var(--black)',
+            color: 'var(--white)', padding: '9px 28px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            fontSize: 11.5, letterSpacing: '0.04em', zIndex: 80,
+          }}>
+            <span>
+              {isTrialExpired ? 'Your free trial has ended. Upgrade to keep access.' : `Free trial — ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.`}
+            </span>
+            <Link to="/pricing" style={{ color: 'var(--white)', textDecoration: 'underline', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>
+              UPGRADE →
+            </Link>
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 140 }}>
+          {empty ? (
+             <div style={{ maxWidth: 820, margin: '0 auto', paddingTop: '10vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+               <h1 style={{ fontSize: 28, fontWeight: 300, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'var(--black)', marginBottom: 32 }}>
+                 {isAuthed ? `Good to see you, ${user?.name?.split(' ')[0] || user?.email?.split('@')[0]}.` : `What can I help you understand?`}
+               </h1>
+             </div>
           ) : (
-            <div style={{ maxWidth: 720, margin: '0 auto', padding: '36px 28px 24px' }}>
+            <div style={{ maxWidth: 820, margin: '0 auto', padding: '36px 28px 24px' }}>
               {messages.map(m => (
                 <div key={m.id} style={{ marginBottom: 32, display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    {m.role === 'assistant' && (<div style={{ width: 22, height: 22, background: 'var(--black)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>M</div>)}
-                    <span className="tag">{m.role === 'user' ? (user?.name?.split(' ')[0] || 'You') : 'medmed.ai'}</span>
-                    <span style={{ fontSize: 9, color: 'var(--mid-gray)' }}>{m.ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{m.role === 'user' ? (user?.name?.split(' ')[0] || 'You') : 'MedMed.AI'}</span>
+                    <span style={{ fontSize: 10, color: 'var(--mid-gray)' }}>{m.ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
-                  <div style={{ maxWidth: '84%', padding: m.role === 'user' ? '12px 18px' : '18px 22px', background: m.role === 'user' ? 'var(--black)' : 'var(--white)', color: m.role === 'user' ? 'var(--white)' : 'var(--black)', border: m.role === 'assistant' ? '1px solid var(--border)' : 'none', fontSize: 14, lineHeight: 1.7, whiteSpace: m.role === 'user' ? 'pre-wrap' : undefined }}>
+                  <div style={{ maxWidth: '84%', padding: m.role === 'user' ? '12px 18px' : '0px', background: m.role === 'user' ? 'var(--white)' : 'transparent', color: 'var(--black)', border: m.role === 'user' ? '1px solid var(--border)' : 'none', fontSize: 15, lineHeight: 1.6, whiteSpace: m.role === 'user' ? 'pre-wrap' : undefined, borderRadius: 8 }}>
                     {m.role === 'user' ? m.content : renderMarkdown(m.content)}
                   </div>
                 </div>
@@ -204,48 +206,74 @@ export default function Dashboard() {
               {streaming && (
                 <div style={{ marginBottom: 32 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <div style={{ width: 22, height: 22, background: 'var(--black)', color: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>M</div>
-                    <span className="tag">medmed.ai</span>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>MedMed.AI</span>
                   </div>
-                  <div style={{ padding: '16px 22px', border: '1px solid var(--border)', background: 'var(--white)', display: 'inline-flex', gap: 5, alignItems: 'center' }}>
+                  <div style={{ padding: '8px 0', display: 'inline-flex', gap: 5, alignItems: 'center' }}>
                     {[0, 140, 280].map(d => (<span key={d} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--mid-gray)', display: 'inline-block', animation: 'medmedDot 1.2s ease-in-out infinite', animationDelay: `${d}ms` }} />))}
                   </div>
                 </div>
               )}
-              {aiError && (<div style={{ padding: '12px 16px', border: '1px solid #fca5a5', background: '#fff5f5', fontSize: 13, color: '#7f1d1d', marginBottom: 16 }}>{aiError}</div>)}
+              {aiError && (<div style={{ padding: '12px 16px', border: '1px solid #fca5a5', background: '#fff5f5', borderRadius: 5, fontSize: 13, color: '#7f1d1d', marginBottom: 16 }}>{aiError}</div>)}
               <div ref={endRef} />
             </div>
           )}
         </div>
 
-        <div style={{ borderTop: '1px solid var(--border)', background: 'var(--white)', padding: '16px 28px 18px' }}>
-          <div style={{ maxWidth: 720, margin: '0 auto' }}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              {QUICK_TOOLS.map(t => (
-                <Link key={t.path} to={t.path} title={t.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', border: '1px solid var(--border)', background: 'var(--off-white)', textDecoration: 'none', fontSize: 11, color: 'var(--dark-gray)', fontWeight: 500, transition: 'all 0.1s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--black)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                  <span style={{ fontSize: 12 }}>{t.icon}</span>
-                  <span>{t.label.split(' ')[0]}</span>
-                </Link>
-              ))}
-              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-                {!empty && (
-                  <button onClick={() => { setMessages([]); historyRef.current = [] }} style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--mid-gray)', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 8px' }}>Clear</button>
-                )}
+        {/* Input Bar (Starts Middle, Moves Bottom) */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: empty ? 'calc(50% + 20px)' : 0, 
+          left: 0, 
+          right: 0, 
+          transform: empty ? 'translateY(50%)' : 'none',
+          padding: empty ? '20px 28px' : '16px 28px 24px', 
+          background: empty ? 'transparent' : 'linear-gradient(to top, #fdfbf7 80%, transparent)', 
+          pointerEvents: 'none',
+          transition: 'all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)'
+        }}>
+          <div style={{ maxWidth: 820, margin: '0 auto', pointerEvents: 'auto' }}>
+            
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 10,
+              background: 'var(--white)',
+              borderRadius: 12,
+              padding: '12px 16px',
+              border: '1px solid var(--border)',
+              transition: 'border-color 0.15s, box-shadow 0.15s',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'var(--mid-gray)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}>
+              <textarea ref={textareaRef} value={input} onChange={handleInputChange} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} placeholder="Message MedMed.AI..." rows={2} style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', padding: '4px 2px', fontFamily: 'var(--font-sans)', fontSize: 16, fontWeight: 400, color: 'var(--black)', outline: 'none', lineHeight: 1.55, maxHeight: 300, overflowY: 'auto' }} />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* Camera Analysis Button */}
+                  <button onClick={() => handleAction('camera')} title="Take Picture / Analyze" style={{ background: 'transparent', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'var(--mid-gray)', padding: '6px', display: 'flex', alignItems: 'center', transition: 'all 0.1s' }} onMouseEnter={e => e.currentTarget.style.color='var(--black)'} onMouseLeave={e => e.currentTarget.style.color='var(--mid-gray)'}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                  </button>
+                  {/* Video Scan Button */}
+                  <button onClick={() => handleAction('video')} title="Video Body Scan" style={{ background: 'transparent', border: 'none', borderRadius: 5, cursor: 'pointer', color: 'var(--mid-gray)', padding: '6px', display: 'flex', alignItems: 'center', transition: 'all 0.1s' }} onMouseEnter={e => e.currentTarget.style.color='var(--black)'} onMouseLeave={e => e.currentTarget.style.color='var(--mid-gray)'}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                  </button>
+                </div>
+                
+                <button onClick={() => send()} disabled={!input.trim() || streaming} style={{ padding: '8px 14px', background: input.trim() && !streaming ? 'var(--black)' : '#e5e5e4', color: input.trim() && !streaming ? 'var(--white)' : 'var(--mid-gray)', fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', borderRadius: 8, border: 'none', cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed', transition: 'all 0.1s' }}>{streaming ? '...' : 'Send'}</button>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', border: '1px solid var(--border)', background: 'var(--off-white)', padding: '2px 2px 2px 14px' }}>
-              <textarea ref={textareaRef} value={input} onChange={handleInputChange} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} placeholder="Ask any question… (Shift+Enter for new line)" rows={1} style={{ flex: 1, resize: 'none', border: 'none', background: 'transparent', padding: '11px 0', fontFamily: 'var(--font-sans)', fontSize: 14.5, fontWeight: 300, color: 'var(--black)', outline: 'none', lineHeight: 1.55, maxHeight: 200, overflowY: 'auto' }} />
-              <button onClick={() => send()} disabled={!input.trim() || streaming} style={{ padding: '10px 20px', alignSelf: 'flex-end', margin: '2px', background: input.trim() && !streaming ? 'var(--black)' : 'var(--light-gray)', color: input.trim() && !streaming ? 'var(--white)' : 'var(--mid-gray)', fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', border: 'none', cursor: input.trim() && !streaming ? 'pointer' : 'not-allowed', flexShrink: 0, lineHeight: '22px', transition: 'all 0.12s' }}>{streaming ? '···' : 'Send'}</button>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-              <div style={{ fontSize: 10, color: 'var(--mid-gray)', letterSpacing: '0.04em' }}>For informational purposes only · Not a substitute for professional advice</div>
-              <div style={{ fontSize: 10, color: 'var(--mid-gray)' }}>↵ send · ⇧↵ new line</div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--mid-gray)' }}>MedMed.AI can make mistakes. Verify important information with your physician.</div>
             </div>
           </div>
         </div>
-        <Footer />
+
       </div>
       <style>{`@keyframes medmedDot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }`}</style>
-    </AppShell>
+    </div>
   )
 }

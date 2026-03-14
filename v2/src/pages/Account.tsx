@@ -1,5 +1,4 @@
 import AppShell from '../components/AppShell'
-import Footer from '../components/Footer'
 import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../contexts/SubscriptionContext'
 import { Link, useNavigate } from 'react-router-dom'
@@ -50,7 +49,7 @@ export default function Account() {
                 <div style={{ fontSize: 13, color: 'var(--dark-gray)' }}>
                   {trialExpiresAt && !isTrialExpired
                     ? `Expires ${new Date(trialExpiresAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`
-                    : isTrialExpired ? 'Upgrade to continue using medmed.ai'
+                    : isTrialExpired ? 'Upgrade to continue using medmed'
                     : 'Upgrade anytime'}
                 </div>
               </div>
@@ -95,7 +94,6 @@ export default function Account() {
             Sign Out
           </button>
         </div>
-        <Footer />
       </div>
     </AppShell>
   )

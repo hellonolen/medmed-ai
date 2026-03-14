@@ -1,7 +1,8 @@
+import GlobalFooter from "../components/GlobalFooter"
+
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Nav from '../components/Nav'
-import Footer from '../components/Footer'
 
 type Tab = 'individual' | 'team'
 
@@ -150,7 +151,7 @@ export default function Pricing() {
         {[
           { q: 'Can I add more seats later?', a: 'Yes. You can increase or decrease your seat count at any time from your account. Changes are prorated to your billing cycle.' },
           { q: 'How is payment stored?', a: 'Your card is stored securely through our payment processor. You can update or remove it at any time from your account — no contact with support required.' },
-          { q: 'Is this a replacement for a care provider?', a: 'No. medmed.ai provides informational content to help you understand topics better. Always speak with a qualified care provider before making health decisions.' },
+          { q: 'Is this a replacement for a care provider?', a: 'No. medmed provides informational content to help you understand topics better. Always speak with a qualified care provider before making health decisions.' },
           { q: 'What happens after the free trial?', a: 'Your account moves to a limited free tier. You can upgrade at any time to restore full access. No charges without your action.' },
         ].map(({ q, a }) => (
           <div key={q} style={{ borderBottom: '1px solid var(--border)', padding: '20px 0' }}>
@@ -160,8 +161,9 @@ export default function Pricing() {
         ))}
       </div>
 
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        <Footer />
+      {/* Footer */}
+      <div style={{ marginTop: 'auto' }}>
+        <GlobalFooter />
       </div>
     </div>
   )

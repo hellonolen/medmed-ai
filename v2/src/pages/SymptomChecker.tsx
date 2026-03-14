@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import AppShell from '../components/AppShell'
-import Footer from '../components/Footer'
 import { apiChat } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -164,7 +163,6 @@ Format clearly with headers. Include appropriate informational disclaimers.`
             </div>
           )}
         </div>
-        <Footer />
       </div>
     </AppShell>
   )

@@ -1,4 +1,4 @@
-const BASE = 'https://api.medmed.ai'
+const BASE = 'https://api.medmed'
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -80,11 +80,37 @@ export async function apiChat(query: string, history: ChatMessage[], userId?: st
 
 // ─── AI visual (camera) ───────────────────────────────────────────────────────
 
-export async function apiVisual(imageBase64: string) {
-  return apiFetch<{ success: boolean; content: string }>(
-    '/api/ai/visual',
-    { method: 'POST', body: JSON.stringify({ imageBase64 }) }
+export interface MediaCapture {
+  id: string;
+  type: 'image' | 'video';
+  analysis?: string;
+  created_at: string;
+}
+
+export async function apiMediaUpload(file: File) {
+  const buffer = await file.arrayBuffer()
+  const res = await fetch(`${BASE}/api/media/upload`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': file.type,
+      'Authorization': `Bearer ${getToken()}`
+    },
+    body: buffer
+  })
+  const data = await res.json() as { id: string, key: string, error?: string }
+  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`)
+  return data
+}
+
+export async function apiMediaAnalyze(id: string, type: 'image' | 'video') {
+  return apiFetch<{ analysis: string }>(
+    '/api/media/analyze',
+    { method: 'POST', body: JSON.stringify({ id, type }) }
   )
+}
+
+export async function apiGetMediaHistory() {
+  return apiFetch<{ history: MediaCapture[] }>('/api/media/history')
 }
 
 // ─── Sessions / History ───────────────────────────────────────────────────────

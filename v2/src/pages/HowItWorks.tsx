@@ -1,5 +1,6 @@
+import GlobalFooter from "../components/GlobalFooter"
+
 import Nav from '../components/Nav'
-import Footer from '../components/Footer'
 import { Link } from 'react-router-dom'
 
 const STEPS = [
@@ -11,7 +12,7 @@ const STEPS = [
   {
     num: '02',
     title: 'Get a clear, organized answer',
-    body: 'medmed.ai draws from a broad knowledge base to give you a structured, plain-language response. No wading through forum posts or ad-filled articles.',
+    body: 'medmed draws from a broad knowledge base to give you a structured, plain-language response. No wading through forum posts or ad-filled articles.',
   },
   {
     num: '03',
@@ -44,7 +45,7 @@ export default function HowItWorks() {
           <div className="tag" style={{ marginBottom: 16 }}>How It Works</div>
           <h1 style={{ maxWidth: 560, marginBottom: 16 }}>You ask. We look it up.<br />You leave knowing more.</h1>
           <p style={{ fontSize: 16, color: 'var(--dark-gray)', fontWeight: 300, lineHeight: 1.75, maxWidth: 520 }}>
-            medmed.ai is an information tool. It doesnt diagnose, prescribe, or replace a conversation with your care provider — it gives you the background context to have a better one.
+            medmed is an information tool. It doesnt diagnose, prescribe, or replace a conversation with your care provider — it gives you the background context to have a better one.
           </p>
         </div>
 
@@ -112,16 +113,12 @@ export default function HowItWorks() {
               padding: '13px 28px', background: 'var(--black)', color: 'var(--white)',
               fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none',
             }}>Open Chat</Link>
-            <Link to="/pricing" style={{
-              padding: '13px 28px', border: '1px solid var(--border)', background: 'transparent',
-              fontSize: 11, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none', color: 'var(--dark-gray)',
-            }}>See Pricing</Link>
           </div>
         </div>
 
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <Footer />
         </div>
+        <GlobalFooter />
       </div>
     </div>
   )

@@ -16,15 +16,15 @@ export default function Nav() {
         <Link
           to={isAuthed ? '/dashboard' : '/'}
           style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 22,
+            fontFamily: 'var(--font-sans)',
+            fontSize: 20,
             fontWeight: 700,
-            letterSpacing: '-0.02em',
+            letterSpacing: '-0.03em',
             color: 'var(--black)',
             textDecoration: 'none',
           }}
         >
-          medmed.ai
+          MedMed.AI
         </Link>
 
       {isApp ? (
@@ -43,14 +43,12 @@ export default function Nav() {
         /* Marketing nav */
         <ul className="nav-links">
           <li><Link to="/how-it-works" style={{ fontSize: 12, color: 'var(--dark-gray)' }}>How It Works</Link></li>
-          <li><Link to="/pricing" style={{ fontSize: 12, color: 'var(--dark-gray)' }}>Pricing</Link></li>
+          <li><Link to="/pricing" style={{ fontSize: 12, color: 'var(--dark-gray)' }}>Pro / Enterprise</Link></li>
           <li><Link to="/about" style={{ fontSize: 12, color: 'var(--dark-gray)' }}>About</Link></li>
+          <li><Link to="/login" style={{ fontSize: 12, color: 'var(--dark-gray)' }}>Log In</Link></li>
           {isAuthed
             ? <li><Link to="/dashboard" className="btn-nav">Open Dashboard</Link></li>
-            : <>
-                <li><Link to="/login" style={{ fontSize: 12, fontWeight: 500, color: 'var(--dark-gray)' }}>Sign In</Link></li>
-                <li><Link to="/dashboard" className="btn-nav">Try it Free</Link></li>
-              </>
+            : <li><Link to="/signup" className="btn-nav">Sign Up</Link></li>
           }
         </ul>
       )}
