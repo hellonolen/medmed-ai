@@ -308,13 +308,10 @@ export default function Landing() {
                 General health information and education. Not a substitute for professional medical advice, diagnosis, or treatment.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-x-16 gap-y-2 text-[13px] text-gray-500">
+            <div className="flex flex-col gap-2 text-[13px] text-gray-500">
               <Link to="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link>
-              <Link to="/policy" className="hover:text-gray-900 transition-colors">Privacy Policy</Link>
               <Link to="/chat" className="hover:text-gray-900 transition-colors">Chat</Link>
-              <Link to="/policy" className="hover:text-gray-900 transition-colors">Terms of Service</Link>
               <Link to="/signin" className="hover:text-gray-900 transition-colors">Sign in</Link>
-              <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
             </div>
           </div>
           <div className="border-t pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[12px] text-gray-400" style={{ borderColor: "#e0d8cc" }}>
