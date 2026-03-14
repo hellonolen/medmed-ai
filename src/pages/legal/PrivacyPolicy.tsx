@@ -41,8 +41,8 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900 mb-3">4. AI Processing</h2>
-            <p>Queries submitted to MedMed.AI are processed by Google Gemini via secure API. Google's data processing terms apply to this interaction. We do not include personally identifiable information in AI prompts beyond what you explicitly type. AI responses are for informational purposes only and do not constitute medical advice.</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-3">4. Query Processing</h2>
+            <p>Queries submitted to MedMed.AI are processed securely through our backend infrastructure. We do not include personally identifiable information in query prompts beyond what you explicitly type. Responses are for informational purposes only and do not constitute medical advice.</p>
           </section>
 
           <section>

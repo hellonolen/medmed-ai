@@ -36,6 +36,8 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import TermsOfService from "./pages/legal/TermsOfService";
 import RefundPolicy from "./pages/legal/RefundPolicy";
 import CookiePolicy from "./pages/legal/CookiePolicy";
+import PolicyCenter from "./pages/PolicyCenter";
+import Pricing from "./pages/Pricing";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -81,6 +83,8 @@ function App() {
                           <Route path="/terms" element={<TermsOfService />} />
                           <Route path="/refund-policy" element={<RefundPolicy />} />
                           <Route path="/cookie-policy" element={<CookiePolicy />} />
+                          <Route path="/policy" element={<PolicyCenter />} />
+                          <Route path="/pricing" element={<Pricing />} />
                           <Route path="/settings" element={<Layout><Settings /></Layout>} />
 
                           {/* 404 */}

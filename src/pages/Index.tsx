@@ -29,6 +29,16 @@ function renderMd(text: string): string {
     .replace(/\n/g, "<br />");
 }
 
+/* ─── Sidebar Panel Icon (Claude-style) ─────────────── */
+function PanelIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <rect x="1.5" y="1.5" width="15" height="15" rx="2.5" />
+      <line x1="6" y1="1.5" x2="6" y2="16.5" />
+    </svg>
+  );
+}
+
 /* ─── Upgrade Modal ─────────────────────────────────── */
 function UpgradeModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
@@ -41,87 +51,117 @@ function UpgradeModal({ onClose }: { onClose: () => void }) {
       >
         <h2 className="text-xl font-bold text-gray-900 mb-2">Continue with Pro</h2>
         <p className="text-[15px] text-gray-600 mb-6 leading-relaxed">
-          You've reached the free limit. Upgrade to Pro for unlimited access, conversation history, and document storage.
+          You've reached the free limit. Upgrade for unlimited access, conversation history, and document storage.
         </p>
         <div className="space-y-3">
           <button
-            onClick={() => navigate("/subscription")}
+            onClick={() => navigate("/pricing")}
             className="w-full py-3 rounded-xl bg-primary text-white font-medium text-[15px] hover:bg-primary/90 transition-colors"
           >
-            Upgrade to Pro — $19/mo
+            See Plans
           </button>
-          <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-gray-500 text-[14px] hover:text-gray-900 transition-colors"
-          >
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl text-gray-500 text-[14px] hover:text-gray-900 transition-colors">
             Maybe later
           </button>
         </div>
-        <p className="text-[12px] text-gray-400 text-center mt-4">7-day refund if it's not for you.</p>
+        <p className="text-[12px] text-gray-400 text-center mt-4">Cancel anytime. No refunds.</p>
       </div>
     </div>
   );
 }
 
-/* ─── User Avatar Menu ───────────────────────────────── */
-function UserAvatarMenu({ user, onSignOut }: { user: { name: string | null; email: string; tier: string }; onSignOut: () => void }) {
+/* ─── User Avatar Popover (Claude.ai bottom-left style) ─ */
+function UserAvatarMenu({
+  user,
+  onSignOut,
+}: {
+  user: { name: string | null; email: string; tier: string };
+  onSignOut: () => void;
+}) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : user.email[0].toUpperCase();
-  const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
+  const displayName = user.name || user.email.split("@")[0];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#e4ddd0] transition-colors text-left"
-      >
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-primary text-sm font-semibold">
-          {initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-medium text-gray-900 truncate">{firstName}</p>
-          <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
-        </div>
-      </button>
-
+    <div ref={ref} className="relative">
+      {/* Popover — opens upward */}
       {open && (
         <div
-          className="absolute bottom-full left-0 right-0 mb-2 rounded-xl shadow-lg py-1 z-50"
+          className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl shadow-lg overflow-hidden z-50"
           style={{ backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" }}
         >
-          <div className="px-4 py-2.5 border-b mb-1" style={{ borderColor: "#e0d8cc" }}>
-            <p className="text-[13px] font-semibold text-gray-900">{user.name || firstName}</p>
-            <p className="text-[11px] text-gray-500">{user.email}</p>
-            <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-              {user.tier}
-            </span>
+          {/* User identity block */}
+          <div className="px-4 py-3 border-b" style={{ borderColor: "#e0d8cc" }}>
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">
+                {initials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold text-gray-900 truncate">{displayName}</p>
+                <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
+              </div>
+            </div>
+            <div className="mt-2">
+              <span className="inline-block text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {user.tier} plan
+              </span>
+            </div>
           </div>
-          {[
-            { label: "Account settings", path: "/settings" },
-            { label: "Billing", path: "/subscription" },
-            { label: "Storage", path: "/account#storage" },
-          ].map(({ label, path }) => (
-            <button
-              key={path}
-              onClick={() => { navigate(path); setOpen(false); }}
-              className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:bg-[#e4ddd0] transition-colors"
-            >
-              {label}
-            </button>
-          ))}
-          <div className="border-t mt-1" style={{ borderColor: "#e0d8cc" }}>
+
+          {/* Menu items */}
+          <div className="py-1">
+            {[
+              { label: "Account settings", path: "/settings" },
+              { label: "Billing & plans", path: "/pricing" },
+              { label: "Storage", path: "/account#storage" },
+              { label: "Policy Center", path: "/policy" },
+            ].map(({ label, path }) => (
+              <button
+                key={path}
+                onClick={() => { navigate(path); setOpen(false); }}
+                className="w-full text-left px-4 py-2.5 text-[13px] text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="border-t py-1" style={{ borderColor: "#e0d8cc" }}>
             <button
               onClick={() => { onSignOut(); setOpen(false); }}
-              className="w-full text-left px-4 py-2 text-[13px] text-gray-500 hover:bg-[#e4ddd0] transition-colors"
+              className="w-full text-left px-4 py-2.5 text-[13px] text-gray-500 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
             >
               Sign out
             </button>
           </div>
         </div>
       )}
+
+      {/* Trigger button — avatar + name + email */}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#e4ddd0] transition-colors text-left"
+      >
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-gray-900 truncate leading-tight">{displayName}</p>
+          <p className="text-[11px] text-gray-500 truncate leading-tight">{user.email}</p>
+        </div>
+      </button>
     </div>
   );
 }
@@ -132,19 +172,20 @@ const Index = () => {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
-    try { return localStorage.getItem("mm_sidebar") !== "closed"; } catch { return true; }
+    try { return localStorage.getItem("mm_sidebar") !== "closed"; } catch (_) { return true; }
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const navigate = useNavigate();
 
-  const { t } = useLanguage();
   const { searchWithContext } = useMedicalSearch();
   const { user, signOut } = useAuth();
   const { tier } = useSubscription();
   const quota = useQuotaGuard(user?.id);
 
   const hasMessages = messages.length > 0;
+  const isPro = user?.tier === "premium" || user?.tier === "business";
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -153,15 +194,13 @@ const Index = () => {
   const toggleSidebar = () => {
     setSidebarOpen((o) => {
       const next = !o;
-      try { localStorage.setItem("mm_sidebar", next ? "open" : "closed"); } catch (_) { /* storage unavailable */ }
+      try { localStorage.setItem("mm_sidebar", next ? "open" : "closed"); } catch (_) { /* noop */ }
       return next;
     });
   };
 
   const send = useCallback(async (query: string) => {
     if (!query.trim() || thinking) return;
-
-    // Quota gate
     if (!quota.checkAndGate()) return;
 
     const q = query.trim();
@@ -173,11 +212,9 @@ const Index = () => {
     quota.recordQuestion();
 
     try {
-      const isLocationSearch =
-        /\b(in|near|at|around)\b/.test(q.toLowerCase()) ||
+      const isLocation = /\b(in|near|at|around)\b/.test(q.toLowerCase()) ||
         /\b(new york|los angeles|chicago|houston|miami|boston|atlanta|seattle|denver|dallas|phoenix|philadelphia)\b/i.test(q);
-
-      searchWithContext(q, isLocationSearch ? "location" : undefined).catch(() => {});
+      searchWithContext(q, isLocation ? "location" : undefined).catch(() => {/* silent */});
 
       const response = await aiService.getHealthAdvice(q);
       setMessages((prev) => [
@@ -213,8 +250,8 @@ const Index = () => {
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
-  /* ── The input bar (shared — position changes based on hasMessages) ── */
-  const InputBar = (
+  /* ── Shared input box ── */
+  const InputBox = (
     <div
       className="w-full max-w-2xl relative rounded-2xl border shadow-sm transition-all focus-within:shadow-md"
       style={{ backgroundColor: "#fdf9f2", borderColor: "#e0d8cc" }}
@@ -227,15 +264,16 @@ const Index = () => {
         placeholder="Ask anything about medications, symptoms, or healthcare..."
         rows={1}
         disabled={thinking}
-        className="w-full resize-none bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 outline-none px-4 pt-4 pb-14 max-h-[200px] leading-relaxed"
+        className="w-full resize-none bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 outline-none px-5 pt-4 pb-14 max-h-[200px] leading-relaxed"
+        autoFocus
       />
-      <div className="absolute bottom-3 left-4 right-3 flex items-center justify-between">
-        <span className="text-[11px] text-gray-400">Shift+Enter for new line</span>
+      <div className="absolute bottom-3.5 left-5 right-4 flex items-center justify-between pointer-events-none">
+        <span className="text-[11px] text-gray-400 pointer-events-none">Shift+Enter for new line</span>
         <button
           onClick={() => send(input)}
           disabled={!input.trim() || thinking}
-          className="h-8 w-8 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-25 hover:bg-primary/90 transition-all text-lg leading-none"
-          style={{ fontSize: "1.1rem" }}
+          className="h-8 w-8 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-25 hover:bg-primary/90 transition-all pointer-events-auto text-base"
+          style={{ fontSize: "1rem" }}
         >
           {thinking ? (
             <span className="flex gap-0.5 items-center">
@@ -252,129 +290,139 @@ const Index = () => {
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}>
 
-      {/* ── Sidebar ── */}
-      <aside
-        className="flex flex-col h-full flex-shrink-0 border-r transition-all duration-300 overflow-hidden"
-        style={{
-          backgroundColor: "#f0ebe2",
-          borderColor: "#e0d8cc",
-          width: sidebarOpen ? "15rem" : "3.25rem",
-          minWidth: sidebarOpen ? "15rem" : "3.25rem",
-        }}
+      {/* ── Sidebar — slides in/out like Claude.ai ── */}
+      <div
+        className="relative flex-shrink-0 h-full transition-all duration-300"
+        style={{ width: sidebarOpen ? "260px" : "0px", minWidth: sidebarOpen ? "260px" : "0px" }}
       >
-        {/* Toggle button */}
-        <div className="flex items-center px-3 pt-5 pb-4 gap-3">
-          <button
-            onClick={toggleSidebar}
-            className="h-8 w-8 flex flex-col justify-center items-center gap-1.5 rounded-lg hover:bg-[#e4ddd0] transition-colors flex-shrink-0"
-            aria-label="Toggle sidebar"
-          >
-            <span className="block h-px w-4 bg-gray-600 rounded-full" />
-            <span className="block h-px w-4 bg-gray-600 rounded-full" />
-            <span className="block h-px w-4 bg-gray-600 rounded-full" />
-          </button>
-          {sidebarOpen && (
-            <Link to="/" className="text-[15px] font-semibold text-gray-900 tracking-tight whitespace-nowrap overflow-hidden">
-              MedMed.AI
-            </Link>
-          )}
-        </div>
-
-        {/* New Chat */}
-        <div className="px-2 mb-4">
-          <button
-            onClick={newChat}
-            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-700 hover:bg-[#e4ddd0] transition-colors whitespace-nowrap"
-            title="New conversation"
-          >
-            <span className="flex-shrink-0 text-lg leading-none font-light">+</span>
-            {sidebarOpen && <span>New conversation</span>}
-          </button>
-        </div>
-
-        {sidebarOpen && (
-          <>
-            <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 px-4 mb-1.5">Tools</p>
-          </>
-        )}
-
-        {/* Nav links — text only, no icons */}
-        <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {[
-            { to: "/symptom-checker", label: "Symptom Checker" },
-            { to: "/pharmacy-finder", label: "Pharmacy Finder" },
-            { to: "/interaction-checker", label: "Interaction Checker" },
-          ].map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              title={label}
-              className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors whitespace-nowrap"
+        <aside
+          className="absolute inset-0 flex flex-col h-full border-r overflow-hidden"
+          style={{ backgroundColor: "#f0ebe2", borderColor: "#e0d8cc" }}
+        >
+          {/* Top bar: toggle + brand */}
+          <div className="flex items-center gap-3 px-4 pt-5 pb-4 flex-shrink-0">
+            <button
+              onClick={toggleSidebar}
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-[#e4ddd0] hover:text-gray-800 transition-colors"
+              title="Close sidebar"
             >
-              <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-gray-400" />
-              {sidebarOpen && label}
-            </Link>
-          ))}
+              <PanelIcon />
+            </button>
+            <Link to="/" className="text-[15px] font-semibold text-gray-900 tracking-tight">MedMed.AI</Link>
+          </div>
 
-          {sidebarOpen && (
-            <>
-              <div className="pt-3 mt-3 border-t" style={{ borderColor: "#d8d0c0" }}>
-                <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1.5">Business</p>
-              </div>
-              {[
-                { to: "/sponsor-portal", label: "Sponsor Portal" },
-                { to: "/advertiser-enrollment", label: "Advertiser Access" },
-              ].map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
-                >
-                  <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-gray-400" />
-                  {label}
-                </Link>
-              ))}
-            </>
+          {/* New chat */}
+          <div className="px-3 mb-4 flex-shrink-0">
+            <button
+              onClick={newChat}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+            >
+              <span className="text-[18px] font-light leading-none">+</span>
+              New conversation
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <div className="px-3 mb-1 flex-shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Tools</p>
+          </div>
+          <nav className="px-3 space-y-0.5 flex-shrink-0">
+            {[
+              { to: "/symptom-checker", label: "Symptom Checker" },
+              { to: "/pharmacy-finder", label: "Pharmacy Finder" },
+              { to: "/interaction-checker", label: "Interaction Checker" },
+            ].map(({ to, label }) => (
+              <Link key={to} to={to}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Business */}
+          <div className="px-3 mt-4 mb-1 flex-shrink-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Business</p>
+          </div>
+          <nav className="px-3 space-y-0.5 flex-shrink-0">
+            {[
+              { to: "/sponsor-portal", label: "Sponsor Portal" },
+              { to: "/advertiser-enrollment", label: "Advertiser Access" },
+            ].map(({ to, label }) => (
+              <Link key={to} to={to}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Pro conversation history placeholder */}
+          {isPro && (
+            <div className="flex-1 min-h-0 mt-4 px-3 overflow-y-auto">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-2">Recents</p>
+              <p className="text-[12px] text-gray-400 px-2">Your conversations will appear here.</p>
+            </div>
           )}
-        </nav>
 
-        {/* Bottom user zone */}
-        <div className="mt-auto px-2 py-4 border-t" style={{ borderColor: "#d8d0c0" }}>
-          {user ? (
-            sidebarOpen ? (
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Bottom — user info or auth links */}
+          <div className="mt-auto px-3 py-4 border-t flex-shrink-0 space-y-1" style={{ borderColor: "#d8d0c0" }}>
+            {!isPro && user && (
+              <button
+                onClick={() => navigate("/pricing")}
+                className="w-full text-left px-4 py-2.5 rounded-xl text-[13px] text-primary font-medium hover:bg-primary/10 transition-colors mb-2"
+              >
+                Upgrade to Pro →
+              </button>
+            )}
+            {user ? (
               <UserAvatarMenu user={{ name: user.name, email: user.email, tier: user.tier }} onSignOut={signOut} />
             ) : (
-              <div className="h-8 w-8 mx-auto rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold">
-                {(user.name?.[0] ?? user.email[0]).toUpperCase()}
-              </div>
-            )
-          ) : sidebarOpen ? (
-            <div className="space-y-0.5">
-              <Link to="/signin" className="block px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-                Sign in
-              </Link>
-              <Link to="/signup" className="block px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-                Create account
-              </Link>
-            </div>
-          ) : null}
-        </div>
-      </aside>
+              <>
+                <Link to="/signin" className="block px-4 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                  Sign in
+                </Link>
+                <Link to="/signup" className="block px-4 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                  Create account
+                </Link>
+              </>
+            )}
+          </div>
+        </aside>
+      </div>
 
       {/* ── Main area ── */}
-      <main className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
+      <main className="flex flex-col flex-1 h-full min-w-0 overflow-hidden relative">
+
+        {/* Floating toggle when sidebar is closed */}
+        {!sidebarOpen && (
+          <button
+            onClick={toggleSidebar}
+            className="absolute top-4 left-4 z-10 h-8 w-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-[#e4ddd0] hover:text-gray-800 transition-colors"
+            title="Open sidebar"
+            style={{ backgroundColor: "#faf8f4" }}
+          >
+            <PanelIcon />
+          </button>
+        )}
 
         {!hasMessages ? (
-          /* ── Welcome: input centered ── */
+          /* Welcome: centered input */
           <div className="flex flex-col items-center justify-center flex-1 px-6">
-            <h1 className="text-3xl font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
-            {InputBar}
+            <h1 className="text-[2rem] font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
+            {InputBox}
             <p className="text-[11px] text-gray-400 mt-3 text-center">
-              AI powered by Google Gemini · <Link to="/privacy" className="hover:text-gray-600">Privacy</Link> · <Link to="/terms" className="hover:text-gray-600">Terms</Link>
+              
+              <Link to="/privacy" className="hover:text-gray-600 transition-colors">Privacy</Link>
+              {" · "}
+              <Link to="/terms" className="hover:text-gray-600 transition-colors">Terms</Link>
+              {" · "}
+              <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
             </p>
           </div>
         ) : (
-          /* ── Active chat: messages scroll, input pinned ── */
+          /* Active chat */
           <>
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-2xl mx-auto w-full px-6 py-10 space-y-8">
@@ -399,7 +447,6 @@ const Index = () => {
                     )}
                   </div>
                 ))}
-
                 {thinking && (
                   <div className="flex gap-1.5 items-center pt-1">
                     {[0, 160, 320].map((d) => (
@@ -410,19 +457,21 @@ const Index = () => {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-
-            {/* Input pinned to bottom */}
-            <div className="flex-shrink-0 flex justify-center px-6 pb-5 pt-3">
-              {InputBar}
+            <div className="flex-shrink-0 flex justify-center px-6 pb-4 pt-2">
+              {InputBox}
             </div>
             <p className="text-center text-[11px] text-gray-400 pb-3">
-              AI powered by Google Gemini · <Link to="/privacy" className="hover:text-gray-600">Privacy</Link> · <Link to="/terms" className="hover:text-gray-600">Terms</Link>
+              
+              <Link to="/privacy" className="hover:text-gray-600">Privacy</Link>
+              {" · "}
+              <Link to="/terms" className="hover:text-gray-600">Terms</Link>
+              {" · "}
+              <Link to="/policy" className="hover:text-gray-600">Policy Center</Link>
             </p>
           </>
         )}
       </main>
 
-      {/* Upgrade modal */}
       {quota.showUpgradeModal && <UpgradeModal onClose={quota.dismissUpgradeModal} />}
     </div>
   );

@@ -18,7 +18,7 @@ export default function TermsOfService() {
 
           <section>
             <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Description of Service</h2>
-            <p>MedMed.AI is an AI-powered healthcare information platform that provides information about medications, symptoms, pharmacies, and healthcare services worldwide. The Service is powered by Google Gemini AI.</p>
+            <p>MedMed.AI is a healthcare information platform that provides information about medications, symptoms, pharmacies, and healthcare services worldwide.</p>
             <p className="mt-2 font-medium">MedMed.AI provides information only. It does not provide medical diagnoses, prescriptions, or professional medical advice. Always consult a qualified healthcare professional for medical decisions.</p>
           </section>
 
