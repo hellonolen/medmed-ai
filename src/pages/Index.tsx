@@ -106,7 +106,7 @@ function UserAvatarMenu({
           {/* User identity block */}
           <div className="px-4 py-3 border-b" style={{ borderColor: "#e0d8cc" }}>
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">
+              <div className="h-9 w-9 rounded-full bg-gray-800 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
                 {initials}
               </div>
               <div className="min-w-0">
@@ -149,17 +149,17 @@ function UserAvatarMenu({
         </div>
       )}
 
-      {/* Trigger button — avatar + name + email */}
+      {/* Trigger button — dark avatar + name + plan label */}
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#e4ddd0] transition-colors text-left"
       >
-        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold flex-shrink-0">
+        <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0">
           {initials}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium text-gray-900 truncate leading-tight">{displayName}</p>
-          <p className="text-[11px] text-gray-500 truncate leading-tight">{user.email}</p>
+          <p className="text-[11px] text-gray-500 truncate leading-tight capitalize">{user.tier} plan</p>
         </div>
       </button>
     </div>
@@ -413,12 +413,9 @@ const Index = () => {
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
             {InputBox}
             <p className="text-[11px] text-gray-400 mt-3 text-center">
-              
-              <Link to="/privacy" className="hover:text-gray-600 transition-colors">Privacy</Link>
-              {" · "}
-              <Link to="/terms" className="hover:text-gray-600 transition-colors">Terms</Link>
-              {" · "}
               <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
+              {" · "}
+              <button onClick={newChat} className="hover:text-gray-600 transition-colors">Support</button>
             </p>
           </div>
         ) : (
@@ -461,12 +458,9 @@ const Index = () => {
               {InputBox}
             </div>
             <p className="text-center text-[11px] text-gray-400 pb-3">
-              
-              <Link to="/privacy" className="hover:text-gray-600">Privacy</Link>
-              {" · "}
-              <Link to="/terms" className="hover:text-gray-600">Terms</Link>
-              {" · "}
               <Link to="/policy" className="hover:text-gray-600">Policy Center</Link>
+              {" · "}
+              <button onClick={newChat} className="hover:text-gray-600">Support</button>
             </p>
           </>
         )}
