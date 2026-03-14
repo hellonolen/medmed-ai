@@ -145,12 +145,9 @@ export default function Landing() {
             <p className="text-[17px] text-gray-500 mb-10 leading-relaxed max-w-md">
               Ask about medications, symptoms, drug combinations, or pharmacy locations. Get clear, structured answers instantly — right in the chat.
             </p>
-            <div className="flex gap-3 flex-wrap">
+            <div>
               <Link to="/pricing" className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors">
                 Get started free
-              </Link>
-              <Link to="/pricing" className="px-8 py-3.5 rounded-xl font-semibold text-[15px] text-gray-700 hover:bg-[#e4ddd0] transition-colors" style={{ border: "1px solid #d8d0c0" }}>
-                See pricing
               </Link>
             </div>
             <p className="text-[12px] text-gray-400 mt-5">

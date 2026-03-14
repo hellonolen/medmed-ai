@@ -71,19 +71,12 @@ export default function Onboarding() {
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <div className="flex justify-center">
           <Link
             to="/chat"
             className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors text-center"
           >
             Go to chat
-          </Link>
-          <Link
-            to="/pricing"
-            className="px-8 py-3.5 rounded-xl font-semibold text-[15px] text-gray-700 hover:bg-[#e4ddd0] transition-colors text-center"
-            style={{ border: "1px solid #d8d0c0" }}
-          >
-            See all plans
           </Link>
         </div>
 

@@ -250,14 +250,10 @@ export default function Pricing() {
         <div className="text-center rounded-2xl py-14 px-8" style={highlighted}>
           <h2 className="text-[26px] font-bold text-gray-900 mb-3">Ready to get started?</h2>
           <p className="text-[15px] text-gray-500 mb-8">Free to start. No credit card required.</p>
-          <div className="flex justify-center gap-3 flex-wrap">
+          <div className="flex justify-center">
             <Link to="/signup?from=pricing" className="px-8 py-3.5 rounded-xl bg-primary text-white font-semibold text-[15px] hover:bg-primary/90 transition-colors">
               Start free trial
             </Link>
-            <a href={WHOP.pro_monthly} target="_blank" rel="noopener noreferrer"
-              className="px-8 py-3.5 rounded-xl font-semibold text-[15px] text-gray-700 hover:bg-[#e4ddd0] transition-colors" style={{ border: "1px solid #c8b89a" }}>
-              See Pro plans
-            </a>
           </div>
         </div>
 
