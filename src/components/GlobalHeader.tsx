@@ -61,7 +61,7 @@ export function GlobalHeader() {
               to="/pricing"
               className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
             >
-              Get started
+              Get Started
             </Link>
           </>
         )}
@@ -105,7 +105,7 @@ export function GlobalHeader() {
                 Sign in
               </Link>
               <Link to="/pricing" onClick={() => setMenuOpen(false)} className="py-3 rounded-xl text-center text-[14px] font-semibold text-white bg-primary">
-                Get started
+                Get Started
               </Link>
             </div>
           )}

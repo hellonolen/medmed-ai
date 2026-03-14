@@ -1422,9 +1422,10 @@ async function handleMagicLink(req: Request, env: Env): Promise<Response> {
   const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 15; // 15 minutes
 
+  // Clear any previous token for this user then insert a fresh one
+  await env.DB.prepare(`DELETE FROM magic_links WHERE user_id = ?`).bind(user.id).run();
   await env.DB.prepare(
-    `INSERT INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)
-     ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at, used = 0`
+    `INSERT INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`
   ).bind(token, user.id, expiresAt).run();
 
   const link = `https://medmed.pages.dev/auth/verify?token=${token}`;
