@@ -1,6 +1,19 @@
 -- MedMed.AI — Full Schema v2
 -- Run via: wrangler d1 execute medmed-db --file=schema.sql --remote
 
+-- ─── Magic Links (passwordless auth) ──────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS magic_links (
+  token       TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL,
+  expires_at  INTEGER NOT NULL,
+  used        INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_magic_links_user ON magic_links(user_id);
+
+
 -- ─── Users ────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS users (

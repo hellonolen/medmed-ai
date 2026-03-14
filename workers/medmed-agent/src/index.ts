@@ -1398,6 +1398,144 @@ async function handleAuthProfile(req: Request, env: Env): Promise<Response> {
   return json({ success: true }, 200, origin);
 }
 
+// ─── Magic Link Auth ─────────────────────────────────────────────────────────
+
+async function handleMagicLink(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: { email?: string };
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const email = (body.email || '').trim().toLowerCase();
+  if (!email) return err('Email required', 400, origin);
+
+  // Check user exists
+  const user = await env.DB.prepare(`SELECT id, name FROM users WHERE email = ?`).bind(email).first<{ id: string; name: string }>();
+  if (!user) return err('No account found for that email. Please sign up first.', 404, origin);
+
+  // Generate token (32-byte hex, 15 min TTY)
+  const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 15; // 15 minutes
+
+  await env.DB.prepare(
+    `INSERT INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)
+     ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at, used = 0`
+  ).bind(token, user.id, expiresAt).run();
+
+  const link = `https://medmed.pages.dev/auth/verify?token=${token}`;
+  const firstName = (user.name || '').split(' ')[0] || 'there';
+
+  // Send via Postmark
+  if (env.POSTMARK_SERVER_TOKEN) {
+    await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Postmark-Server-Token': env.POSTMARK_SERVER_TOKEN,
+      },
+      body: JSON.stringify({
+        From: 'noreply@medmed.ai',
+        To: email,
+        Subject: 'Your medmed.ai sign-in link',
+        HtmlBody: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#faf8f4">
+  <p style="font-size:17px;font-weight:700;color:#111">medmed.ai</p>
+  <h2 style="font-size:22px;font-weight:700;color:#111;margin:24px 0 8px">Sign in, ${firstName}</h2>
+  <p style="color:#555;font-size:15px;line-height:1.6">Click the button below to sign in. This link expires in 15 minutes and can only be used once.</p>
+  <a href="${link}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#7c3aed;color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none">Sign in to medmed.ai</a>
+  <p style="color:#999;font-size:12px;margin-top:24px">If you didn't request this, ignore this email. Your account is safe.</p>
+  <p style="color:#ccc;font-size:11px;margin-top:8px">© ${new Date().getFullYear()} medmed.ai</p>
+</div>`,
+        TextBody: `Sign in to medmed.ai\n\n${link}\n\nThis link expires in 15 minutes.`,
+        MessageStream: 'outbound',
+      }),
+    });
+  }
+
+  return json({ success: true }, 200, origin);
+}
+
+async function handleVerifyMagicLink(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const url = new URL(req.url);
+  const token = url.searchParams.get('token') || '';
+  if (!token) return err('Token required', 400, origin);
+
+  const row = await env.DB.prepare(
+    `SELECT ml.user_id, ml.expires_at, ml.used, u.email, u.name, u.plan
+     FROM magic_links ml JOIN users u ON u.id = ml.user_id
+     WHERE ml.token = ?`
+  ).bind(token).first<{ user_id: string; expires_at: number; used: number; email: string; name: string; plan: string }>();
+
+  if (!row) return err('Invalid or expired link.', 401, origin);
+  if (row.used) return err('This link has already been used. Request a new one.', 401, origin);
+  if (row.expires_at < Math.floor(Date.now() / 1000)) return err('This link has expired. Request a new one.', 401, origin);
+
+  // Mark as used
+  await env.DB.prepare(`UPDATE magic_links SET used = 1 WHERE token = ?`).bind(token).run();
+
+  // Issue JWT
+  const jwt = await createJWT({ userId: row.user_id, email: row.email, plan: row.plan || 'trial' }, env.JWT_SECRET);
+  return json({ success: true, token: jwt, user: { id: row.user_id, email: row.email, name: row.name, plan: row.plan || 'trial' } }, 200, origin);
+}
+
+async function handleRegisterWithTrial(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: { firstName?: string; email?: string; paymentMethodId?: string };
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+
+  const { firstName, email, paymentMethodId } = body;
+  if (!firstName || !email) return err('First name and email are required.', 400, origin);
+  if (!paymentMethodId || paymentMethodId === 'pm_placeholder') {
+    // Payment not yet integrated via Stripe.js — still create account in trial state
+    // In production: paymentMethodId comes from Stripe.js confirmCardSetup
+  }
+
+  const emailLower = email.trim().toLowerCase();
+  const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`).bind(emailLower).first();
+  if (existing) return err('An account with that email already exists. Sign in instead.', 409, origin);
+
+  const userId = crypto.randomUUID();
+  const trialEndsAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 3; // 3 days
+
+  await env.DB.prepare(
+    `INSERT INTO users (id, email, name, plan, trial_ends_at, created_at) VALUES (?, ?, ?, 'trial', ?, unixepoch())`
+  ).bind(userId, emailLower, firstName.trim(), trialEndsAt).run();
+
+  // Send magic link / welcome email via Postmark
+  const tokenBytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour for welcome link
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`
+  ).bind(token, userId, expiresAt).run();
+
+  const welcomeLink = `https://medmed.pages.dev/auth/verify?token=${token}`;
+  if (env.POSTMARK_SERVER_TOKEN) {
+    await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Postmark-Server-Token': env.POSTMARK_SERVER_TOKEN },
+      body: JSON.stringify({
+        From: 'noreply@medmed.ai',
+        To: emailLower,
+        Subject: 'Welcome to medmed.ai — your trial has started',
+        HtmlBody: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#faf8f4">
+  <p style="font-size:17px;font-weight:700;color:#111">medmed.ai</p>
+  <h2 style="font-size:22px;font-weight:700;color:#111;margin:24px 0 8px">Welcome, ${firstName}!</h2>
+  <p style="color:#555;font-size:15px;line-height:1.6">Your 3-day trial has started. Click below to access your account.</p>
+  <a href="${welcomeLink}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:#7c3aed;color:#fff;font-weight:700;font-size:15px;border-radius:12px;text-decoration:none">Access medmed.ai</a>
+  <p style="color:#999;font-size:12px;margin-top:24px">This link expires in 1 hour. If you have questions, just reply to this email.</p>
+</div>`,
+        TextBody: `Welcome to medmed.ai!\n\n${welcomeLink}`,
+        MessageStream: 'outbound',
+      }),
+    }).catch(() => {});
+  }
+
+  // Issue immediate JWT so user can go straight to onboarding
+  const jwt = await createJWT({ userId, email: emailLower, plan: 'trial' }, env.JWT_SECRET);
+  return json({ success: true, token: jwt, user: { id: userId, email: emailLower, name: firstName, plan: 'trial' } }, 201, origin);
+}
+
 // ─── Main Router ──────────────────────────────────────────────────────────────
 
 export default {
@@ -1413,7 +1551,12 @@ export default {
       if (path === '/api/ai'                     && req.method === 'POST') return handleAI(req, env);
       if (path === '/api/search'                 && req.method === 'POST') return handleSearch(req, env);
 
-      // User Auth
+      // Magic Link Auth (new — replaces password login)
+      if (path === '/api/auth/magic-link' && req.method === 'POST') return handleMagicLink(req, env);
+      if (path === '/api/auth/verify'     && req.method === 'GET')  return handleVerifyMagicLink(req, env);
+      if (path === '/api/auth/register'   && req.method === 'POST') return handleRegisterWithTrial(req, env);
+
+      // Legacy password auth (kept for backwards compat)
       if (path === '/api/auth/signup'            && req.method === 'POST') return handleSignup(req, env);
       if (path === '/api/auth/signin'            && req.method === 'POST') return handleSignin(req, env);
       if (path === '/api/auth/reset-request'     && req.method === 'POST') return handleResetRequest(req, env);

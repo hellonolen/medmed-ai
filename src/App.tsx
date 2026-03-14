@@ -52,6 +52,7 @@ import HowItWorks from "./pages/HowItWorks";
 import FAQ from "./pages/FAQ";
 import AdminCenter from "./pages/AdminCenter";
 import BusinessCenter from "./pages/BusinessCenter";
+import AuthVerify from "./pages/AuthVerify";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -86,9 +87,10 @@ function App() {
                           <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
                           <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
 
-                          {/* Auth pages — manage their own Layout with hideNav */}
+                          {/* Auth pages — manage their own Layout with GlobalHeader */}
                           <Route path="/signin" element={<SignIn />} />
                           <Route path="/signup" element={<SignUp />} />
+                          <Route path="/auth/verify" element={<AuthVerify />} />
                           <Route path="/reset-password" element={<ResetPassword />} />
 
                           {/* Sponsor & Admin */}
