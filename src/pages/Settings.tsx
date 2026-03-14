@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 const SECTIONS = [
   { id: "profile", label: "Profile" },
+  { id: "api-key", label: "API Key" },
   { id: "appearance", label: "Appearance" },
   { id: "language", label: "Language" },
   { id: "notifications", label: "Notifications" },
@@ -22,6 +23,50 @@ const Settings = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [active, setActive] = useState("profile");
+
+  // BYOA API key state
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeySaving, setApiKeySaving] = useState(false);
+  const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
+  const token = localStorage.getItem("medmed_token");
+  const tier = (user as { tier?: string } | null)?.tier || "";
+  const hasApiKeyAccess = tier === "enterprise" || tier === "max" || tier === "business";
+
+  useEffect(() => {
+    if (!token || !hasApiKeyAccess) return;
+    fetch("https://medmed-agent.hellonolen.workers.dev/api/user/apikey", {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then((d: unknown) => {
+      const data = d as { apiKey?: string };
+      if (data.apiKey) setApiKey(data.apiKey);
+      setApiKeyLoaded(true);
+    }).catch(() => {});
+  }, [token, hasApiKeyAccess]);
+
+  const handleSaveApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setApiKeySaving(true);
+    try {
+      await fetch("https://medmed-agent.hellonolen.workers.dev/api/user/apikey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ apiKey }),
+      });
+      toast.success("API key saved. It will be used for all your AI requests.");
+    } catch { toast.error("Failed to save API key."); }
+    setApiKeySaving(false);
+  };
+
+  const handleRemoveApiKey = async () => {
+    if (!token) return;
+    setApiKey("");
+    await fetch("https://medmed-agent.hellonolen.workers.dev/api/user/apikey", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    toast.success("API key removed. Platform key will be used.");
+  };
 
   // Profile edit state
   const initName = (user as { name?: string; user_metadata?: { name?: string } } | null)
@@ -202,6 +247,59 @@ const Settings = () => {
                 </div>
               ))}
             </div>
+          </section>
+
+          {/* API Key — Enterprise/Max only */}
+          <section id="api-key" className="rounded-2xl border p-6 space-y-4" style={cardStyle}>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-[15px] font-semibold text-gray-900">API Key (Bring Your Own)</h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Enterprise / Max</span>
+              </div>
+              <p className="text-[13px] text-gray-500">
+                Add your own Gemini API key to use your personal quota instead of the platform's. Your key is stored securely and never logged.
+              </p>
+            </div>
+
+            {!hasApiKeyAccess ? (
+              <div className="rounded-xl p-4" style={{ backgroundColor: "#f0ebe2", border: "1px solid #e0d8cc" }}>
+                <p className="text-[13px] text-gray-600 font-medium mb-1">Enterprise or Max plan required</p>
+                <p className="text-[12px] text-gray-500">Upgrade your plan to add your own API key and bypass platform rate limits.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveApiKey} className="space-y-4">
+                <div>
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5" htmlFor="s-apikey">Gemini API Key</label>
+                  <input
+                    id="s-apikey"
+                    type="password"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="AIza…"
+                    className={inputCls}
+                    style={inputStyle}
+                    onFocus={e => (e.target.style.borderColor = "#7c3aed")}
+                    onBlur={e => (e.target.style.borderColor = "#d8d0c0")}
+                  />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Get a free API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline hover:text-gray-600">aistudio.google.com</a>
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button type="submit" disabled={apiKeySaving || !apiKey}
+                    className="px-5 py-2.5 rounded-xl bg-primary text-white text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50">
+                    {apiKeySaving ? "Saving…" : "Save API key"}
+                  </button>
+                  {apiKey && (
+                    <button type="button" onClick={handleRemoveApiKey}
+                      className="px-5 py-2.5 rounded-xl text-[13px] text-red-500 hover:text-red-700 transition-colors"
+                      style={{ backgroundColor: "#f0ebe2" }}>
+                      Remove key
+                    </button>
+                  )}
+                </div>
+              </form>
+            )}
           </section>
 
           {/* Accessibility */}

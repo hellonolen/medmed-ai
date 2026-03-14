@@ -50,6 +50,7 @@ import ReferralPage from "./pages/ReferralPage";
 import About from "./pages/About";
 import HowItWorks from "./pages/HowItWorks";
 import FAQ from "./pages/FAQ";
+import AdminCenter from "./pages/AdminCenter";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -119,6 +120,7 @@ function App() {
                           <Route path="/about" element={<About />} />
                           <Route path="/how-it-works" element={<HowItWorks />} />
                           <Route path="/faq" element={<FAQ />} />
+                          <Route path="/admin" element={<AdminCenter />} />
 
                           {/* 404 */}
                           <Route path="*" element={<Layout><NotFound /></Layout>} />

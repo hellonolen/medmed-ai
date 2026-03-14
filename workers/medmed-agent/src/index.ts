@@ -147,9 +147,9 @@ For location-based searches return structured JSON:
 {"results":[{"name":"...","details":"...","price":"...","type":"Medication|Pharmacy|Specialist","source":"...","phone":"...","address":"..."}],"answer":"...","disclaimer":"..."}
 \`\`\``;
 
-async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, history: any[] = []): Promise<string> {
+async function callGeminiWithModel(apiKey: string, model: string, systemPrompt: string, userMessage: string, history: unknown[] = []): Promise<string> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,8 +161,13 @@ async function callGemini(apiKey: string, systemPrompt: string, userMessage: str
     }
   );
   if (!res.ok) throw new Error(`Gemini ${res.status}`);
-  const data: any = await res.json();
+  const data = await res.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// Backward-compat shim
+async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, history: unknown[] = []): Promise<string> {
+  return callGeminiWithModel(apiKey, GEMINI_MODEL, systemPrompt, userMessage, history);
 }
 
 // ─── Email ─────────────────────────────────────────────────────────────────────
@@ -180,16 +185,35 @@ async function sendEmail(token: string, to: string, subject: string, html: strin
 
 async function handleAI(req: Request, env: Env): Promise<Response> {
   const origin = req.headers.get('Origin') || '*';
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-  const { query, systemPrompt, history, searchType, userId } = body;
+  let body: Record<string, unknown>;
+  try { body = await req.json() as Record<string, unknown>; } catch { return err('Invalid JSON', 400, origin); }
+  const query = body.query as string | undefined;
+  const systemPrompt = body.systemPrompt as string | undefined;
+  const history = (body.history as unknown[]) || [];
+  const searchType = body.searchType as string | undefined;
+  const userId = body.userId as string | undefined;
   if (!query) return err('query required', 400, origin);
   if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
+
   try {
+    // Determine which API key to use: user BYOA key takes priority for eligible plans
+    let activeApiKey = env.GOOGLE_GENAI_API_KEY;
+    if (userId) {
+      const userRow = await env.DB.prepare('SELECT tier, api_key FROM users WHERE id = ?').bind(userId).first<{ tier: string; api_key?: string }>().catch(() => null);
+      const eligibleForBYOA = userRow && ['enterprise', 'max', 'business'].includes(userRow.tier);
+      if (eligibleForBYOA && userRow?.api_key) activeApiKey = userRow.api_key;
+    }
+
+    // Get admin-selected model from global_settings, default to gemini-2.0-flash
+    const modelRow = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`).first<{ value: string }>().catch(() => null);
+    const activeModel = modelRow?.value || 'gemini-2.0-flash';
+
     // Build personalized prompt from health profile if userId provided
     let prompt = systemPrompt || (userId ? await buildPersonalizedPrompt(env.DB, userId) : MEDICAL_SYSTEM_PROMPT);
     if (searchType === 'location') prompt += '\n\nReturn structured JSON with nearby providers including realistic addresses and phone numbers.';
-    const raw = await callGemini(env.GOOGLE_GENAI_API_KEY, prompt, query, history || []);
+
+    const raw = await callGeminiWithModel(activeApiKey, activeModel, prompt, query, history);
+
     // Increment global question counter
     await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`).run().catch(() => {});
     const jsonMatch = raw.match(/```json\n?([\s\S]*?)\n?```/);
@@ -200,9 +224,79 @@ async function handleAI(req: Request, env: Env): Promise<Response> {
       } catch { /* fall through */ }
     }
     return json({ success: true, content: raw, results: [], disclaimer: null, provider: 'gemini' }, 200, origin);
-  } catch (e: any) {
+  } catch {
     return json({ success: false, content: 'AI temporarily unavailable.', provider: 'gemini' }, 200, origin);
   }
+}
+
+// ─── /api/admin/config ─────────────────────────────────────────────────────────
+
+async function handleAdminConfig(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const auth = req.headers.get('Authorization') || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  const payload = await verifyJWT(token, env.JWT_SECRET).catch(() => null);
+  if (!payload || payload.role !== 'admin') {
+    // Also accept direct secret for simplicity
+    if (token !== env.ADMIN_SECRET) return err('Unauthorized', 401, origin);
+  }
+
+  if (req.method === 'GET') {
+    const row = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`).first<{ value: string }>().catch(() => null);
+    return json({ config: { activeModel: row?.value || 'gemini-2.0-flash' } }, 200, origin);
+  }
+
+  if (req.method === 'POST') {
+    const body = await req.json() as { activeModel?: string };
+    const model = body.activeModel;
+    if (!model) return err('activeModel required', 400, origin);
+    const allowed = ['gemini-2.0-flash', 'gemini-2.0-flash-thinking-exp', 'gemini-1.5-pro', 'gemini-1.5-flash'];
+    if (!allowed.includes(model)) return err('Invalid model', 400, origin);
+    await env.DB.prepare(`INSERT INTO global_settings (key, value) VALUES ('active_model', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind(model).run();
+    return json({ ok: true, activeModel: model }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/user/apikey ──────────────────────────────────────────────────────────
+
+async function handleUserApiKey(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Invalid token', 401, origin);
+  const userId = payload.sub as string;
+
+  // Verify tier eligibility
+  const userRow = await env.DB.prepare('SELECT tier FROM users WHERE id = ?').bind(userId).first<{ tier: string }>().catch(() => null);
+  const eligible = userRow && ['enterprise', 'max', 'business'].includes(userRow.tier);
+
+  if (req.method === 'GET') {
+    if (!eligible) return json({ apiKey: null, eligible: false }, 200, origin);
+    const row = await env.DB.prepare('SELECT api_key FROM users WHERE id = ?').bind(userId).first<{ api_key?: string }>().catch(() => null);
+    // Mask the key for display: show first 8 chars only
+    const masked = row?.api_key ? row.api_key.slice(0, 8) + '••••••••••••••••' : null;
+    return json({ apiKey: masked, eligible: true }, 200, origin);
+  }
+
+  if (!eligible) return err('Enterprise or Max plan required for BYOA', 403, origin);
+
+  if (req.method === 'POST') {
+    const body = await req.json() as { apiKey?: string };
+    const key = body.apiKey?.trim();
+    if (!key || !key.startsWith('AIza')) return err('Invalid Gemini API key format', 400, origin);
+    await env.DB.prepare('UPDATE users SET api_key = ? WHERE id = ?').bind(key, userId).run();
+    return json({ ok: true }, 200, origin);
+  }
+
+  if (req.method === 'DELETE') {
+    await env.DB.prepare('UPDATE users SET api_key = NULL WHERE id = ?').bind(userId).run();
+    return json({ ok: true }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
 }
 
 // ─── /api/search ──────────────────────────────────────────────────────────────
@@ -1125,6 +1219,7 @@ export default {
       if (path === '/api/admin/stats'            && req.method === 'GET')  return handleAdminStats(req, env);
       if (path === '/api/admin/users'            && req.method === 'GET')  return handleAdminUsers(req, env);
       if (path === '/api/admin/activate-sponsor' && req.method === 'POST') return handleActivateSponsor(req, env);
+      if (path === '/api/admin/config'           && (req.method === 'GET' || req.method === 'POST')) return handleAdminConfig(req, env);
 
       // Stripe
       if (path === '/api/stripe/checkout'         && req.method === 'POST') return handleStripeCheckout(req, env);
@@ -1133,6 +1228,7 @@ export default {
 
       // Misc
       if (path === '/api/user/tier'              && req.method === 'POST') return handleUpdateTier(req, env);
+      if (path === '/api/user/apikey'            && (req.method === 'GET' || req.method === 'POST' || req.method === 'DELETE')) return handleUserApiKey(req, env);
       if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
       if (path === '/api/media/upload'           && req.method === 'POST') return handleMediaUpload(req, env);
       if (path === '/api/media/analyze'          && req.method === 'POST') return handleMediaAnalyze(req, env);
