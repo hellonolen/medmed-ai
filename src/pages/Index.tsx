@@ -282,7 +282,42 @@ const Index = () => {
   const { tier } = useSubscription();
   const quota = useQuotaGuard(user?.id);
 
-  // Voice I/O
+  // ── Sidebar section collapse state ──
+  const [sections, setSections] = useState({
+    chats: true,
+    projects: true,
+    artifacts: true,
+    business: false,
+  });
+  const toggleSection = (k: keyof typeof sections) =>
+    setSections(prev => ({ ...prev, [k]: !prev[k] }));
+
+  // ── User Projects (folder list) ──
+  const [projects, setProjects] = useState<Array<{id: string; name: string}>>(() => {
+    try { return JSON.parse(localStorage.getItem('mm_projects') || '[]'); } catch { return []; }
+  });
+  const [newProjectName, setNewProjectName] = useState('');
+  const [addingProject, setAddingProject] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  const saveProjects = (list: typeof projects) => {
+    setProjects(list);
+    try { localStorage.setItem('mm_projects', JSON.stringify(list)); } catch { /* noop */ }
+  };
+  const addProject = () => {
+    if (!newProjectName.trim()) return;
+    saveProjects([...projects, { id: crypto.randomUUID(), name: newProjectName.trim() }]);
+    setNewProjectName('');
+    setAddingProject(false);
+  };
+  const startRename = (id: string, name: string) => { setRenamingId(id); setRenameValue(name); };
+  const commitRename = () => {
+    if (!renamingId) return;
+    saveProjects(projects.map(p => p.id === renamingId ? { ...p, name: renameValue.trim() || p.name } : p));
+    setRenamingId(null);
+  };
+  const deleteProject = (id: string) => saveProjects(projects.filter(p => p.id !== id));
   const [voiceInterim, setVoiceInterim] = useState("");
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const { isListening, isSpeaking, supported: voiceSupported, ttsSupported, startListening, stopListening, speak, stopSpeaking } = useVoice({
@@ -579,64 +614,148 @@ const Index = () => {
             ))}
           </nav>
 
-          {/* Chats */}
-          <div className="px-3 mt-4 mb-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Chats</p>
+          {/* ── Chats ── */}
+          <div className="px-3 mt-4 mb-0 flex-shrink-0">
+            <button
+              onClick={() => toggleSection('chats')}
+              className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#e4ddd0] transition-colors"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Chats</p>
+              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.chats ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
+            </button>
           </div>
-          <nav className="px-3 space-y-0.5 flex-shrink-0">
-            <Link to="/history" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-              <ChatsIcon />
-              All conversations
-            </Link>
-          </nav>
-
-          {/* Projects */}
-          <div className="px-3 mt-4 mb-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Projects</p>
-          </div>
-          <nav className="px-3 space-y-0.5 flex-shrink-0">
-            <Link to="/medications" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-              <ProjectsIcon />
-              Medication Tracker
-            </Link>
-            <Link to="/journal" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-              <ProjectsIcon />
-              Symptom Journal
-            </Link>
-            <Link to="/health-profile" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-              <ProjectsIcon />
-              Health Profile
-            </Link>
-          </nav>
-
-          {/* Artifacts */}
-          <div className="px-3 mt-4 mb-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Artifacts</p>
-          </div>
-          <nav className="px-3 space-y-0.5 flex-shrink-0">
-            <Link to="/referral" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-              <ArtifactsIcon />
-              Referral Program
-            </Link>
-          </nav>
-
-          {/* Business */}
-          <div className="px-3 mt-4 mb-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1">Business</p>
-          </div>
-          <nav className="px-3 space-y-0.5 flex-shrink-0">
-            {[
-              { to: "/sponsor-portal", label: "Sponsor" },
-              { to: "/advertiser-enrollment", label: "Advertiser" },
-              { to: "/referral", label: "Affiliates" },
-              { to: "/policy", label: "Policy Center" },
-            ].map(({ to, label }) => (
-              <Link key={to} to={to}
-                className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
-                {label}
+          {sections.chats && (
+            <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
+              <Link to="/history" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                <ChatsIcon />
+                All conversations
               </Link>
-            ))}
-          </nav>
+            </nav>
+          )}
+
+          {/* ── Projects (folders) ── */}
+          <div className="px-3 mt-3 mb-0 flex-shrink-0">
+            <button
+              onClick={() => toggleSection('projects')}
+              className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#e4ddd0] transition-colors"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Projects</p>
+              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.projects ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
+            </button>
+          </div>
+          {sections.projects && (
+            <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
+              {/* Built-in project links */}
+              {[
+                { to: '/medications', label: 'Medication Tracker' },
+                { to: '/journal', label: 'Symptom Journal' },
+                { to: '/health-profile', label: 'Health Profile' },
+              ].map(({ to, label }) => (
+                <Link key={to} to={to} className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                  <ProjectsIcon />
+                  {label}
+                </Link>
+              ))}
+
+              {/* User-created project folders */}
+              {projects.map(p => (
+                <div key={p.id} className="flex items-center gap-1 group px-3 py-2 rounded-xl hover:bg-[#e4ddd0] transition-colors">
+                  <ProjectsIcon />
+                  {renamingId === p.id ? (
+                    <input
+                      autoFocus
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingId(null); }}
+                      onBlur={commitRename}
+                      className="flex-1 bg-transparent text-[13px] text-gray-900 outline-none border-b border-primary"
+                    />
+                  ) : (
+                    <span
+                      className="flex-1 text-[13.5px] text-gray-700 truncate cursor-default"
+                      onDoubleClick={() => startRename(p.id, p.name)}
+                    >{p.name}</span>
+                  )}
+                  <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
+                    <button onClick={() => startRename(p.id, p.name)} title="Rename" className="p-0.5 text-gray-400 hover:text-gray-700 transition-colors">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                    <button onClick={() => deleteProject(p.id)} title="Delete" className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3,6 5,6 21,6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* New project input */}
+              {addingProject ? (
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <ProjectsIcon />
+                  <input
+                    autoFocus
+                    value={newProjectName}
+                    onChange={e => setNewProjectName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addProject(); if (e.key === 'Escape') { setAddingProject(false); setNewProjectName(''); } }}
+                    onBlur={() => { if (!newProjectName.trim()) setAddingProject(false); }}
+                    placeholder="Project name…"
+                    className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 outline-none border-b border-primary"
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingProject(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  New project
+                </button>
+              )}
+            </nav>
+          )}
+
+          {/* ── Artifacts ── */}
+          <div className="px-3 mt-3 mb-0 flex-shrink-0">
+            <button
+              onClick={() => toggleSection('artifacts')}
+              className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#e4ddd0] transition-colors"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Artifacts</p>
+              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.artifacts ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
+            </button>
+          </div>
+          {sections.artifacts && (
+            <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
+              <Link to="/referral" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                <ArtifactsIcon />
+                Referral Program
+              </Link>
+            </nav>
+          )}
+
+          {/* ── Business ── */}
+          <div className="px-3 mt-3 mb-0 flex-shrink-0">
+            <button
+              onClick={() => toggleSection('business')}
+              className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#e4ddd0] transition-colors"
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Business</p>
+              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.business ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
+            </button>
+          </div>
+          {sections.business && (
+            <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
+              {[
+                { to: '/sponsor-portal', label: 'Sponsor' },
+                { to: '/advertiser-enrollment', label: 'Advertiser' },
+                { to: '/referral', label: 'Affiliates' },
+                { to: '/policy', label: 'Policy Center' },
+              ].map(({ to, label }) => (
+                <Link key={to} to={to} className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          )}
 
           {/* Pro conversation history */}
           {isPro && (

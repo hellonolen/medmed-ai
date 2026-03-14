@@ -14,6 +14,10 @@ export interface Env {
   DB: D1Database;
   MEDIA: R2Bucket;
   GOOGLE_GENAI_API_KEY: string;
+  ANTHROPIC_API_KEY: string;
+  OPENAI_API_KEY: string;
+  GLM_API_KEY: string;
+  PERPLEXITY_API_KEY: string;
   JWT_SECRET: string;
   POSTMARK_SERVER_TOKEN: string;
   STRIPE_SECRET_KEY: string;
@@ -170,7 +174,157 @@ async function callGemini(apiKey: string, systemPrompt: string, userMessage: str
   return callGeminiWithModel(apiKey, GEMINI_MODEL, systemPrompt, userMessage, history);
 }
 
-// ─── Email ─────────────────────────────────────────────────────────────────────
+// ─── Claude (Anthropic) ───────────────────────────────────────────────────────
+
+async function callClaude(apiKey: string, systemPrompt: string, userMessage: string): Promise<string> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-3-7-sonnet-20250219',
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Claude ${res.status}`);
+  const data = await res.json() as { content?: Array<{ type: string; text?: string }> };
+  return data.content?.find(b => b.type === 'text')?.text || '';
+}
+
+// ─── GPT-4o (OpenAI) ─────────────────────────────────────────────────────────
+
+async function callGPT(apiKey: string, systemPrompt: string, userMessage: string): Promise<string> {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 2048,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`GPT ${res.status}`);
+  const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ─── GLM-4 (Zhipu AI — OpenAI-compatible) ────────────────────────────────────
+
+async function callGLM(apiKey: string, systemPrompt: string, userMessage: string): Promise<string> {
+  const res = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'glm-4-flash',
+      max_tokens: 2048,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`GLM ${res.status}`);
+  const data = await res.json() as { choices?: Array<{ message?: { content?: string } }> };
+  return data.choices?.[0]?.message?.content || '';
+}
+
+
+// ─── Perplexity (Sonar Pro — OpenAI-compatible + real-time web search) ──────────
+
+async function callPerplexity(apiKey: string, systemPrompt: string, userMessage: string): Promise<string> {
+  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify({
+      model: 'sonar-pro',
+      max_tokens: 2048,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      search_domain_filter: ['medlineplus.gov', 'pubmed.ncbi.nlm.nih.gov', 'drugs.com', 'webmd.com', 'mayoclinic.org'],
+      return_citations: true,
+      temperature: 0.2,
+    }),
+  });
+  if (!res.ok) throw new Error(`Perplexity ${res.status}`);
+  const data = await res.json() as {
+    choices?: Array<{ message?: { content?: string } }>;
+    citations?: string[];
+  };
+  const content = data.choices?.[0]?.message?.content || '';
+  const citations = data.citations?.slice(0, 3);
+  if (citations?.length) return `${content}\n\n**Sources:** ${citations.map((c, i) => `[${i + 1}] ${c}`).join(' · ')}`;
+  return content;
+}
+
+// ─── Conductor: Routes each query to the best model ───────────────────────────
+//
+// Routing rules:
+//  gemini     → vision, quick medical lookup, pharmacy search, image analysis
+//  claude     → complex reasoning, differential diagnosis, nuanced multi-step analysis
+//  gpt        → patient education, drug explanations, treatment summaries
+//  glm        → multilingual/Chinese queries, traditional/alternative medicine
+//  perplexity → research questions, evidence-based queries, "latest studies", "current guidelines"
+//
+// Video is ALWAYS handled by Gemini (vision only) — see handleMediaVisual.
+
+async function conductorRoute(
+  apiKey: string,
+  query: string,
+  env: Env
+): Promise<{ model: 'gemini' | 'claude' | 'gpt' | 'glm' | 'perplexity'; reason: string }> {
+  const conductorPrompt = `You are the medmed.ai Conductor — an intelligent AI routing agent.
+Your ONLY job: analyze a health question and return JSON selecting the best AI model.
+
+Models and their strengths:
+- gemini: vision/image analysis, pharmacy lookup, quick medical facts, multimodal
+- claude: complex multi-step reasoning, differential diagnosis, deep clinical analysis
+- gpt: clear patient education, drug information, general health summaries
+- glm: Chinese/multilingual queries, traditional medicine, alternative health
+- perplexity: research questions, "what does the latest research say", evidence-based medicine, clinical guidelines, PubMed queries
+
+IMPORTANT:
+- If the query involves images or camera: always return gemini
+- If query mentions "research", "studies", "evidence", "guideline", "latest", "published": prefer perplexity
+- For complex diagnosis or reasoning: prefer claude
+- For patient-friendly explanations: prefer gpt
+
+Respond ONLY with valid JSON, no markdown:
+{"model":"gemini|claude|gpt|glm|perplexity","reason":"one sentence"}
+Fallback: return gemini if uncertain.`;
+
+  try {
+    const raw = await callGeminiWithModel(
+      apiKey,
+      'gemini-2.0-flash',
+      conductorPrompt,
+      `Route this query: "${query.slice(0, 600)}"`
+    );
+    // Strip markdown code fences if present
+    const clean = raw.trim().replace(/^```(?:json)?\n?|\n?```$/g, '').trim();
+    const parsed = JSON.parse(clean) as { model: string; reason: string };
+    const valid = ['gemini', 'claude', 'gpt', 'glm', 'perplexity'];
+    if (valid.includes(parsed.model)) {
+      const m = parsed.model;
+      // Fallback to gemini if provider key not configured
+      if (m === 'claude'     && !env.ANTHROPIC_API_KEY)  return { model: 'gemini', reason: 'Claude key not configured' };
+      if (m === 'gpt'        && !env.OPENAI_API_KEY)      return { model: 'gemini', reason: 'GPT key not configured' };
+      if (m === 'glm'        && !env.GLM_API_KEY)         return { model: 'gemini', reason: 'GLM key not configured' };
+      if (m === 'perplexity' && !env.PERPLEXITY_API_KEY) return { model: 'gemini', reason: 'Perplexity key not configured' };
+      return { model: m as 'gemini' | 'claude' | 'gpt' | 'glm' | 'perplexity', reason: parsed.reason };
+    }
+  } catch { /* fall through */ }
+  return { model: 'gemini', reason: 'default' };
+}
 
 async function sendEmail(token: string, to: string, subject: string, html: string, text: string): Promise<void> {
   if (!token) return;
@@ -181,53 +335,109 @@ async function sendEmail(token: string, to: string, subject: string, html: strin
   });
 }
 
-// ─── /api/ai ──────────────────────────────────────────────────────────────────
+// ─── /api/ai ─────────────────────────────────────────────────────────────────
+//
+// ARCHITECTURE: Gemini is the platform foundation.
+//   - Voice, video, and image: always Gemini (handled by Gemini Live / handleMediaVisual)
+//   - Text queries: Gemini by default; conductor may augment with Claude/GPT/GLM/Perplexity
+//     when a better model is available for that query type.
+//
+// BYOA keys stored as JSON: {"gemini":"...","anthropic":"...","openai":"...","glm":"...","perplexity":"..."}
 
 async function handleAI(req: Request, env: Env): Promise<Response> {
   const origin = req.headers.get('Origin') || '*';
   let body: Record<string, unknown>;
   try { body = await req.json() as Record<string, unknown>; } catch { return err('Invalid JSON', 400, origin); }
-  const query = body.query as string | undefined;
+  const query       = body.query       as string | undefined;
   const systemPrompt = body.systemPrompt as string | undefined;
-  const history = (body.history as unknown[]) || [];
-  const searchType = body.searchType as string | undefined;
-  const userId = body.userId as string | undefined;
+  const history     = (body.history    as unknown[]) || [];
+  const searchType  = body.searchType  as string | undefined;
+  const userId      = body.userId      as string | undefined;
   if (!query) return err('query required', 400, origin);
   if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
 
   try {
-    // Determine which API key to use: user BYOA key takes priority for eligible plans
-    let activeApiKey = env.GOOGLE_GENAI_API_KEY;
+    // ── BYOA: load per-provider keys for eligible plans ──
+    type ByoaKeys = Partial<Record<'gemini'|'anthropic'|'openai'|'glm'|'perplexity', string>>;
+    let byoaKeys: ByoaKeys = {};
     if (userId) {
-      const userRow = await env.DB.prepare('SELECT tier, api_key FROM users WHERE id = ?').bind(userId).first<{ tier: string; api_key?: string }>().catch(() => null);
-      const eligibleForBYOA = userRow && ['enterprise', 'max', 'business'].includes(userRow.tier);
-      if (eligibleForBYOA && userRow?.api_key) activeApiKey = userRow.api_key;
+      const row = await env.DB.prepare('SELECT tier, api_key FROM users WHERE id = ?')
+        .bind(userId).first<{ tier: string; api_key?: string }>().catch(() => null);
+      if (row && ['enterprise', 'max', 'business'].includes(row.tier) && row.api_key) {
+        try { byoaKeys = JSON.parse(row.api_key) as ByoaKeys; }
+        catch { byoaKeys = { gemini: row.api_key }; } // legacy single key
+      }
     }
 
-    // Get admin-selected model from global_settings, default to gemini-2.0-flash
-    const modelRow = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`).first<{ value: string }>().catch(() => null);
-    const activeModel = modelRow?.value || 'gemini-2.0-flash';
-
-    // Build personalized prompt from health profile if userId provided
+    // ── System prompt ──
     let prompt = systemPrompt || (userId ? await buildPersonalizedPrompt(env.DB, userId) : MEDICAL_SYSTEM_PROMPT);
-    if (searchType === 'location') prompt += '\n\nReturn structured JSON with nearby providers including realistic addresses and phone numbers.';
+    if (searchType === 'location') prompt += '\n\nReturn structured JSON with nearby providers.';
 
-    const raw = await callGeminiWithModel(activeApiKey, activeModel, prompt, query, history);
+    // ── Conductor: route text to best model ──
+    // Gemini is always the fallback/base. Other models are optional augmentation.
+    const { model: chosen, reason } = await conductorRoute(env.GOOGLE_GENAI_API_KEY, query, env);
 
-    // Increment global question counter
-    await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`).run().catch(() => {});
+    let raw = '';
+    let providerLabel: string;
+
+    if (chosen === 'claude') {
+      const key = byoaKeys.anthropic || env.ANTHROPIC_API_KEY;
+      raw = await callClaude(key, prompt, query);
+      providerLabel = 'claude-3-7-sonnet';
+    } else if (chosen === 'gpt') {
+      const key = byoaKeys.openai || env.OPENAI_API_KEY;
+      raw = await callGPT(key, prompt, query);
+      providerLabel = 'gpt-4o';
+    } else if (chosen === 'glm') {
+      const key = byoaKeys.glm || env.GLM_API_KEY;
+      raw = await callGLM(key, prompt, query);
+      providerLabel = 'glm-4-flash';
+    } else if (chosen === 'perplexity') {
+      const key = byoaKeys.perplexity || env.PERPLEXITY_API_KEY;
+      raw = await callPerplexity(key, prompt, query);
+      providerLabel = 'perplexity-sonar-pro';
+    } else {
+      // Gemini — the platform foundation. Uses admin-selected Gemini model.
+      const modelRow = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`)
+        .first<{ value: string }>().catch(() => null);
+      const geminiModel = modelRow?.value || 'gemini-2.0-flash';
+      const key = byoaKeys.gemini || env.GOOGLE_GENAI_API_KEY;
+      raw = await callGeminiWithModel(key, geminiModel, prompt, query, history);
+      providerLabel = `gemini/${geminiModel}`;
+    }
+
+    // ── Usage tracking ──
+    await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`)
+      .run().catch(() => {});
+
+    // ── Parse JSON structured response if wrapped in code fence ──
     const jsonMatch = raw.match(/```json\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[1]);
-        return json({ success: true, content: parsed.answer || raw.replace(/```json[\s\S]*?```/g, '').trim(), results: parsed.results || [], disclaimer: parsed.disclaimer || null, provider: 'gemini', raw }, 200, origin);
+        return json({
+          success: true,
+          content: parsed.answer || raw.replace(/```json[\s\S]*?```/g, '').trim(),
+          results: parsed.results || [],
+          disclaimer: parsed.disclaimer || null,
+          provider: providerLabel,
+          routingReason: reason,
+        }, 200, origin);
       } catch { /* fall through */ }
     }
-    return json({ success: true, content: raw, results: [], disclaimer: null, provider: 'gemini' }, 200, origin);
+    return json({ success: true, content: raw, results: [], disclaimer: null, provider: providerLabel, routingReason: reason }, 200, origin);
   } catch {
-    return json({ success: false, content: 'AI temporarily unavailable.', provider: 'gemini' }, 200, origin);
+    // Gemini is the ultimate fallback — always available
+    const key = env.GOOGLE_GENAI_API_KEY;
+    try {
+      const fallback = await callGemini(key, MEDICAL_SYSTEM_PROMPT, query, history);
+      return json({ success: true, content: fallback, provider: 'gemini/fallback' }, 200, origin);
+    } catch {
+      return json({ success: false, content: 'AI temporarily unavailable.', provider: 'gemini' }, 200, origin);
+    }
   }
 }
+
 
 // ─── /api/admin/config ─────────────────────────────────────────────────────────
 
