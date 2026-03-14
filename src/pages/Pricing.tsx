@@ -2,14 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav } from "@/components/SiteNav";
 
-/* ─── Whop checkout links — update with your real Whop plan URLs ─── */
+/* ─── Whop checkout links ─── */
 const WHOP = {
-  pro_monthly: "https://whop.com/medmedai-pro",
-  pro_annual: "https://whop.com/medmedai-pro-annual",
-  max_5x: "https://whop.com/medmedai-max",
-  max_20x: "https://whop.com/medmedai-max-20x",
-  team: "https://whop.com/medmedai-team",
-  enterprise: "https://whop.com/medmedai-enterprise",
+  free:       'https://whop.com/checkout/prod_m4YcsLjLvqgJv/',
+  pro:        'https://whop.com/checkout/prod_OXayRSUGg4pkO/',
+  max:        'https://whop.com/checkout/prod_bWovo3uiTso3D/',
+  team:       'https://whop.com/checkout/prod_jceMMMPVZWTEK/',
+  enterprise: 'https://whop.com/checkout/prod_kAKGW5R49G3EH/',
 };
 
 type Tab = "individual" | "team";
@@ -39,7 +38,6 @@ function FAQ({ q, a }: { q: string; a: string }) {
 
 export default function Pricing() {
   const [tab, setTab] = useState<Tab>("individual");
-  const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
 
   const card = { backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" };
   const highlighted = { backgroundColor: "#f0e8d8", border: "2px solid #c8b89a" };
@@ -47,11 +45,11 @@ export default function Pricing() {
   const individualPlans = [
     {
       name: "Free",
-      tagline: "3-day free trial",
+      tagline: "Start here",
       price: "Free",
-      priceNote: "3 days free, then choose a plan",
+      priceNote: "3-day trial, then choose a plan",
       cta: "Start free trial",
-      ctaHref: "/signup?from=pricing",
+      ctaHref: WHOP.free,
       featured: false,
       features: [
         "3 days full access",
@@ -64,10 +62,10 @@ export default function Pricing() {
     {
       name: "Pro",
       tagline: "For everyday wellness",
-      price: billing === "annual" ? "$17" : "$20",
-      priceNote: billing === "annual" ? "Per month, billed $200/year" : "Per month",
+      price: "$20",
+      priceNote: "Per month",
       cta: "Get Pro",
-      ctaHref: billing === "annual" ? WHOP.pro_annual : WHOP.pro_monthly,
+      ctaHref: WHOP.pro,
       featured: true,
       features: [
         "Everything in Free",
@@ -81,11 +79,11 @@ export default function Pricing() {
     },
     {
       name: "Max",
-      tagline: "Get the most from MedMed.AI",
-      price: billing === "annual" ? "$85" : "$100",
-      priceNote: billing === "annual" ? "Per month, billed $1,020/year" : "Per month",
+      tagline: "Get the most from medmed.ai",
+      price: "$100",
+      priceNote: "Per month",
       cta: "Get Max",
-      ctaHref: billing === "annual" ? WHOP.max_20x : WHOP.max_5x,
+      ctaHref: WHOP.max,
       featured: false,
       features: [
         "Everything in Pro",
@@ -136,19 +134,6 @@ export default function Pricing() {
 
         {tab === "individual" && (
           <>
-            {/* Billing toggle */}
-            <div className="flex justify-center items-center gap-3 mb-10">
-              <span className={`text-[13px] ${billing === "monthly" ? "text-gray-900 font-medium" : "text-gray-400"}`}>Monthly</span>
-              <button onClick={() => setBilling((b) => b === "monthly" ? "annual" : "monthly")}
-                className="relative h-6 w-11 rounded-full transition-colors"
-                style={{ backgroundColor: billing === "annual" ? "#7c3aed" : "#d1c9bc" }}>
-                <span className="absolute top-1 left-1 h-4 w-4 rounded-full bg-white shadow transition-transform"
-                  style={{ transform: billing === "annual" ? "translateX(20px)" : "translateX(0)" }} />
-              </button>
-              <span className={`text-[13px] ${billing === "annual" ? "text-gray-900 font-medium" : "text-gray-400"}`}>
-                Annual <span className="text-green-600 text-[11px] font-semibold ml-1">Save 15%</span>
-              </span>
-            </div>
 
             {/* Plans */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-16">

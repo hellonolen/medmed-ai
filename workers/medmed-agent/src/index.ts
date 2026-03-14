@@ -1422,8 +1422,27 @@ async function handleWhopWebhook(req: Request, env: Env): Promise<Response> {
     if (sig !== expectedHex) return new Response('Invalid signature', { status: 401 });
   }
 
-  let event: { event?: string; data?: { membership?: { user?: { email?: string; username?: string; name?: string }; product?: { name?: string } } } };
+  let event: { event?: string; data?: { membership?: { user?: { email?: string; username?: string; name?: string }; product?: { id?: string; name?: string } } } };
   try { event = JSON.parse(body); } catch { return new Response('Bad JSON', { status: 400 }); }
+
+  // Whop product ID → plan tier mapping
+  const PLAN_MAP: Record<string, { tier: string; plan: string }> = {
+    prod_m4YcsLjLvqgJv: { tier: 'free',       plan: 'free'       }, // medmed.ai free
+    prod_OXayRSUGg4pkO: { tier: 'pro',        plan: 'pro'        }, // medmed.ai pro
+    prod_bWovo3uiTso3D: { tier: 'max',        plan: 'max'        }, // medmed.ai max
+    prod_jceMMMPVZWTEK: { tier: 'team',       plan: 'team'       }, // team $25/seat
+    prod_kAKGW5R49G3EH: { tier: 'enterprise', plan: 'enterprise' }, // enterprise $35/seat
+  };
+
+  // Handle cancellations / expirations — downgrade to free
+  if (event.event === 'membership.went_invalid') {
+    const cancelEmail = event.data?.membership?.user?.email || '';
+    if (cancelEmail) {
+      await env.DB.prepare(`UPDATE users SET plan = 'free', tier = 'free' WHERE email = ?`)
+        .bind(cancelEmail.trim().toLowerCase()).run();
+    }
+    return new Response(JSON.stringify({ received: true }), { status: 200 });
+  }
 
   // Only process successful membership activations
   if (event.event !== 'membership.went_valid') {
@@ -1437,20 +1456,24 @@ async function handleWhopWebhook(req: Request, env: Env): Promise<Response> {
   const emailLower = memberEmail.trim().toLowerCase();
   const firstName  = (memberName || '').split(' ')[0] || memberEmail.split('@')[0];
 
-  // Create user if not exists
+  // Resolve tier from product ID
+  const productId = event.data?.membership?.product?.id || '';
+  const resolved  = PLAN_MAP[productId] || { tier: 'pro', plan: 'pro' };
+  const { tier, plan } = resolved;
+
+  // Create user if not exists, else upgrade
   let userId: string;
   const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`).bind(emailLower).first<{ id: string }>();
   if (existing) {
     userId = existing.id;
-    // If they somehow already exist, just upgrade their plan
-    await env.DB.prepare(`UPDATE users SET plan = 'trial', tier = 'pro' WHERE id = ?`).bind(userId).run();
+    await env.DB.prepare(`UPDATE users SET plan = ?, tier = ? WHERE id = ?`).bind(plan, tier, userId).run();
   } else {
     userId = crypto.randomUUID();
     const trialEndsAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 3;
     await env.DB.prepare(
       `INSERT INTO users (id, email, name, password_hash, tier, role, plan, trial_ends_at, created_at)
-       VALUES (?, ?, ?, 'magic-link-only', 'pro', 'user', 'trial', ?, datetime('now'))`
-    ).bind(userId, emailLower, memberName.trim() || firstName, trialEndsAt).run();
+       VALUES (?, ?, ?, 'magic-link-only', ?, 'user', ?, ?, datetime('now'))`
+    ).bind(userId, emailLower, memberName.trim() || firstName, tier, plan, trialEndsAt).run();
   }
 
   // Send welcome magic link
