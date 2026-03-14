@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { SiteNav } from "@/components/SiteNav";
+import { GlobalHeader } from "@/components/GlobalHeader";
+import { GlobalFooter } from "@/components/GlobalFooter";
 
 /* ─── FAQ accordion item ── */
 function FAQItem({ q, a }: { q: string; a: string }) {
@@ -136,7 +137,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <SiteNav />
+      <GlobalHeader />
 
       {/* ── HERO ── */}
       <section className="py-16 px-6" style={{ backgroundColor: "#faf8f4" }}>
@@ -408,46 +409,20 @@ export default function Landing() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-[40px] font-bold text-gray-900 tracking-tight mb-4">Your health questions deserve real answers.</h2>
           <p className="text-[17px] text-gray-500 mb-10 max-w-xl mx-auto">
-            MedMed.AI is your always-on health research companion. Start for free, no credit card required.
+            medmed.ai is your always-on health research companion. Start your 3-day trial today.
           </p>
-          <div className="flex justify-center gap-3 flex-wrap">
-            <Link to="/pricing" className="px-10 py-4 rounded-xl bg-primary text-white font-semibold text-[16px] hover:bg-primary/90 transition-colors">
-              Get started free
+          <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
+            <Link to="/pricing" className="w-full text-center px-10 py-4 rounded-xl bg-primary text-white font-semibold text-[16px] hover:bg-primary/90 transition-colors">
+              Get started
             </Link>
-            <Link to="/chat" className="px-10 py-4 rounded-xl font-semibold text-[16px] text-gray-700 hover:bg-[#e4ddd0] transition-colors" style={{ border: "1px solid #d8d0c0" }}>
+            <Link to="/chat" className="w-full text-center px-10 py-4 rounded-xl font-semibold text-[16px] text-gray-700 hover:bg-[#e4ddd0] transition-colors" style={{ border: "1px solid #d8d0c0" }}>
               Try the chat
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="border-t px-8 py-8" style={{ borderColor: "#e0d8cc", backgroundColor: "#f0ebe2" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between gap-8 mb-8">
-            <div>
-              <p className="text-[16px] font-bold text-gray-900 mb-2">MedMed.AI</p>
-              <p className="text-[13px] text-gray-500 max-w-xs leading-relaxed">
-                General health information and education. Not a substitute for professional medical advice, diagnosis, or treatment.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 text-[13px] text-gray-500">
-              <Link to="/pricing" className="hover:text-gray-900 transition-colors">Pricing</Link>
-              <Link to="/chat" className="hover:text-gray-900 transition-colors">Chat</Link>
-              <Link to="/signin" className="hover:text-gray-900 transition-colors">Sign in</Link>
-            </div>
-          </div>
-          <div className="border-t pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[12px] text-gray-400" style={{ borderColor: "#e0d8cc" }}>
-            <p>© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
-
-            <div className="flex items-center gap-4">
-              <Link to="/policy" className="hover:text-gray-700 transition-colors">Policy Center</Link>
-              <Link to="/chat" className="hover:text-gray-700 transition-colors">Support</Link>
-              <Link to="/chat" className="hover:text-gray-700 transition-colors">Contact</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <GlobalFooter />
     </div>
   );
 }
