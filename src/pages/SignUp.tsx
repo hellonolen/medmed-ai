@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { SiteNav } from '@/components/SiteNav';
 
 const SignUp = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -13,6 +15,13 @@ const SignUp = () => {
   const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Gate: require coming from pricing
+  useEffect(() => {
+    if (searchParams.get('from') !== 'pricing') {
+      navigate('/pricing', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const inputStyle = {
     backgroundColor: '#f0ebe2',
@@ -76,9 +85,11 @@ const SignUp = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      className="min-h-screen flex flex-col"
       style={{ backgroundColor: '#faf8f4', fontFamily: "'Inter', system-ui, sans-serif" }}
     >
+      <SiteNav />
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
       <Link to="/" className="text-[17px] font-semibold text-gray-900 mb-10 tracking-tight">
         MedMed.AI
       </Link>
@@ -139,6 +150,7 @@ const SignUp = () => {
         {' · '}
         <Link to="/" className="hover:text-gray-600">Support</Link>
       </p>
+      </div>    {/* inner flex wrapper */}
     </div>
   );
 };

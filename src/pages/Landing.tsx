@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { SiteNav } from "@/components/SiteNav";
 
 /* ─── Product Preview (inline SVG mock of the chat UI) ── */
 function ProductPreview() {
@@ -98,35 +99,7 @@ export default function Landing() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}
     >
-      {/* Nav */}
-      <header className="px-8 py-5 flex items-center justify-between flex-shrink-0">
-        <span className="text-[17px] font-bold text-gray-900 tracking-tight">MedMed.AI</span>
-        <nav className="hidden md:flex items-center gap-1">
-          {["Features", "Pricing"].map((label) => (
-            <Link
-              key={label}
-              to={label === "Pricing" ? "/pricing" : "/"}
-              className="px-4 py-1.5 rounded-lg text-[13.5px] text-gray-600 hover:text-gray-900 hover:bg-[#e8e1d5] transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/signin"
-            className="hidden sm:block px-4 py-2 rounded-xl text-[13px] text-gray-600 hover:bg-[#e4ddd0] transition-colors"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/signup"
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
-          >
-            Get started
-          </Link>
-        </div>
-      </header>
+      <SiteNav />
 
       {/* Hero */}
       <main className="flex-1 flex items-center">
@@ -160,7 +133,7 @@ export default function Landing() {
                 type="submit"
                 className="w-full py-3.5 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors"
               >
-                Continue with email
+                See plans
               </button>
             </form>
 
