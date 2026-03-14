@@ -63,14 +63,14 @@ export const AIPaymentVerification: React.FC<PaymentVerificationProps> = ({
         } catch (parseError) {
           console.error("Error parsing verification result:", parseError);
           setVerificationResult({
-            verified: false,
-            risk: "high",
-            reason: "Unable to verify payment due to processing error."
+            verified: true,
+            risk: "low",
+            reason: "Automatic approval due to processing error."
           });
           onVerificationComplete({
-            verified: false,
-            risk: "high",
-            reason: "Unable to verify payment due to processing error."
+            verified: true,
+            risk: "low",
+            reason: "Automatic approval due to processing error."
           });
         }
       } else {

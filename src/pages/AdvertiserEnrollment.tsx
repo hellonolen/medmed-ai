@@ -7,14 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 import CompanyInfoForm from "@/components/advertiser/CompanyInfoForm";
 import AdPackageCard from "@/components/advertiser/AdPackageCard";
 import DurationSelector from "@/components/advertiser/DurationSelector";
-import PaymentDialog from "@/components/advertiser/PaymentDialog";
 import { adPackages, MAX_DURATION_WEEKS } from "@/data/adPackages";
 import { useSponsor } from "@/contexts/SponsorContext";
+
+const WORKER_URL =
+  (import.meta as any).env?.VITE_WORKER_URL ||
+  'https://medmed-agent.hellonolen.workers.dev';
 
 const AdvertiserEnrollment = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+  const { registerSponsor } = useSponsor();
+
   const [formData, setFormData] = useState({
     companyName: "",
     description: "",
@@ -25,100 +29,91 @@ const AdvertiserEnrollment = () => {
   const [logoPreview, setLogoPreview] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("");
   const [durationWeeks, setDurationWeeks] = useState(1);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     if (file) {
-      setFormData(prev => ({
-        ...prev,
-        logoFile: file
-      }));
-      
-      // Create a preview URL for the uploaded image
-      const previewUrl = URL.createObjectURL(file);
-      setLogoPreview(previewUrl);
+      setFormData(prev => ({ ...prev, logoFile: file }));
+      setLogoPreview(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate form
     if (!formData.companyName || !formData.description || !formData.contactEmail || !formData.logoFile || !selectedPackage) {
-      toast({
-        title: "Missing information",
-        description: "Please fill out all required fields and select an ad package",
-        variant: "destructive"
-      });
+      toast({ title: "Missing information", description: "Please fill out all required fields and select an ad package", variant: "destructive" });
       return;
     }
-    
-    // Open payment dialog
-    setIsPaymentDialogOpen(true);
-  };
 
-  const handlePayment = () => {
-    // Regular sponsor activation
-    toast({
-      title: "Payment successful!",
-      description: "Your advertisement has been submitted for verification and will go live soon.",
-    });
-    
-    // Simulate AI verification and email notification
-    setTimeout(() => {
-      toast({
-        title: "Ad Verified",
-        description: "Our AI has verified your advertisement and it is now live. You've been sent a confirmation email.",
+    setIsProcessing(true);
+
+    try {
+      // Calculate total price
+      const pkg = adPackages.find(p => p.id === selectedPackage);
+      const totalAmount = (pkg?.price || 0) * durationWeeks;
+      const pkgName = pkg?.name || selectedPackage;
+
+      // Attempt Stripe Checkout via Worker
+      const stripeRes = await fetch(`${WORKER_URL}/api/stripe/sponsor-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: totalAmount,
+          companyName: formData.companyName,
+          packageName: pkgName,
+          weeks: durationWeeks,
+          customerEmail: formData.contactEmail,
+          successUrl: `${window.location.origin}/sponsor-portal?payment=success`,
+          cancelUrl: `${window.location.origin}/advertiser-enrollment`,
+        }),
       });
-    }, 3000);
-    
-    setIsPaymentDialogOpen(false);
-    
-    // Reset form
-    setFormData({
-      companyName: "",
-      description: "",
-      contactEmail: "",
-      website: "",
-      logoFile: null
-    });
-    setLogoPreview("");
-    setSelectedPackage("");
-    setDurationWeeks(1);
-    setPaymentMethod("card");
-    
-    // Redirect to sponsor portal
-    setTimeout(() => {
-      navigate('/sponsor-portal');
-    }, 2000);
+      const stripeData: any = await stripeRes.json();
+
+      if (stripeData.url) {
+        // Register as a sponsor first (creates account in D1), then redirect to Stripe
+        await registerSponsor({
+          email: formData.contactEmail,
+          password: crypto.randomUUID(), // Temporary password — they'll reset via email
+          name: null,
+          companyName: formData.companyName,
+          package: selectedPackage === 'premium' ? 'Premium' : 'Standard',
+        });
+        // Redirect to Stripe Checkout
+        window.location.href = stripeData.url;
+        return;
+      }
+
+      // Fallback if Stripe not configured yet — register account and show success
+      const success = await registerSponsor({
+        email: formData.contactEmail,
+        password: crypto.randomUUID(),
+        name: null,
+        companyName: formData.companyName,
+        package: selectedPackage === 'premium' ? 'Premium' : 'Standard',
+      });
+
+      if (success) {
+        toast({
+          title: "Application submitted!",
+          description: "Your sponsor account has been created. Our team will review and activate it shortly.",
+        });
+        setTimeout(() => navigate('/sponsor-portal'), 1500);
+      } else {
+        toast({ title: "Error", description: "Submission failed. Please try again.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "An unexpected error occurred. Please try again.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  // Handle wire transfer selection
-  const handleWireTransferDetails = () => {
-    // Show wire transfer instructions for payments over $5000
-    toast({
-      title: "Wire Transfer Instructions Sent",
-      description: "Check your email for wire transfer instructions. Your ad space will be reserved for 48 hours pending payment.",
-    });
-    setIsPaymentDialogOpen(false);
-    
-    // Redirect to sponsor portal
-    setTimeout(() => {
-      navigate('/sponsor-portal');
-    }, 2000);
-  };
-
-  // Get the character limit based on selected package - identical for both packages now
   const getMaxCharacters = () => 120;
 
   return (
@@ -129,66 +124,69 @@ const AdvertiserEnrollment = () => {
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
           </Button>
         </Link>
-        
+
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">
-            Advertiser Enrollment
-          </h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Advertiser Enrollment</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Showcase your healthcare products or services to our engaged audience
           </p>
         </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <div className="md:col-span-2">
-            <CompanyInfoForm 
-              formData={formData}
-              onInputChange={handleInputChange}
-              onLogoUpload={handleLogoUpload}
-              logoPreview={logoPreview}
-              selectedPackage={selectedPackage}
-              onSubmit={handleSubmit}
-              maxCharacters={getMaxCharacters()}
-            />
-          </div>
-          
-          <div>
-            <h2 className="text-xl font-semibold text-primary mb-4">Select Ad Package</h2>
-            <div className="space-y-4">
-              {adPackages.map(pkg => (
-                <AdPackageCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  isSelected={selectedPackage === pkg.id}
-                  onSelect={setSelectedPackage}
-                />
-              ))}
 
-              {selectedPackage && (
-                <DurationSelector
-                  selectedPackage={selectedPackage}
-                  durationWeeks={durationWeeks}
-                  setDurationWeeks={setDurationWeeks}
-                  adPackages={adPackages}
-                  maxDurationWeeks={MAX_DURATION_WEEKS}
-                />
-              )}
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="md:col-span-2">
+              <CompanyInfoForm
+                formData={formData}
+                onInputChange={handleInputChange}
+                onLogoUpload={handleLogoUpload}
+                logoPreview={logoPreview}
+                selectedPackage={selectedPackage}
+                onSubmit={handleSubmit}
+                maxCharacters={getMaxCharacters()}
+              />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-semibold text-primary mb-4">Select Ad Package</h2>
+              <div className="space-y-4">
+                {adPackages.map(pkg => (
+                  <AdPackageCard
+                    key={pkg.id}
+                    pkg={pkg}
+                    isSelected={selectedPackage === pkg.id}
+                    onSelect={setSelectedPackage}
+                  />
+                ))}
+
+                {selectedPackage && (
+                  <DurationSelector
+                    selectedPackage={selectedPackage}
+                    durationWeeks={durationWeeks}
+                    setDurationWeeks={setDurationWeeks}
+                    adPackages={adPackages}
+                    maxDurationWeeks={MAX_DURATION_WEEKS}
+                  />
+                )}
+              </div>
             </div>
           </div>
-        </div>
+
+          {selectedPackage && (
+            <div className="max-w-6xl mx-auto mt-8 flex justify-end">
+              <Button type="submit" size="lg" disabled={isProcessing} className="min-w-48">
+                {isProcessing ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                    Processing...
+                  </span>
+                ) : (
+                  'Proceed to Payment'
+                )}
+              </Button>
+            </div>
+          )}
+        </form>
       </div>
-      
-      <PaymentDialog
-        isOpen={isPaymentDialogOpen}
-        onOpenChange={setIsPaymentDialogOpen}
-        selectedPackage={selectedPackage}
-        durationWeeks={durationWeeks}
-        adPackages={adPackages}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
-        onPayment={handlePayment}
-        onWireTransferDetails={handleWireTransferDetails}
-      />
     </div>
   );
 };

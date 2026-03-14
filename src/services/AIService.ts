@@ -415,50 +415,22 @@ class AIService {
    * @returns AI response with enhanced medical safety checks
    */
   public async getHealthAdvice(query: string, context?: string): Promise<AIResponse> {
-    // Create a specialized medical system prompt
-    const medicalSystemPrompt = 
-      "You are a healthcare information assistant providing educational information only. " +
-      "You are not a doctor and cannot provide medical advice, diagnosis, or treatment recommendations. " +
-      "Always include appropriate medical disclaimers in your responses. " +
-      "For any concerning symptoms or medical questions, recommend consulting a healthcare professional. " +
-      "Focus on providing factual, evidence-based health information while avoiding definitive statements about individual cases.";
-    
-    // Add safety prefixes/suffixes to the query
-    const safeQuery = `HEALTH INFORMATION REQUEST: ${query}\n\nProvide educational information only. Include appropriate disclaimers.`;
-    
-    // Use at least two providers for safety verification if available
-    const configuredProviders = this.getConfiguredProviders();
-    if (configuredProviders.length >= 2) {
-      // First provider
-      const primaryResponse = await this.callProvider(configuredProviders[0], safeQuery, medicalSystemPrompt);
-      
-      // Check if primary response is safe
-      if (!this.getMedicalSafetyVerification(primaryResponse.content)) {
-        // Get second opinion
-        const secondaryResponse = await this.callProvider(configuredProviders[1], safeQuery, medicalSystemPrompt);
-        
-        // If both are unsafe, return a generic safe response
-        if (!this.getMedicalSafetyVerification(secondaryResponse.content)) {
-          return {
-            success: true,
-            content: "I'm unable to provide specific health information on this topic. Please consult with a qualified healthcare professional for personalized advice.",
-            provider: "safety_system"
-          };
-        }
-        
-        // Return the safer of the two responses
-        return secondaryResponse;
-      }
-      
-      return primaryResponse;
-    } else {
-      // If we have only one provider, use it with extra safety parameters
-      return this.askAI({
-        query: safeQuery,
-        context,
-        systemPrompt: medicalSystemPrompt
-      });
-    }
+    const medicalSystemPrompt =
+      'You are a healthcare information assistant providing educational information only. ' +
+      'You are not a doctor and cannot provide medical advice, diagnosis, or treatment recommendations. ' +
+      'Always include appropriate medical disclaimers. ' +
+      'For any concerning symptoms, recommend consulting a healthcare professional. ' +
+      'Focus on factual, evidence-based health information.';
+
+    const safeQuery = context
+      ? `HEALTH INFORMATION REQUEST: ${query}\n\nContext: ${context}\n\nProvide educational information only with appropriate disclaimers.`
+      : `HEALTH INFORMATION REQUEST: ${query}\n\nProvide educational information only with appropriate disclaimers.`;
+
+    // Always route through Worker (Gemini) first — same as askAI
+    return this.askAI({
+      query: safeQuery,
+      systemPrompt: medicalSystemPrompt,
+    });
   }
 
   /**

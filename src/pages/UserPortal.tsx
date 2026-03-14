@@ -1,17 +1,23 @@
-
 import React from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Search, Clock, Star, Shield, ArrowUp } from 'lucide-react';
+import { Globe, Search, Clock, Star, Shield, ArrowUp, LogOut, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 const UserPortal = () => {
   const { tier, isSubscribed } = useSubscription();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    signOut();
+    navigate('/');
+  };
 
   return (
     <Layout>
@@ -19,11 +25,24 @@ const UserPortal = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-primary">My Portal</h1>
-            <p className="text-gray-500">Access your MedMed.AI features</p>
+            {user ? (
+              <p className="text-gray-500 flex items-center gap-1">
+                <User className="h-4 w-4" /> {user.name || user.email}
+              </p>
+            ) : (
+              <p className="text-gray-500">Access your MedMed.AI features</p>
+            )}
           </div>
-          <Badge variant="outline" className="capitalize">
-            {tier} Plan
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="capitalize">
+              {tier} Plan
+            </Badge>
+            {user && (
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="h-4 w-4 mr-1" /> Sign out
+              </Button>
+            )}
+          </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
@@ -44,6 +63,12 @@ const UserPortal = () => {
                 </CardHeader>
                 <CardContent>
                   <dl className="space-y-2">
+                    {user && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Email</dt>
+                        <dd className="text-sm text-gray-800">{user.email}</dd>
+                      </div>
+                    )}
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Current Plan</dt>
                       <dd className="text-2xl font-bold text-primary capitalize">{tier}</dd>
@@ -52,10 +77,18 @@ const UserPortal = () => {
                       <dt className="text-sm font-medium text-gray-500">Status</dt>
                       <dd className="text-green-600">Active</dd>
                     </div>
+                    {user && (
+                      <div>
+                        <dt className="text-sm font-medium text-gray-500">Member Since</dt>
+                        <dd className="text-sm text-gray-600">
+                          {new Date(user.memberSince).toLocaleDateString()}
+                        </dd>
+                      </div>
+                    )}
                     {!isSubscribed && (
                       <div className="mt-4">
-                        <Button 
-                          variant="default" 
+                        <Button
+                          variant="default"
                           onClick={() => navigate('/subscription')}
                           className="w-full"
                         >
@@ -81,7 +114,7 @@ const UserPortal = () => {
                     <li className="text-sm text-gray-600">✓ Basic medication search</li>
                     <li className="text-sm text-gray-600">✓ Basic AI support</li>
                     <li className="text-sm text-gray-600">✓ Pharmacy finder</li>
-                    
+
                     {/* Premium tier features */}
                     <li className={`text-sm ${tier === 'free' ? 'text-gray-400' : 'text-gray-600'}`}>
                       {tier === 'free' ? '○' : '✓'} Detailed medication info
@@ -89,7 +122,7 @@ const UserPortal = () => {
                     <li className={`text-sm ${tier === 'free' ? 'text-gray-400' : 'text-gray-600'}`}>
                       {tier === 'free' ? '○' : '✓'} Advanced search
                     </li>
-                    
+
                     {/* Business tier features */}
                     <li className={`text-sm ${tier !== 'business' ? 'text-gray-400' : 'text-gray-600'}`}>
                       {tier !== 'business' ? '○' : '✓'} Priority support

@@ -14,7 +14,7 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-gray-50/50 flex flex-col">
+    <div className="min-h-[100dvh] flex flex-col w-full bg-gray-50/50">
       {/* Header — hidden on auth pages */}
       {!hideNav && (
       <header className="bg-white shadow-sm border-b">
@@ -50,7 +50,7 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 flex flex-col w-full container mx-auto px-4 py-8">
         {children}
       </main>
 

@@ -38,8 +38,8 @@ export const AIChat: React.FC<AIChatProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Fix: Pass 'perplexity' as the default provider to getApiKey
-    setHasApiKey(!!aiService.getApiKey('perplexity'));
+    // Worker-based AI — always enabled, no frontend API key required
+    setHasApiKey(true);
   }, []);
 
   useEffect(() => {
@@ -115,9 +115,8 @@ export const AIChat: React.FC<AIChatProps> = ({
 
   return (
     <Card className="w-full shadow-md">
-      <CardHeader className="pb-2 flex flex-row justify-between items-center">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg">{title}</CardTitle>
-        <AIKeySetup onKeySet={() => setHasApiKey(true)} />
       </CardHeader>
       
       <CardContent className="p-0">
@@ -172,14 +171,14 @@ export const AIChat: React.FC<AIChatProps> = ({
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isLoading || !hasApiKey}
+            disabled={isLoading}
             className="pr-14"
           />
           <Button
             size="icon"
             className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
             onClick={handleSendMessage}
-            disabled={isLoading || !inputValue.trim() || !hasApiKey}
+            disabled={isLoading || !inputValue.trim()}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

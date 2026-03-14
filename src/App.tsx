@@ -8,7 +8,6 @@ import PharmacyFinder from "./pages/PharmacyFinder";
 import InteractionChecker from "./pages/InteractionChecker";
 import Favorites from "./pages/Favorites";
 import MedicationDetails from "./pages/MedicationDetails";
-import MedicationDetail from "./pages/MedicationDetail";
 import OwnerDashboard from "./pages/OwnerDashboard";
 import SponsorDashboard from "./pages/SponsorDashboard";
 import SponsorLogin from "./pages/SponsorLogin";
@@ -20,6 +19,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { SponsorProvider } from './contexts/SponsorContext';
+import { AuthProvider } from './contexts/AuthContext';
 import AdvertiserEnrollment from "./pages/AdvertiserEnrollment";
 import { MedicalSearchProvider } from './contexts/MedicalSearchContext';
 import { Toaster } from './components/ui/toaster';
@@ -39,56 +39,57 @@ const queryClient = new QueryClient();
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AdminProvider>
-        <SearchHistoryProvider>
-          <LanguageProvider>
-            <AccessibilityProvider>
-              <SubscriptionProvider>
-                <MedicalSearchProvider>
-                  <SponsorProvider>
-                    <Router>
-                      <Routes>
-                        {/* Main pages */}
-                        <Route path="/" element={<Index />} />
-                        <Route path="/search" element={<Layout><Search /></Layout>} />
-                        <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
-                        <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
-                        <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
-                        <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
-                        <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
-                        <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
-                        <Route path="/medication-detail" element={<Layout><MedicationDetail /></Layout>} />
+      <AuthProvider>
+        <AdminProvider>
+          <SearchHistoryProvider>
+            <LanguageProvider>
+              <AccessibilityProvider>
+                <SubscriptionProvider>
+                  <MedicalSearchProvider>
+                    <SponsorProvider>
+                      <Router>
+                        <Routes>
+                          {/* Main pages */}
+                          <Route path="/" element={<Index />} />
+                          <Route path="/search" element={<Layout><Search /></Layout>} />
+                          <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
+                          <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
+                          <Route path="/pharmacy-finder" element={<Layout><PharmacyFinder /></Layout>} />
+                          <Route path="/interaction-checker" element={<Layout><InteractionChecker /></Layout>} />
+                          <Route path="/favorites" element={<Layout><Favorites /></Layout>} />
+                          <Route path="/medication/:id" element={<Layout><MedicationDetails /></Layout>} />
 
-                        {/* Auth pages — manage their own Layout with hideNav */}
-                        <Route path="/signin" element={<SignIn />} />
-                        <Route path="/signup" element={<SignUp />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
+                          {/* Auth pages — manage their own Layout with hideNav */}
+                          <Route path="/signin" element={<SignIn />} />
+                          <Route path="/signup" element={<SignUp />} />
+                          <Route path="/reset-password" element={<ResetPassword />} />
 
-                        {/* Sponsor & Admin */}
-                        <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
-                        <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
-                        <Route path="/sponsor-login" element={<SponsorLogin />} />
-                        <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
-                        <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
-                        <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
+                          {/* Sponsor & Admin */}
+                          <Route path="/admin" element={<Layout><OwnerDashboard /></Layout>} />
+                          <Route path="/sponsor-dashboard" element={<Layout><SponsorDashboard /></Layout>} />
+                          <Route path="/sponsor-login" element={<SponsorLogin />} />
+                          <Route path="/sponsor-portal" element={<Layout><SponsorPortal /></Layout>} />
+                          <Route path="/advertiser-enrollment" element={<Layout><AdvertiserEnrollment /></Layout>} />
+                          <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
 
-                        {/* Info pages */}
-                        <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
-                        <Route path="/terms" element={<Layout><Terms /></Layout>} />
-                        <Route path="/settings" element={<Layout><Settings /></Layout>} />
+                          {/* Info pages */}
+                          <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
+                          <Route path="/terms" element={<Layout><Terms /></Layout>} />
+                          <Route path="/settings" element={<Layout><Settings /></Layout>} />
 
-                        {/* 404 */}
-                        <Route path="*" element={<Layout><NotFound /></Layout>} />
-                      </Routes>
-                    </Router>
-                    <Toaster />
-                  </SponsorProvider>
-                </MedicalSearchProvider>
-              </SubscriptionProvider>
-            </AccessibilityProvider>
-          </LanguageProvider>
-        </SearchHistoryProvider>
-      </AdminProvider>
+                          {/* 404 */}
+                          <Route path="*" element={<Layout><NotFound /></Layout>} />
+                        </Routes>
+                      </Router>
+                      <Toaster />
+                    </SponsorProvider>
+                  </MedicalSearchProvider>
+                </SubscriptionProvider>
+              </AccessibilityProvider>
+            </LanguageProvider>
+          </SearchHistoryProvider>
+        </AdminProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -1,134 +1,116 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useSponsor } from '@/contexts/SponsorContext';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, Check } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, Lock } from 'lucide-react';
+
+const WORKER_URL =
+  (import.meta as any).env?.VITE_WORKER_URL ||
+  'https://medmed-agent.hellonolen.workers.dev';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { updatePassword, error } = useSponsor();
   const { toast } = useToast();
-  
-  const [token, setToken] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
-  const [confirmPassword, setConfirmPassword] = useState<string>('');
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [validToken, setValidToken] = useState<boolean | null>(null);
-  
-  // Extract token from URL
+
+  const [token, setToken] = useState('');
+  const [type, setType] = useState<'user' | 'sponsor'>('user');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [tokenState, setTokenState] = useState<'loading' | 'valid' | 'invalid'>('loading');
+
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const tokenParam = searchParams.get('token');
-    if (tokenParam) {
-      setToken(tokenParam);
-      // In a real app, we would validate the token here
-      setValidToken(true);
+    const params = new URLSearchParams(location.search);
+    const t = params.get('token');
+    const typeParam = params.get('type') as 'user' | 'sponsor';
+    if (t) {
+      setToken(t);
+      setType(typeParam || 'user');
+      setTokenState('valid');
     } else {
-      setValidToken(false);
+      setTokenState('invalid');
     }
   }, [location]);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!password || !confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
       return;
     }
-    
     if (password !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
       return;
     }
-    
     if (password.length < 8) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive",
-      });
+      toast({ title: 'Error', description: 'Password must be at least 8 characters', variant: 'destructive' });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
     try {
-      const success = await updatePassword(token, password);
-      
-      if (success) {
-        toast({
-          title: "Success",
-          description: "Your password has been updated. You can now log in with your new password.",
-        });
-        navigate('/sponsor-login');
-      } else {
-        toast({
-          title: "Error",
-          description: error || "Failed to update password",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
+      const res = await fetch(`${WORKER_URL}/api/auth/reset-confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password, type }),
+        signal: AbortSignal.timeout(15000),
       });
+      const data: any = await res.json();
+
+      if (res.ok && data.success) {
+        setIsSuccess(true);
+        toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
+        setTimeout(() => navigate(type === 'sponsor' ? '/sponsor-login' : '/signin'), 2500);
+      } else {
+        toast({ title: 'Error', description: data.error || 'Failed to update password', variant: 'destructive' });
+        if (data.error?.includes('expired') || data.error?.includes('Invalid')) {
+          setTokenState('invalid');
+        }
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
-  if (validToken === null) {
+
+  if (tokenState === 'loading') {
     return (
-      <Layout>
-        <div className="container max-w-md mx-auto py-12">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-center">
-                <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-              </div>
-              <p className="text-center mt-4">Validating your reset token...</p>
+      <Layout hideNav>
+        <div className="flex-1 flex justify-center items-center py-12">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-gray-500">Validating your reset link...</p>
             </CardContent>
           </Card>
         </div>
       </Layout>
     );
   }
-  
-  if (validToken === false) {
+
+  if (tokenState === 'invalid') {
     return (
-      <Layout>
-        <div className="container max-w-md mx-auto py-12">
-          <Card>
+      <Layout hideNav>
+        <div className="flex-1 flex justify-center items-center py-12">
+          <Card className="w-full max-w-md">
             <CardHeader>
-              <CardTitle className="text-2xl text-center">Invalid Reset Link</CardTitle>
+              <CardTitle className="text-center">Invalid Reset Link</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex justify-center text-red-500 mb-4">
-                <AlertCircle size={48} />
-              </div>
-              <p className="text-center">
+            <CardContent className="flex flex-col items-center gap-4">
+              <AlertCircle className="h-12 w-12 text-red-500" />
+              <p className="text-center text-gray-600">
                 This password reset link is invalid or has expired. Please request a new one.
               </p>
             </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => navigate('/sponsor-login')}>
+            <CardFooter className="flex gap-2">
+              <Button className="flex-1" onClick={() => navigate(type === 'sponsor' ? '/sponsor-login' : '/signin')}>
                 Back to Login
               </Button>
             </CardFooter>
@@ -137,51 +119,83 @@ const ResetPassword = () => {
       </Layout>
     );
   }
-  
+
+  if (isSuccess) {
+    return (
+      <Layout hideNav>
+        <div className="flex-1 flex justify-center items-center py-12">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-8 pb-8 flex flex-col items-center gap-4">
+              <CheckCircle2 className="h-12 w-12 text-green-500" />
+              <h2 className="text-xl font-semibold">Password Updated!</h2>
+              <p className="text-gray-500 text-center">Redirecting you to sign in...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
-    <Layout>
-      <div className="container max-w-md mx-auto py-12">
-        <Card>
+    <Layout hideNav>
+      <div className="flex-1 flex justify-center items-center py-12">
+        <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl">Reset Your Password</CardTitle>
-            <CardDescription>
-              Enter your new password below
-            </CardDescription>
+            <CardTitle className="text-2xl font-bold text-center">Reset Your Password</CardTitle>
+            <CardDescription className="text-center">Enter your new password below</CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-6">
-                <div className="grid gap-2">
-                  <Label htmlFor="password">New Password</Label>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="password"
                     type="password"
+                    placeholder="••••••••"
+                    className="pl-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="new-password"
+                    required
+                    minLength={8}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="confirm-password">Confirm Password</Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="confirm-password"
                     type="password"
+                    placeholder="••••••••"
+                    className="pl-10"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
+                    required
                   />
                 </div>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Updating..." : "Update Password"}
-                </Button>
               </div>
-            </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button variant="link" onClick={() => navigate('/sponsor-login')}>
-              Back to Login
-            </Button>
-          </CardFooter>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3">
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+              <Link
+                to={type === 'sponsor' ? '/sponsor-login' : '/signin'}
+                className="text-sm text-center text-primary hover:underline"
+              >
+                Back to Login
+              </Link>
+            </CardFooter>
+          </form>
         </Card>
       </div>
     </Layout>

@@ -1,12 +1,13 @@
 /**
- * MedMed.AI — Cloudflare Worker Agentic Brain
- * 
- * All Gemini calls are server-side. The frontend's existing AIService.ts and
- * MedicalSearchContext.tsx call this Worker. Zero frontend UI changes.
- * 
+ * MedMed.AI — Cloudflare Worker Agentic Brain (Production v2)
+ *
  * Secrets (set via `wrangler secret put`):
  *   GOOGLE_GENAI_API_KEY
  *   JWT_SECRET
+ *   POSTMARK_SERVER_TOKEN
+ *   STRIPE_SECRET_KEY                  ← add this
+ *   STRIPE_WEBHOOK_SECRET               ← add this
+ *   ADMIN_SECRET                        ← add this (master password to enable owner mode)
  */
 
 export interface Env {
@@ -15,15 +16,18 @@ export interface Env {
   GOOGLE_GENAI_API_KEY: string;
   JWT_SECRET: string;
   POSTMARK_SERVER_TOKEN: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_WEBHOOK_SECRET: string;
+  ADMIN_SECRET: string;
   WORKER_ENV: string;
 }
 
-// ─── CORS ────────────────────────────────────────────────────────────────────
+// ─── CORS ─────────────────────────────────────────────────────────────────────
 
 function corsHeaders(origin: string = '*'): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400',
   };
@@ -40,350 +44,27 @@ function err(message: string, status = 400, origin?: string): Response {
   return json({ error: message }, status, origin);
 }
 
-// ─── Gemini Client ─────────────────────────────────────────────────────────
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
-
-async function callGemini(
-  apiKey: string,
-  systemPrompt: string,
-  userMessage: string,
-  history: Array<{ role: string; parts: [{ text: string }] }> = []
-): Promise<string> {
-  const contents = [
-    ...history,
-    { role: 'user', parts: [{ text: userMessage }] }
-  ];
-
-  const body = {
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    contents,
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 2048,
-    },
-  };
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Gemini API error ${res.status}: ${errorText}`);
-  }
-
-  const data: any = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hashBuffer = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256);
+  const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${saltHex}:${hashHex}`;
 }
 
-// ─── Medical Agent System Prompt ─────────────────────────────────────────────
-
-const MEDICAL_SYSTEM_PROMPT = `You are MedMed AI, an intelligent healthcare assistant platform.
-You help users with:
-- Medication information (ingredients, dosage, side effects, pricing)
-- Pharmacy and Med Spa discovery worldwide
-- Symptom analysis and when to seek care
-- Drug interaction checks
-- Specialist referrals
-- General health education
-
-IMPORTANT RULES:
-1. Always include appropriate medical disclaimers
-2. Never diagnose — provide educational information only
-3. Always recommend consulting a healthcare professional for serious concerns
-4. Be concise, accurate, and empathetic
-5. For location-based searches, provide structured results
-
-When returning search results, format them as a JSON block within your response like this:
-\`\`\`json
-{
-  "results": [
-    {
-      "name": "...",
-      "details": "...",
-      "price": "...",
-      "type": "Medication|Pharmacy|Med Spa|Specialist",
-      "source": "...",
-      "phone": "...",
-      "address": "..."
-    }
-  ],
-  "answer": "Your conversational response here",
-  "disclaimer": "Standard medical disclaimer if applicable"
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [saltHex, storedHash] = stored.split(':');
+  const encoder = new TextEncoder();
+  const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map((h: string) => parseInt(h, 16)));
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const hashBuffer = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256);
+  const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex === storedHash;
 }
-\`\`\`
-
-If no structured results are needed, just respond conversationally.`;
-
-// ─── Route: /api/ai — Primary AI endpoint ─────────────────────────────────
-
-async function handleAI(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return err('Invalid JSON body', 400, origin);
-  }
-
-  const { query, systemPrompt, history, searchType } = body;
-
-  if (!query) return err('query is required', 400, origin);
-  if (!env.GOOGLE_GENAI_API_KEY) return err('AI service not configured', 503, origin);
-
-  try {
-    // Build context-aware system prompt
-    let effectiveSystemPrompt = systemPrompt || MEDICAL_SYSTEM_PROMPT;
-
-    // If this is a search-type request, add search instructions
-    if (searchType === 'location') {
-      effectiveSystemPrompt += `\n\nThis is a location-based search. Return structured JSON results with nearby pharmacies, med spas, or healthcare providers. Include realistic addresses and phone numbers.`;
-    }
-
-    const rawResponse = await callGemini(
-      env.GOOGLE_GENAI_API_KEY,
-      effectiveSystemPrompt,
-      query,
-      history || []
-    );
-
-    // Try to parse structured JSON from the response
-    const jsonMatch = rawResponse.match(/```json\n?([\s\S]*?)\n?```/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[1]);
-        return json({
-          success: true,
-          content: parsed.answer || rawResponse.replace(/```json[\s\S]*?```/g, '').trim(),
-          results: parsed.results || [],
-          disclaimer: parsed.disclaimer || null,
-          provider: 'gemini',
-          raw: rawResponse
-        }, 200, origin);
-      } catch {
-        // Fall through to plain text response
-      }
-    }
-
-    return json({
-      success: true,
-      content: rawResponse,
-      results: [],
-      disclaimer: null,
-      provider: 'gemini',
-    }, 200, origin);
-
-  } catch (e: any) {
-    console.error('Gemini error:', e);
-    return json({
-      success: false,
-      content: 'AI service temporarily unavailable. Please try again.',
-      provider: 'gemini',
-    }, 200, origin); // 200 so frontend doesn't break — success:false signals the error
-  }
-}
-
-// ─── Route: /api/search — Medication/pharmacy search ──────────────────────
-
-async function handleSearch(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
-    return err('Invalid JSON body', 400, origin);
-  }
-
-  const { query, searchType, language } = body;
-  if (!query) return err('query is required', 400, origin);
-  if (!env.GOOGLE_GENAI_API_KEY) return err('AI service not configured', 503, origin);
-
-  const searchPrompt = `You are MedMed AI search engine. The user searched: "${query}"
-Search type hint: ${searchType || 'general'}
-Language preference: ${language || 'en'}
-
-Return a JSON array of search results. Each result must have:
-- name: string
-- details: string (concise description, 1-2 sentences)
-- price: string (estimated price or "Contact for pricing")
-- type: one of "Tablet"|"Capsule"|"Injection"|"Pharmacy"|"Med Spa"|"Specialist"|"Cream"|"Other"
-- source: string (e.g., "FDA Database", "WHO", "Medical Database")
-- phone: string or null
-- address: string or null
-
-Return ONLY a JSON array. No other text. Return 6-10 relevant results.`;
-
-  try {
-    const rawResponse = await callGemini(
-      env.GOOGLE_GENAI_API_KEY,
-      searchPrompt,
-      query
-    );
-
-    // Extract JSON array from response
-    let results = [];
-    const arrayMatch = rawResponse.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
-      try {
-        results = JSON.parse(arrayMatch[0]);
-      } catch {
-        results = [];
-      }
-    }
-
-    return json({ success: true, results }, 200, origin);
-  } catch (e: any) {
-    console.error('Search error:', e);
-    return json({ success: false, results: [] }, 200, origin);
-  }
-}
-
-// ─── Route: /api/auth/signup ─────────────────────────────────────────────────
-
-async function handleSignup(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-
-  const { email, password, name } = body;
-  if (!email || !password) return err('email and password required', 400, origin);
-  if (password.length < 8) return err('Password must be at least 8 characters', 400, origin);
-
-  try {
-    // Hash password using Web Crypto
-    const encoder = new TextEncoder();
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-    const hashBuffer = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256);
-    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-    const passwordHash = `${saltHex}:${hashHex}`;
-
-    const userId = crypto.randomUUID();
-    await env.DB.prepare(
-      `INSERT INTO users (id, email, name, password_hash, tier, created_at) VALUES (?, ?, ?, ?, 'free', ?)`
-    ).bind(userId, email.toLowerCase(), name || null, passwordHash, new Date().toISOString()).run();
-
-    const token = await createJWT({ sub: userId, email, tier: 'free' }, env.JWT_SECRET);
-
-    return json({
-      token,
-      user: { id: userId, email, name: name || null, tier: 'free', memberSince: new Date().toISOString() }
-    }, 201, origin);
-  } catch (e: any) {
-    if (e.message?.includes('UNIQUE')) return err('Email already registered', 409, origin);
-    console.error('Signup error:', e);
-    return err('Registration failed', 500, origin);
-  }
-}
-
-// ─── Route: /api/auth/signin ─────────────────────────────────────────────────
-
-async function handleSignin(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-
-  const { email, password } = body;
-  if (!email || !password) return err('email and password required', 400, origin);
-
-  try {
-    const user = await env.DB.prepare(`SELECT * FROM users WHERE email = ?`)
-      .bind(email.toLowerCase()).first<any>();
-
-    if (!user) return err('Invalid credentials', 401, origin);
-
-    const [saltHex, storedHash] = user.password_hash.split(':');
-    const encoder = new TextEncoder();
-    const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map((h: string) => parseInt(h, 16)));
-    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
-    const hashBuffer = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMaterial, 256);
-    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-    if (hashHex !== storedHash) return err('Invalid credentials', 401, origin);
-
-    const token = await createJWT({ sub: user.id, email: user.email, tier: user.tier }, env.JWT_SECRET);
-    return json({
-      token,
-      user: { id: user.id, email: user.email, name: user.name, tier: user.tier, memberSince: user.created_at }
-    }, 200, origin);
-  } catch (e: any) {
-    console.error('Signin error:', e);
-    return err('Sign in failed', 500, origin);
-  }
-}
-
-// ─── Postmark Email ─────────────────────────────────────────────────
-
-async function sendEmail(
-  token: string,
-  to: string,
-  subject: string,
-  htmlBody: string,
-  textBody: string
-): Promise<void> {
-  if (!token) return; // Graceful no-op if secret not yet set
-  await fetch('https://api.postmarkapp.com/email', {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'X-Postmark-Server-Token': token,
-    },
-    body: JSON.stringify({
-      From: 'noreply@medmed.ai',
-      To: to,
-      Subject: subject,
-      HtmlBody: htmlBody,
-      TextBody: textBody,
-      MessageStream: 'outbound',
-    }),
-  });
-}
-
-async function handleEmail(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-
-  const { type, to, name } = body;
-  if (!to) return err('to is required', 400, origin);
-
-  try {
-    if (type === 'welcome') {
-      await sendEmail(
-        env.POSTMARK_SERVER_TOKEN,
-        to,
-        'Welcome to MedMed.AI',
-        `<h1>Welcome${name ? `, ${name}` : ''}!</h1><p>Your MedMed.AI account is ready. Start searching medications, pharmacies, and specialists worldwide.</p><p><a href="https://medmed.ai">Go to MedMed.AI</a></p>`,
-        `Welcome${name ? `, ${name}` : ''}! Your MedMed.AI account is ready. Visit https://medmed.ai to get started.`
-      );
-    } else if (type === 'reset') {
-      const { resetLink } = body;
-      await sendEmail(
-        env.POSTMARK_SERVER_TOKEN,
-        to,
-        'Reset your MedMed.AI password',
-        `<h1>Password Reset</h1><p>Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p><p>This link expires in 1 hour.</p>`,
-        `Reset your MedMed.AI password: ${resetLink}`
-      );
-    }
-    return json({ success: true }, 200, origin);
-  } catch (e: any) {
-    console.error('Postmark error:', e);
-    return err('Email send failed', 500, origin);
-  }
-}
-
-// ─── JWT ─────────────────────────────────────────────────────────────────────
 
 async function createJWT(payload: Record<string, unknown>, secret: string): Promise<string> {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
@@ -396,9 +77,557 @@ async function createJWT(payload: Record<string, unknown>, secret: string): Prom
   return `${unsigned}.${sigB64}`;
 }
 
-// ─── D1 Schema (run once via: wrangler d1 execute medmed-db --file=schema.sql) ─
+async function verifyJWT(token: string, secret: string): Promise<Record<string, any> | null> {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const unsigned = `${parts[0]}.${parts[1]}`;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+    const sig = Uint8Array.from(atob(parts[2].replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+    const valid = await crypto.subtle.verify('HMAC', key, sig, new TextEncoder().encode(unsigned));
+    if (!valid) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
-// ─── Main Handler ─────────────────────────────────────────────────────────────
+function getAuthToken(req: Request): string | null {
+  const auth = req.headers.get('Authorization');
+  if (auth?.startsWith('Bearer ')) return auth.slice(7);
+  return null;
+}
+
+// ─── Gemini ───────────────────────────────────────────────────────────────────
+
+const GEMINI_MODEL = 'gemini-2.0-flash';
+
+const MEDICAL_SYSTEM_PROMPT = `You are MedMed AI, an intelligent healthcare assistant.
+Help users with: medication info, pharmacy/Med Spa discovery, symptom analysis, drug interactions, specialist referrals, health education.
+RULES: Include medical disclaimers. Never diagnose. Always recommend consulting a healthcare professional.
+For location-based searches return structured JSON:
+\`\`\`json
+{"results":[{"name":"...","details":"...","price":"...","type":"Medication|Pharmacy|Med Spa|Specialist","source":"...","phone":"...","address":"..."}],"answer":"...","disclaimer":"..."}
+\`\`\``;
+
+async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, history: any[] = []): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [...history, { role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  const data: any = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+// ─── Email ─────────────────────────────────────────────────────────────────────
+
+async function sendEmail(token: string, to: string, subject: string, html: string, text: string): Promise<void> {
+  if (!token) return;
+  await fetch('https://api.postmarkapp.com/email', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Postmark-Server-Token': token },
+    body: JSON.stringify({ From: 'noreply@medmed.ai', To: to, Subject: subject, HtmlBody: html, TextBody: text, MessageStream: 'outbound' }),
+  });
+}
+
+// ─── /api/ai ──────────────────────────────────────────────────────────────────
+
+async function handleAI(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { query, systemPrompt, history, searchType } = body;
+  if (!query) return err('query required', 400, origin);
+  if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
+  try {
+    let prompt = systemPrompt || MEDICAL_SYSTEM_PROMPT;
+    if (searchType === 'location') prompt += '\n\nReturn structured JSON with nearby providers including realistic addresses and phone numbers.';
+    const raw = await callGemini(env.GOOGLE_GENAI_API_KEY, prompt, query, history || []);
+    const jsonMatch = raw.match(/```json\n?([\s\S]*?)\n?```/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[1]);
+        return json({ success: true, content: parsed.answer || raw.replace(/```json[\s\S]*?```/g, '').trim(), results: parsed.results || [], disclaimer: parsed.disclaimer || null, provider: 'gemini', raw }, 200, origin);
+      } catch { /* fall through */ }
+    }
+    return json({ success: true, content: raw, results: [], disclaimer: null, provider: 'gemini' }, 200, origin);
+  } catch (e: any) {
+    return json({ success: false, content: 'AI temporarily unavailable.', provider: 'gemini' }, 200, origin);
+  }
+}
+
+// ─── /api/search ──────────────────────────────────────────────────────────────
+
+async function handleSearch(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { query, searchType, language } = body;
+  if (!query) return err('query required', 400, origin);
+  if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
+  try {
+    const prompt = `You are MedMed AI search. Query: "${query}". Type: ${searchType||'general'}. Language: ${language||'en'}.
+Return ONLY a JSON array of 6-10 results, each with: name, details (1-2 sentences), price, type (Tablet|Capsule|Injection|Pharmacy|Med Spa|Specialist|Cream|Other), source, phone (or null), address (or null). No other text.`;
+    const raw = await callGemini(env.GOOGLE_GENAI_API_KEY, prompt, query);
+    const arrayMatch = raw.match(/\[[\s\S]*\]/);
+    let results = [];
+    if (arrayMatch) { try { results = JSON.parse(arrayMatch[0]); } catch { results = []; } }
+    return json({ success: true, results }, 200, origin);
+  } catch {
+    return json({ success: false, results: [] }, 200, origin);
+  }
+}
+
+// ─── /api/auth/signup ─────────────────────────────────────────────────────────
+
+async function handleSignup(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { email, password, name } = body;
+  if (!email || !password) return err('email and password required', 400, origin);
+  if (password.length < 8) return err('Password must be at least 8 characters', 400, origin);
+  try {
+    const passwordHash = await hashPassword(password);
+    const userId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, tier, created_at) VALUES (?, ?, ?, ?, 'free', ?)`)
+      .bind(userId, email.toLowerCase(), name || null, passwordHash, now).run();
+    const token = await createJWT({ sub: userId, email, tier: 'free', role: 'user' }, env.JWT_SECRET);
+    return json({ token, user: { id: userId, email, name: name || null, tier: 'free', memberSince: now } }, 201, origin);
+  } catch (e: any) {
+    if (e.message?.includes('UNIQUE')) return err('Email already registered', 409, origin);
+    return err('Registration failed', 500, origin);
+  }
+}
+
+// ─── /api/auth/signin ─────────────────────────────────────────────────────────
+
+async function handleSignin(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { email, password } = body;
+  if (!email || !password) return err('email and password required', 400, origin);
+  try {
+    const user = await env.DB.prepare(`SELECT * FROM users WHERE email = ?`).bind(email.toLowerCase()).first<any>();
+    if (!user) return err('Invalid credentials', 401, origin);
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) return err('Invalid credentials', 401, origin);
+    const token = await createJWT({ sub: user.id, email: user.email, tier: user.tier, role: user.role || 'user' }, env.JWT_SECRET);
+    return json({ token, user: { id: user.id, email: user.email, name: user.name, tier: user.tier, memberSince: user.created_at } }, 200, origin);
+  } catch {
+    return err('Sign in failed', 500, origin);
+  }
+}
+
+// ─── /api/auth/reset-request ──────────────────────────────────────────────────
+
+async function handleResetRequest(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { email, type } = body; // type: 'user' | 'sponsor'
+  if (!email) return err('email required', 400, origin);
+  try {
+    // Check if email exists (user or sponsor)
+    const table = type === 'sponsor' ? 'sponsors' : 'users';
+    const record = await env.DB.prepare(`SELECT id FROM ${table} WHERE email = ?`).bind(email.toLowerCase()).first<any>();
+    // Always return success to not leak user existence
+    if (record) {
+      const token = crypto.randomUUID();
+      const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+      await env.DB.prepare(`INSERT INTO password_reset_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)`)
+        .bind(crypto.randomUUID(), record.id, token, expires).run();
+      const resetLink = `https://medmed.ai/reset-password?token=${token}&type=${type || 'user'}`;
+      await sendEmail(
+        env.POSTMARK_SERVER_TOKEN, email,
+        'Reset your MedMed.AI password',
+        `<h2>Password Reset</h2><p>Click the link below to reset your password (expires in 1 hour):</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+        `Reset your MedMed.AI password: ${resetLink}`
+      );
+    }
+    return json({ success: true }, 200, origin);
+  } catch {
+    return json({ success: true }, 200, origin); // Always succeed to not leak info
+  }
+}
+
+// ─── /api/auth/reset-confirm ──────────────────────────────────────────────────
+
+async function handleResetConfirm(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { token, password, type } = body;
+  if (!token || !password) return err('token and password required', 400, origin);
+  if (password.length < 8) return err('Password must be at least 8 characters', 400, origin);
+  try {
+    const resetRecord = await env.DB.prepare(
+      `SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0`
+    ).bind(token).first<any>();
+    if (!resetRecord) return err('Invalid or expired reset token', 400, origin);
+    if (new Date(resetRecord.expires_at) < new Date()) return err('Reset token has expired', 400, origin);
+    const newHash = await hashPassword(password);
+    const table = type === 'sponsor' ? 'sponsors' : 'users';
+    await env.DB.prepare(`UPDATE ${table} SET password_hash = ? WHERE id = ?`).bind(newHash, resetRecord.user_id).run();
+    await env.DB.prepare(`UPDATE password_reset_tokens SET used = 1 WHERE id = ?`).bind(resetRecord.id).run();
+    return json({ success: true }, 200, origin);
+  } catch {
+    return err('Password reset failed', 500, origin);
+  }
+}
+
+// ─── /api/sponsor/register ────────────────────────────────────────────────────
+
+async function handleSponsorRegister(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { email, password, name, companyName, package: pkg } = body;
+  if (!email || !password || !companyName) return err('email, password, and companyName required', 400, origin);
+  if (password.length < 8) return err('Password must be at least 8 characters', 400, origin);
+  try {
+    const passwordHash = await hashPassword(password);
+    const sponsorId = crypto.randomUUID();
+    const apiKey = `sk_${companyName.toLowerCase().replace(/\s+/g, '').substring(0, 12)}_${crypto.randomUUID().split('-')[0]}`;
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      `INSERT INTO sponsors (id, email, name, company_name, package, password_hash, api_key, is_active, is_on_waitlist, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)`
+    ).bind(sponsorId, email.toLowerCase(), name || null, companyName, pkg || 'Standard', passwordHash, apiKey, now).run();
+    const token = await createJWT({ sub: sponsorId, email, role: 'sponsor' }, env.JWT_SECRET);
+    await sendEmail(env.POSTMARK_SERVER_TOKEN, email, 'Welcome to MedMed.AI Sponsor Program',
+      `<h2>Welcome${name ? `, ${name}` : ''}!</h2><p>Your sponsor account for <strong>${companyName}</strong> has been created. Our team will review and activate your account shortly.</p><p><a href="https://medmed.ai/sponsor-login">Log in to your dashboard</a></p>`,
+      `Welcome to MedMed.AI Sponsor Program. Account created for ${companyName}. Visit https://medmed.ai/sponsor-login`
+    );
+    return json({ token, sponsor: { id: sponsorId, email, name: name || null, companyName, package: pkg || 'Standard', apiKey, isActive: false, isOnWaitlist: true, createdAt: now } }, 201, origin);
+  } catch (e: any) {
+    if (e.message?.includes('UNIQUE')) return err('Email already registered', 409, origin);
+    return err('Registration failed', 500, origin);
+  }
+}
+
+// ─── /api/sponsor/signin ──────────────────────────────────────────────────────
+
+async function handleSponsorSignin(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { email, password } = body;
+  if (!email || !password) return err('email and password required', 400, origin);
+  try {
+    const sponsor = await env.DB.prepare(`SELECT * FROM sponsors WHERE email = ?`).bind(email.toLowerCase()).first<any>();
+    if (!sponsor) return err('Invalid credentials', 401, origin);
+    const valid = await verifyPassword(password, sponsor.password_hash);
+    if (!valid) return err('Invalid credentials', 401, origin);
+    const token = await createJWT({ sub: sponsor.id, email: sponsor.email, role: 'sponsor' }, env.JWT_SECRET);
+    return json({ token, sponsor: { id: sponsor.id, email: sponsor.email, name: sponsor.name, companyName: sponsor.company_name, package: sponsor.package, apiKey: sponsor.api_key, isActive: !!sponsor.is_active, isOnWaitlist: !!sponsor.is_on_waitlist, startDate: sponsor.start_date, endDate: sponsor.end_date, createdAt: sponsor.created_at } }, 200, origin);
+  } catch {
+    return err('Sign in failed', 500, origin);
+  }
+}
+
+// ─── /api/sponsor/list ────────────────────────────────────────────────────────
+
+async function handleSponsorList(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT id, email, name, company_name, package, api_key, is_active, is_on_waitlist, start_date, end_date, created_at FROM sponsors ORDER BY created_at DESC`
+    ).all<any>();
+    return json({ success: true, sponsors: results.map((s: any) => ({ id: s.id, email: s.email, name: s.name, companyName: s.company_name, package: s.package, apiKey: s.api_key, isActive: !!s.is_active, isOnWaitlist: !!s.is_on_waitlist, startDate: s.start_date, endDate: s.end_date, createdAt: s.created_at })) }, 200, origin);
+  } catch {
+    return err('Failed to fetch sponsors', 500, origin);
+  }
+}
+
+// ─── /api/admin/activate-sponsor ─────────────────────────────────────────────
+
+async function handleActivateSponsor(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  // Verify admin JWT
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload || (payload.role !== 'admin' && payload.role !== 'owner')) return err('Admin access required', 403, origin);
+
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { sponsorId, activate } = body;
+  if (!sponsorId) return err('sponsorId required', 400, origin);
+
+  try {
+    const now = new Date().toISOString();
+    if (activate) {
+      const end = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(); // 90 day default
+      await env.DB.prepare(`UPDATE sponsors SET is_active = 1, is_on_waitlist = 0, start_date = ?, end_date = ? WHERE id = ?`)
+        .bind(now, end, sponsorId).run();
+      // Get sponsor email for notification
+      const sponsor = await env.DB.prepare(`SELECT email, name, company_name FROM sponsors WHERE id = ?`).bind(sponsorId).first<any>();
+      if (sponsor) {
+        await sendEmail(env.POSTMARK_SERVER_TOKEN, sponsor.email, 'Your MedMed.AI Sponsor Account is Now Active!',
+          `<h2>Your account is live!</h2><p>Congratulations ${sponsor.name || sponsor.company_name}! Your MedMed.AI sponsor account has been activated. Your ads are now showing on the platform.</p><p><a href="https://medmed.ai/sponsor-portal">View your dashboard</a></p>`,
+          `Your MedMed.AI sponsor account for ${sponsor.company_name} is now active. Visit https://medmed.ai/sponsor-portal`
+        );
+      }
+    } else {
+      await env.DB.prepare(`UPDATE sponsors SET is_active = 0 WHERE id = ?`).bind(sponsorId).run();
+    }
+    return json({ success: true }, 200, origin);
+  } catch {
+    return err('Failed to update sponsor status', 500, origin);
+  }
+}
+
+// ─── /api/admin/stats ──────────────────────────────────────────────────────────
+
+async function handleAdminStats(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload || (payload.role !== 'admin' && payload.role !== 'owner')) return err('Admin access required', 403, origin);
+
+  try {
+    const [userCount, sponsorCount, activeSponsors, premiumUsers] = await Promise.all([
+      env.DB.prepare(`SELECT COUNT(*) as count FROM users`).first<any>(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM sponsors`).first<any>(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM sponsors WHERE is_active = 1`).first<any>(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM users WHERE tier != 'free'`).first<any>(),
+    ]);
+    return json({ success: true, stats: { totalUsers: userCount?.count || 0, totalSponsors: sponsorCount?.count || 0, activeSponsors: activeSponsors?.count || 0, paidUsers: premiumUsers?.count || 0 } }, 200, origin);
+  } catch {
+    return err('Failed to fetch stats', 500, origin);
+  }
+}
+
+// ─── /api/admin/users ─────────────────────────────────────────────────────────
+
+async function handleAdminUsers(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload || (payload.role !== 'admin' && payload.role !== 'owner')) return err('Admin access required', 403, origin);
+
+  try {
+    const { results } = await env.DB.prepare(
+      `SELECT id, email, name, tier, role, created_at FROM users ORDER BY created_at DESC LIMIT 100`
+    ).all<any>();
+    return json({ success: true, users: results }, 200, origin);
+  } catch {
+    return err('Failed to fetch users', 500, origin);
+  }
+}
+
+// ─── /api/admin/verify ────────────────────────────────────────────────────────
+// Frontend calls this to verify the admin secret and get an admin JWT
+
+async function handleAdminVerify(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { secret } = body;
+  if (!secret || !env.ADMIN_SECRET || secret !== env.ADMIN_SECRET) return err('Invalid admin secret', 401, origin);
+  const token = await createJWT({ role: 'admin', sub: 'admin' }, env.JWT_SECRET);
+  return json({ success: true, token }, 200, origin);
+}
+
+// ─── /api/stripe/checkout ─────────────────────────────────────────────────────
+
+async function handleStripeCheckout(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  if (!env.STRIPE_SECRET_KEY) return err('Stripe not configured', 503, origin);
+
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { priceId, successUrl, cancelUrl, customerEmail, mode } = body;
+  if (!priceId) return err('priceId required', 400, origin);
+
+  try {
+    const params = new URLSearchParams({
+      'payment_method_types[]': 'card',
+      'mode': mode || 'subscription',
+      'line_items[0][price]': priceId,
+      'line_items[0][quantity]': '1',
+      'success_url': successUrl || 'https://medmed.ai/user-portal?session_id={CHECKOUT_SESSION_ID}',
+      'cancel_url': cancelUrl || 'https://medmed.ai/subscription',
+    });
+    if (customerEmail) params.set('customer_email', customerEmail);
+
+    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    const session: any = await res.json();
+    if (!res.ok) return err(session.error?.message || 'Stripe error', 400, origin);
+    return json({ success: true, url: session.url, sessionId: session.id }, 200, origin);
+  } catch (e: any) {
+    return err('Stripe checkout failed', 500, origin);
+  }
+}
+
+// ─── /api/stripe/sponsor-checkout ─────────────────────────────────────────────
+
+async function handleSponsorStripeCheckout(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  if (!env.STRIPE_SECRET_KEY) return err('Stripe not configured', 503, origin);
+
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { amount, companyName, packageName, weeks, customerEmail, successUrl, cancelUrl } = body;
+  if (!amount || !companyName) return err('amount and companyName required', 400, origin);
+
+  try {
+    const params = new URLSearchParams({
+      'payment_method_types[]': 'card',
+      'mode': 'payment',
+      'line_items[0][price_data][currency]': 'usd',
+      'line_items[0][price_data][unit_amount]': String(Math.round(amount * 100)),
+      'line_items[0][price_data][product_data][name]': `${packageName} Ad Package (${weeks} week${weeks > 1 ? 's' : ''})`,
+      'line_items[0][price_data][product_data][description]': `MedMed.AI sponsor advertising for ${companyName}`,
+      'line_items[0][quantity]': '1',
+      'success_url': successUrl || 'https://medmed.ai/sponsor-portal?session_id={CHECKOUT_SESSION_ID}',
+      'cancel_url': cancelUrl || 'https://medmed.ai/advertiser-enrollment',
+    });
+    if (customerEmail) params.set('customer_email', customerEmail);
+
+    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    const session: any = await res.json();
+    if (!res.ok) return err(session.error?.message || 'Stripe error', 400, origin);
+    return json({ success: true, url: session.url, sessionId: session.id }, 200, origin);
+  } catch {
+    return err('Stripe checkout failed', 500, origin);
+  }
+}
+
+// ─── /api/stripe/webhook ──────────────────────────────────────────────────────
+
+async function handleStripeWebhook(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const sig = req.headers.get('stripe-signature');
+  if (!sig || !env.STRIPE_WEBHOOK_SECRET) return err('Webhook signature required', 400, origin);
+
+  const body = await req.text();
+
+  // Verify Stripe signature using HMAC-SHA256
+  try {
+    const parts = sig.split(',').map(p => p.trim());
+    const tPart = parts.find(p => p.startsWith('t='));
+    const v1Part = parts.find(p => p.startsWith('v1='));
+    if (!tPart || !v1Part) return err('Invalid signature format', 400, origin);
+    const t = tPart.slice(2);
+    const v1 = v1Part.slice(3);
+    const signedPayload = `${t}.${body}`;
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig2 = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
+    const expected = Array.from(new Uint8Array(sig2)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (expected !== v1) return err('Signature mismatch', 400, origin);
+  } catch {
+    return err('Webhook verification failed', 400, origin);
+  }
+
+  const event = JSON.parse(body);
+
+  try {
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      const email = session.customer_email || session.customer_details?.email;
+      const metadata = session.metadata || {};
+
+      if (session.mode === 'subscription') {
+        // User subscription payment
+        const priceId = session.line_items?.data?.[0]?.price?.id;
+        // Map price IDs to tiers - update these with your actual Stripe price IDs
+        let tier = 'premium';
+        if (priceId === env.STRIPE_BUSINESS_PRICE_ID) tier = 'business';
+        if (email) {
+          await env.DB.prepare(`UPDATE users SET tier = ? WHERE email = ?`).bind(tier, email.toLowerCase()).run();
+        }
+      } else if (session.mode === 'payment') {
+        // Sponsor one-time payment — mark as waitlisted pending review
+        if (email) {
+          await env.DB.prepare(`UPDATE sponsors SET is_on_waitlist = 1 WHERE email = ?`).bind(email.toLowerCase()).run();
+        }
+      }
+    } else if (event.type === 'customer.subscription.deleted') {
+      const sub = event.data.object;
+      if (sub.customer_email) {
+        await env.DB.prepare(`UPDATE users SET tier = 'free' WHERE email = ?`).bind(sub.customer_email.toLowerCase()).run();
+      }
+    }
+  } catch (e: any) {
+    console.error('Webhook processing error:', e);
+  }
+
+  return json({ received: true }, 200, origin);
+}
+
+// ─── /api/user/tier ───────────────────────────────────────────────────────────
+
+async function handleUpdateTier(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { userId, tier } = body;
+  if (!userId || !tier) return err('userId and tier required', 400, origin);
+  if (!['free', 'premium', 'business'].includes(tier)) return err('Invalid tier', 400, origin);
+  try {
+    await env.DB.prepare(`UPDATE users SET tier = ? WHERE id = ?`).bind(tier, userId).run();
+    return json({ success: true }, 200, origin);
+  } catch {
+    return err('Failed to update tier', 500, origin);
+  }
+}
+
+// ─── /api/email ───────────────────────────────────────────────────────────────
+
+async function handleEmail(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { type, to, name, companyName, resetLink } = body;
+  if (!to) return err('to required', 400, origin);
+  try {
+    if (type === 'welcome') {
+      await sendEmail(env.POSTMARK_SERVER_TOKEN, to, 'Welcome to MedMed.AI',
+        `<h2>Welcome${name ? `, ${name}` : ''}!</h2><p>Your MedMed.AI account is ready. Start searching medications, pharmacies, and specialists worldwide.</p><p><a href="https://medmed.ai">Go to MedMed.AI</a></p>`,
+        `Welcome to MedMed.AI. Visit https://medmed.ai`
+      );
+    } else if (type === 'reset') {
+      await sendEmail(env.POSTMARK_SERVER_TOKEN, to, 'Reset your MedMed.AI password',
+        `<h2>Password Reset</h2><p>Click below to reset your password (expires in 1 hour):</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+        `Reset your password: ${resetLink}`
+      );
+    } else if (type === 'sponsor_welcome') {
+      await sendEmail(env.POSTMARK_SERVER_TOKEN, to, 'Welcome to MedMed.AI Sponsor Program',
+        `<h2>Welcome${name ? `, ${name}` : ''}!</h2><p>Your sponsor account for <strong>${companyName}</strong> has been created. Our team will review and activate it shortly.</p><p><a href="https://medmed.ai/sponsor-login">Log in</a></p>`,
+        `Welcome to MedMed.AI Sponsor Program. Visit https://medmed.ai/sponsor-login`
+      );
+    }
+    return json({ success: true }, 200, origin);
+  } catch {
+    return err('Email failed', 500, origin);
+  }
+}
+
+// ─── Main Router ──────────────────────────────────────────────────────────────
 
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
@@ -406,18 +635,39 @@ export default {
     const origin = req.headers.get('Origin') || '*';
     const path = url.pathname;
 
-    // Preflight
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(origin) });
-    }
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) });
 
     try {
-      if (path === '/api/ai' && req.method === 'POST')           return handleAI(req, env);
-      if (path === '/api/search' && req.method === 'POST')       return handleSearch(req, env);
-      if (path === '/api/auth/signup' && req.method === 'POST')  return handleSignup(req, env);
-      if (path === '/api/auth/signin' && req.method === 'POST')  return handleSignin(req, env);
-      if (path === '/api/email' && req.method === 'POST')        return handleEmail(req, env);
-      if (path === '/health')                                    return json({ status: 'ok', env: env.WORKER_ENV });
+      // AI & Search
+      if (path === '/api/ai'                     && req.method === 'POST') return handleAI(req, env);
+      if (path === '/api/search'                 && req.method === 'POST') return handleSearch(req, env);
+
+      // User Auth
+      if (path === '/api/auth/signup'            && req.method === 'POST') return handleSignup(req, env);
+      if (path === '/api/auth/signin'            && req.method === 'POST') return handleSignin(req, env);
+      if (path === '/api/auth/reset-request'     && req.method === 'POST') return handleResetRequest(req, env);
+      if (path === '/api/auth/reset-confirm'     && req.method === 'POST') return handleResetConfirm(req, env);
+
+      // Sponsor Auth
+      if (path === '/api/sponsor/register'       && req.method === 'POST') return handleSponsorRegister(req, env);
+      if (path === '/api/sponsor/signin'         && req.method === 'POST') return handleSponsorSignin(req, env);
+      if (path === '/api/sponsor/list'           && req.method === 'GET')  return handleSponsorList(req, env);
+
+      // Admin
+      if (path === '/api/admin/verify'           && req.method === 'POST') return handleAdminVerify(req, env);
+      if (path === '/api/admin/stats'            && req.method === 'GET')  return handleAdminStats(req, env);
+      if (path === '/api/admin/users'            && req.method === 'GET')  return handleAdminUsers(req, env);
+      if (path === '/api/admin/activate-sponsor' && req.method === 'POST') return handleActivateSponsor(req, env);
+
+      // Stripe
+      if (path === '/api/stripe/checkout'         && req.method === 'POST') return handleStripeCheckout(req, env);
+      if (path === '/api/stripe/sponsor-checkout' && req.method === 'POST') return handleSponsorStripeCheckout(req, env);
+      if (path === '/api/stripe/webhook'          && req.method === 'POST') return handleStripeWebhook(req, env);
+
+      // Misc
+      if (path === '/api/user/tier'              && req.method === 'POST') return handleUpdateTier(req, env);
+      if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
+      if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v2' });
 
       return err('Not found', 404, origin);
     } catch (e: any) {

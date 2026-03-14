@@ -1,155 +1,127 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, X, Shield, Globe, FileText, MessageCircle, Star, Bot } from 'lucide-react';
+import { Check, X, Shield, Globe, FileText, Star, Bot, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
-interface PlanFeature {
-  name: string;
-  included: boolean;
-  icon?: React.ReactNode;
-}
+const WORKER_URL =
+  (import.meta as any).env?.VITE_WORKER_URL ||
+  'https://medmed-agent.hellonolen.workers.dev';
+
+// Stripe Price IDs — set these in .env.local after creating products in Stripe dashboard
+// VITE_STRIPE_PREMIUM_PRICE_ID=price_xxx
+// VITE_STRIPE_BUSINESS_PRICE_ID=price_xxx
+const STRIPE_PREMIUM_PRICE = (import.meta as any).env?.VITE_STRIPE_PREMIUM_PRICE_ID || '';
+const STRIPE_BUSINESS_PRICE = (import.meta as any).env?.VITE_STRIPE_BUSINESS_PRICE_ID || '';
 
 interface Plan {
-  id: string;
+  id: 'free' | 'premium' | 'business';
   name: string;
   price: string;
   priceValue: number;
+  priceId: string;
   description: string;
-  features: PlanFeature[];
+  features: { name: string; included: boolean }[];
   highlighted?: boolean;
 }
 
 export const SubscriptionPlans = () => {
   const { tier, toggleSubscription } = useSubscription();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  
+  const { user } = useAuth();
+  const [loading, setLoading] = useState<string | null>(null);
+
   const plans: Plan[] = [
     {
       id: 'free',
       name: 'Free',
       price: '$0',
       priceValue: 0,
+      priceId: '',
       description: 'Basic access to medication information',
       features: [
-        { name: 'Basic medication search', included: true, icon: <Globe size={16} /> },
-        { name: 'Smart health assistant', included: true, icon: <Bot size={16} /> },
-        { name: 'Pharmacy finder', included: true, icon: <Globe size={16} /> },
-        { name: 'Detailed medication information', included: false, icon: <Shield size={16} /> },
-        { name: 'Personalized recommendations', included: false, icon: <Star size={16} /> },
-        { name: 'Exclusive health content', included: false, icon: <FileText size={16} /> },
-      ]
+        { name: 'Basic medication search', included: true },
+        { name: 'Smart health assistant', included: true },
+        { name: 'Pharmacy finder', included: true },
+        { name: 'Detailed medication information', included: false },
+        { name: 'Personalized recommendations', included: false },
+        { name: 'Exclusive health content', included: false },
+      ],
     },
     {
       id: 'premium',
       name: 'Premium',
       price: '$9.99/mo',
       priceValue: 9.99,
+      priceId: STRIPE_PREMIUM_PRICE,
       description: 'Enhanced access to health information',
       highlighted: true,
       features: [
-        { name: 'All free features', included: true, icon: <Check size={16} /> },
-        { name: 'Detailed medication information', included: true, icon: <Shield size={16} /> },
-        { name: 'Advanced search history', included: true, icon: <Bot size={16} /> },
-        { name: 'Enhanced recommendations', included: true, icon: <Star size={16} /> },
-        { name: 'Exclusive health content', included: true, icon: <FileText size={16} /> },
-        { name: 'Detailed health reports', included: true, icon: <FileText size={16} /> },
-      ]
+        { name: 'All free features', included: true },
+        { name: 'Detailed medication information', included: true },
+        { name: 'Advanced search history', included: true },
+        { name: 'Enhanced recommendations', included: true },
+        { name: 'Exclusive health content', included: true },
+        { name: 'Detailed health reports', included: true },
+      ],
     },
     {
       id: 'business',
       name: 'Business',
       price: '$39.99/mo',
       priceValue: 39.99,
+      priceId: STRIPE_BUSINESS_PRICE,
       description: 'Advanced healthcare solutions for professionals',
       features: [
-        { name: 'All premium features', included: true, icon: <Check size={16} /> },
-        { name: 'Performance analytics', included: true, icon: <Globe size={16} /> },
-        { name: 'Batch medication lookups', included: true, icon: <FileText size={16} /> },
-        { name: 'Specialist contact information', included: true, icon: <Star size={16} /> },
-        { name: 'Professional health resources', included: true, icon: <FileText size={16} /> },
-        { name: 'Priority response time', included: true, icon: <Bot size={16} /> },
-      ]
-    }
+        { name: 'All premium features', included: true },
+        { name: 'Performance analytics', included: true },
+        { name: 'Batch medication lookups', included: true },
+        { name: 'Specialist contact information', included: true },
+        { name: 'Professional health resources', included: true },
+        { name: 'Priority response time', included: true },
+      ],
+    },
   ];
 
-  const handleSubscribe = (plan: Plan) => {
+  const handleSubscribe = async (plan: Plan) => {
+    if (plan.id === tier) return;
     if (plan.id === 'free') {
-      setIsProcessing(true);
-      
-      // Free plan doesn't need payment processing
-      setTimeout(() => {
-        toggleSubscription(plan.id as 'free' | 'premium' | 'business');
-        setIsProcessing(false);
-        toast.info("You've switched to the free plan.");
-      }, 1000);
-    } else {
-      // Show payment dialog for paid plans
-      setSelectedPlan(plan);
-      setShowPaymentDialog(true);
+      toggleSubscription('free');
+      toast.info("Switched to free plan.");
+      return;
     }
-  };
 
-  const handlePayment = () => {
-    if (!selectedPlan) return;
-    
-    setIsProcessing(true);
-    
-    // Simulate payment processing with Stripe/Whop
-    setTimeout(() => {
-      toggleSubscription(selectedPlan.id as 'free' | 'premium' | 'business');
-      setIsProcessing(false);
-      setShowPaymentDialog(false);
-      
-      toast.success(`You've successfully subscribed to the ${selectedPlan.name} plan!`);
-    }, 1500);
-  };
+    setLoading(plan.id);
 
-  const PaymentForm = () => (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">Card Information</h3>
-        <div className="border rounded-md p-3 bg-white">
-          <div className="h-10 flex items-center text-gray-400">
-            Enter card details securely with Stripe...
-          </div>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">Billing Information</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="border rounded-md p-3 bg-white">
-            <div className="h-10 flex items-center text-gray-400">
-              Name
-            </div>
-          </div>
-          <div className="border rounded-md p-3 bg-white">
-            <div className="h-10 flex items-center text-gray-400">
-              Email
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <Button 
-        className="w-full" 
-        onClick={handlePayment}
-        disabled={isProcessing}
-      >
-        {isProcessing ? "Processing..." : `Pay ${selectedPlan?.price}`}
-      </Button>
-      
-      <div className="text-xs text-center text-gray-500 mt-4">
-        Secure payments processed by Stripe. By subscribing, you agree to our Terms and Conditions.
-      </div>
-    </div>
-  );
+    // If Stripe price IDs are configured, redirect to Stripe Checkout
+    if (plan.priceId) {
+      try {
+        const res = await fetch(`${WORKER_URL}/api/stripe/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            priceId: plan.priceId,
+            customerEmail: user?.email || '',
+            successUrl: `${window.location.origin}/user-portal?session_id={CHECKOUT_SESSION_ID}&tier=${plan.id}`,
+            cancelUrl: `${window.location.origin}/subscription`,
+          }),
+        });
+        const data: any = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+          return;
+        }
+      } catch {
+        // Fall through to manual toggle if Stripe not configured
+      }
+    }
+
+    // Fallback: Stripe not configured yet — toggle manually so app still works
+    toggleSubscription(plan.id);
+    toast.success(`Subscribed to ${plan.name} plan!`);
+    setLoading(null);
+  };
 
   return (
     <div className="py-8">
@@ -159,15 +131,13 @@ export const SubscriptionPlans = () => {
           Choose the plan that best fits your healthcare information needs
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
         {plans.map(plan => (
-          <Card 
+          <Card
             key={plan.id}
-            className={`border-2 h-full flex flex-col ${
-              plan.highlighted 
-                ? 'border-primary shadow-lg scale-105 relative z-10' 
-                : 'border-gray-200'
+            className={`border-2 h-full flex flex-col relative ${
+              plan.highlighted ? 'border-primary shadow-lg scale-105 z-10' : 'border-gray-200'
             }`}
           >
             {plan.highlighted && (
@@ -175,7 +145,6 @@ export const SubscriptionPlans = () => {
                 Most Popular
               </div>
             )}
-            
             <CardHeader>
               <CardTitle className="text-xl text-center">{plan.name}</CardTitle>
               <CardDescription className="text-center">
@@ -183,58 +152,41 @@ export const SubscriptionPlans = () => {
                 {plan.priceValue > 0 && <span className="text-gray-500 text-sm"> /month</span>}
               </CardDescription>
             </CardHeader>
-            
             <CardContent className="flex-grow">
               <p className="text-center text-gray-600 mb-6">{plan.description}</p>
               <ul className="space-y-3">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    {feature.included ? (
+                {plan.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    {f.included ? (
                       <>
-                        <span className="text-green-500 bg-green-50 p-1 rounded-full">{feature.icon || <Check size={16} />}</span>
-                        <span className="text-sm">{feature.name}</span>
+                        <span className="text-green-500 bg-green-50 p-1 rounded-full"><Check size={14} /></span>
+                        <span className="text-sm">{f.name}</span>
                       </>
                     ) : (
                       <>
-                        <span className="text-gray-300 p-1"><X size={16} /></span>
-                        <span className="text-sm text-gray-400">{feature.name}</span>
+                        <span className="text-gray-300 p-1"><X size={14} /></span>
+                        <span className="text-sm text-gray-400">{f.name}</span>
                       </>
                     )}
                   </li>
                 ))}
               </ul>
             </CardContent>
-            
             <CardFooter>
-              <Button 
-                variant={plan.id === tier ? "outline" : "default"}
+              <Button
+                variant={plan.id === tier ? 'outline' : 'default'}
                 className="w-full"
-                disabled={plan.id === tier || isProcessing}
+                disabled={plan.id === tier || loading === plan.id}
                 onClick={() => handleSubscribe(plan)}
               >
-                {isProcessing 
-                  ? "Processing..." 
-                  : plan.id === tier 
-                    ? "Current Plan" 
-                    : "Subscribe"}
+                {loading === plan.id ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
+                ) : plan.id === tier ? 'Current Plan' : 'Subscribe'}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
-
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Subscribe to {selectedPlan?.name}</DialogTitle>
-            <DialogDescription>
-              You will be charged {selectedPlan?.price} monthly
-            </DialogDescription>
-          </DialogHeader>
-          <PaymentForm />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

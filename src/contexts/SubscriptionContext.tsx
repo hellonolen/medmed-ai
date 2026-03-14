@@ -2,6 +2,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
+const WORKER_URL =
+  (import.meta as any).env?.VITE_WORKER_URL ||
+  'https://medmed-agent.hellonolen.workers.dev';
+
+const TIER_KEY = 'medmed_sub_tier';
+
 type SubscriptionTier = 'free' | 'premium' | 'business';
 
 interface SubscriptionContextType {
@@ -21,81 +27,108 @@ interface SubscriptionContextType {
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
+function getTierFeatures(subTier: SubscriptionTier) {
+  switch (subTier) {
+    case 'premium':
+      return {
+        detailedMedicationInfo: true,
+        internationalSearch: true,
+        aiSupport: true,
+        exclusiveContent: true,
+        detailedReports: true,
+        specialistContact: false,
+      };
+    case 'business':
+      return {
+        detailedMedicationInfo: true,
+        internationalSearch: true,
+        aiSupport: true,
+        exclusiveContent: true,
+        detailedReports: true,
+        specialistContact: true,
+      };
+    default: // free
+      return {
+        detailedMedicationInfo: false,
+        internationalSearch: true,
+        aiSupport: true,
+        exclusiveContent: false,
+        detailedReports: false,
+        specialistContact: false,
+      };
+  }
+}
+
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { toast } = useToast();
-  const [tier, setTier] = useState<SubscriptionTier>('free');
 
-  // Define features available for each subscription tier
-  const getTierFeatures = (subTier: SubscriptionTier) => {
-    switch (subTier) {
-      case 'free':
-        return {
-          detailedMedicationInfo: false,
-          internationalSearch: true, // Keep the existing global search free
-          aiSupport: true, // Basic AI support available for all users
-          exclusiveContent: false,
-          detailedReports: false,
-          specialistContact: false,
-        };
-      case 'premium':
-        return {
-          detailedMedicationInfo: true,
-          internationalSearch: true,
-          aiSupport: true, // Enhanced AI support
-          exclusiveContent: true,
-          detailedReports: true,
-          specialistContact: false,
-        };
-      case 'business':
-        return {
-          detailedMedicationInfo: true,
-          internationalSearch: true,
-          aiSupport: true, // Priority AI support
-          exclusiveContent: true,
-          detailedReports: true,
-          specialistContact: true,
-        };
-      default:
-        return {
-          detailedMedicationInfo: false,
-          internationalSearch: true,
-          aiSupport: true,
-          exclusiveContent: false,
-          detailedReports: false,
-          specialistContact: false,
-        };
-    }
-  };
+  // Restore tier from localStorage so it survives page refresh
+  const [tier, setTier] = useState<SubscriptionTier>(() => {
+    const saved = localStorage.getItem(TIER_KEY);
+    if (saved === 'premium' || saved === 'business') return saved;
+    return 'free';
+  });
 
   const [features, setFeatures] = useState(getTierFeatures(tier));
 
-  // Update features when tier changes
+  // Update features when tier changes + persist to localStorage
   useEffect(() => {
     setFeatures(getTierFeatures(tier));
+    localStorage.setItem(TIER_KEY, tier);
   }, [tier]);
 
+  // Sync tier to Worker when authenticated user data is available
+  useEffect(() => {
+    const syncTierFromAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('medmed_auth_user');
+        if (savedUser) {
+          const user = JSON.parse(savedUser);
+          if (user.tier && user.tier !== tier) {
+            setTier(user.tier as SubscriptionTier);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+    syncTierFromAuth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const toggleSubscription = (newTier?: SubscriptionTier) => {
-    if (newTier) {
-      setTier(newTier);
-      toast({
-        title: "Subscription Updated",
-        description: `You are now subscribed to the ${newTier.charAt(0).toUpperCase() + newTier.slice(1)} plan.`,
-      });
-    } else {
-      const nextTier = tier === 'free' ? 'premium' : 'free';
-      setTier(nextTier);
-      toast({
-        title: "Subscription Updated",
-        description: nextTier === 'free'
-          ? "Your subscription has been canceled."
-          : "You are now a premium subscriber.",
-      });
+    const nextTier = newTier || (tier === 'free' ? 'premium' : 'free');
+    setTier(nextTier);
+    
+    // Persist tier to Worker (fire-and-forget)
+    try {
+      const savedUser = localStorage.getItem('medmed_auth_user');
+      const savedToken = localStorage.getItem('medmed_auth_token');
+      if (savedUser && savedToken) {
+        const user = JSON.parse(savedUser);
+        fetch(`${WORKER_URL}/api/user/tier`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${savedToken}` },
+          body: JSON.stringify({ userId: user.id, tier: nextTier }),
+        }).then(() => {
+          // Update cached user with new tier
+          const updated = { ...user, tier: nextTier };
+          localStorage.setItem('medmed_auth_user', JSON.stringify(updated));
+        }).catch(() => {});
+      }
+    } catch {
+      // ignore — local state already updated
     }
+
+    toast({
+      title: 'Subscription Updated',
+      description: nextTier === 'free'
+        ? 'Your subscription has been canceled.'
+        : `You are now on the ${nextTier.charAt(0).toUpperCase() + nextTier.slice(1)} plan.`,
+    });
   };
 
-  const isFeatureAvailable = (featureName: keyof typeof features) => {
-    return features[featureName];
-  };
+  const isFeatureAvailable = (featureName: keyof typeof features) => features[featureName];
 
   return (
     <SubscriptionContext.Provider
@@ -104,7 +137,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isSubscribed: tier !== 'free',
         features,
         toggleSubscription,
-        isFeatureAvailable
+        isFeatureAvailable,
       }}
     >
       {children}
