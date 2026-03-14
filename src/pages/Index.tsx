@@ -95,7 +95,7 @@ function ToolPicker({ onSelect }: { onSelect: (mode: Mode) => void }) {
 
       {open && (
         <div
-          className="absolute bottom-full left-0 mb-2 w-64 rounded-2xl shadow-lg overflow-hidden z-50 py-1"
+          className="absolute top-full left-0 mt-2 w-64 rounded-2xl shadow-lg overflow-hidden z-50 py-1"
           style={{ backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" }}
         >
           {tools.map(({ mode, label, desc }) => (
