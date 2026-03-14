@@ -286,7 +286,7 @@ const Index = () => {
   const [sections, setSections] = useState({
     chats: true,
     projects: true,
-    artifacts: true,
+    library: true,
     business: false,
   });
   const toggleSection = (k: keyof typeof sections) =>
@@ -318,6 +318,33 @@ const Index = () => {
     setRenamingId(null);
   };
   const deleteProject = (id: string) => saveProjects(projects.filter(p => p.id !== id));
+
+  // ── User Library folders ──
+  const [libraryFolders, setLibraryFolders] = useState<Array<{id: string; name: string}>>(() => {
+    try { return JSON.parse(localStorage.getItem('mm_library_folders') || '[]'); } catch { return []; }
+  });
+  const [newLibName, setNewLibName] = useState('');
+  const [addingLib, setAddingLib] = useState(false);
+  const [renamingLibId, setRenamingLibId] = useState<string | null>(null);
+  const [renameLibValue, setRenameLibValue] = useState('');
+
+  const saveLibFolders = (list: typeof libraryFolders) => {
+    setLibraryFolders(list);
+    try { localStorage.setItem('mm_library_folders', JSON.stringify(list)); } catch { /* noop */ }
+  };
+  const addLibFolder = () => {
+    if (!newLibName.trim()) return;
+    saveLibFolders([...libraryFolders, { id: crypto.randomUUID(), name: newLibName.trim() }]);
+    setNewLibName('');
+    setAddingLib(false);
+  };
+  const startRenameLib = (id: string, name: string) => { setRenamingLibId(id); setRenameLibValue(name); };
+  const commitRenameLib = () => {
+    if (!renamingLibId) return;
+    saveLibFolders(libraryFolders.map(f => f.id === renamingLibId ? { ...f, name: renameLibValue.trim() || f.name } : f));
+    setRenamingLibId(null);
+  };
+  const deleteLibFolder = (id: string) => saveLibFolders(libraryFolders.filter(f => f.id !== id));
   const [voiceInterim, setVoiceInterim] = useState("");
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const { isListening, isSpeaking, supported: voiceSupported, ttsSupported, startListening, stopListening, speak, stopSpeaking } = useVoice({
@@ -713,22 +740,70 @@ const Index = () => {
             </nav>
           )}
 
-          {/* ── Artifacts ── */}
+          {/* ── Library (was Artifacts) ── */}
           <div className="px-3 mt-3 mb-0 flex-shrink-0">
             <button
-              onClick={() => toggleSection('artifacts')}
+              onClick={() => toggleSection('library')}
               className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-[#e4ddd0] transition-colors"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Artifacts</p>
-              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.artifacts ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">Library</p>
+              <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${sections.library ? 'rotate-0' : '-rotate-90'}`} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.75"><polyline points="2,4 6,8 10,4" /></svg>
             </button>
           </div>
-          {sections.artifacts && (
+          {sections.library && (
             <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
-              <Link to="/referral" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+              <Link to="/favorites" className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
                 <ArtifactsIcon />
-                Referral Program
+                Saved responses
               </Link>
+
+              {/* User library folders */}
+              {libraryFolders.map(f => (
+                <div key={f.id} className="flex items-center gap-1 group px-3 py-2 rounded-xl hover:bg-[#e4ddd0] transition-colors">
+                  <ArtifactsIcon />
+                  {renamingLibId === f.id ? (
+                    <input
+                      autoFocus value={renameLibValue}
+                      onChange={e => setRenameLibValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitRenameLib(); if (e.key === 'Escape') setRenamingLibId(null); }}
+                      onBlur={commitRenameLib}
+                      className="flex-1 bg-transparent text-[13px] text-gray-900 outline-none border-b border-primary"
+                    />
+                  ) : (
+                    <span className="flex-1 text-[13.5px] text-gray-700 truncate cursor-default" onDoubleClick={() => startRenameLib(f.id, f.name)}>{f.name}</span>
+                  )}
+                  <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
+                    <button onClick={() => startRenameLib(f.id, f.name)} title="Rename" className="p-0.5 text-gray-400 hover:text-gray-700 transition-colors">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                    </button>
+                    <button onClick={() => deleteLibFolder(f.id)} title="Delete" className="p-0.5 text-gray-400 hover:text-red-500 transition-colors">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3,6 5,6 21,6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {addingLib ? (
+                <div className="flex items-center gap-2 px-3 py-1.5">
+                  <ArtifactsIcon />
+                  <input
+                    autoFocus value={newLibName}
+                    onChange={e => setNewLibName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') addLibFolder(); if (e.key === 'Escape') { setAddingLib(false); setNewLibName(''); } }}
+                    onBlur={() => { if (!newLibName.trim()) setAddingLib(false); }}
+                    placeholder="Folder name…"
+                    className="flex-1 bg-transparent text-[13px] text-gray-900 placeholder:text-gray-400 outline-none border-b border-primary"
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAddingLib(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[13px] text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                  New folder
+                </button>
+              )}
             </nav>
           )}
 
@@ -745,6 +820,7 @@ const Index = () => {
           {sections.business && (
             <nav className="px-3 space-y-0.5 flex-shrink-0 mt-0.5">
               {[
+                { to: '/business', label: 'Business Center' },
                 { to: '/sponsor-portal', label: 'Sponsor' },
                 { to: '/advertiser-enrollment', label: 'Advertiser' },
                 { to: '/referral', label: 'Affiliates' },
@@ -866,6 +942,8 @@ const Index = () => {
         {/* ── Standalone footer — absolute bottom-right of main ── */}
         <div className="absolute bottom-3 right-5 text-right pointer-events-none">
           <p className="text-[11px] text-gray-400 pointer-events-auto">
+            <Link to="/business" className="hover:text-gray-600 transition-colors">Business Center</Link>
+            {" · "}
             <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
             {" · "}
             <Link to="/contact" className="hover:text-gray-600 transition-colors">Support</Link>
@@ -880,8 +958,27 @@ const Index = () => {
           type={mediaModal}
           onClose={() => setMediaModal(null)}
           onAnalysis={(text) => {
-            setMessages((prev) => [...prev, { id: crypto.randomUUID(), content: text, type: "ai" }]);
+            const mediaType = mediaModal;
+            // Add a context message so the user sees something was shared
+            setMessages(prev => [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                content: mediaType === 'image'
+                  ? '📷 *Photo shared — Gemini is responding…*'
+                  : '🎥 *Video frame shared — Gemini is responding…*',
+                type: 'user' as const,
+              },
+              { id: crypto.randomUUID(), content: text, type: 'ai' as const },
+            ]);
             setMediaModal(null);
+            // Gemini speaks its analysis response via TTS
+            if (ttsEnabled && ttsSupported) {
+              speak(text);
+            } else if (ttsSupported) {
+              // Auto-speak vision responses even if TTS is in manual mode — the user needs to hear this
+              speak(text);
+            }
           }}
         />
       )}
