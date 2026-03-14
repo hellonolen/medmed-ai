@@ -1,26 +1,21 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Send, ArrowUp, Loader2, Sparkles, AlertTriangle, Plus, Clipboard, Map, Activity, LogIn, UserPlus, Settings, ChevronRight } from "lucide-react";
-import { useAdmin } from "@/contexts/AdminContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { aiService } from "@/services/AIService";
 import { useMedicalSearch } from "@/contexts/MedicalSearchContext";
+import { useQuotaGuard } from "@/hooks/useQuotaGuard";
 import { toast } from "sonner";
 
+/* ─── Types ─────────────────────────────────────────── */
 interface Message {
+  id: string;
   content: string;
   type: "ai" | "user" | "error";
-  id: string;
 }
 
-const STARTERS = [
-  { label: "Side effects of ibuprofen", q: "What are the side effects of ibuprofen?" },
-  { label: "Pharmacies near Chicago", q: "Find pharmacies near Chicago" },
-  { label: "Ozempic vs Wegovy", q: "Compare Ozempic and Wegovy for weight loss" },
-  { label: "High blood pressure meds", q: "What medications treat high blood pressure?" },
-];
-
+/* ─── Markdown renderer ─────────────────────────────── */
 function renderMd(text: string): string {
   return text
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
@@ -34,60 +29,172 @@ function renderMd(text: string): string {
     .replace(/\n/g, "<br />");
 }
 
+/* ─── Upgrade Modal ─────────────────────────────────── */
+function UpgradeModal({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="max-w-sm w-full mx-4 rounded-2xl p-8 shadow-xl"
+        style={{ backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Continue with Pro</h2>
+        <p className="text-[15px] text-gray-600 mb-6 leading-relaxed">
+          You've reached the free limit. Upgrade to Pro for unlimited access, conversation history, and document storage.
+        </p>
+        <div className="space-y-3">
+          <button
+            onClick={() => navigate("/subscription")}
+            className="w-full py-3 rounded-xl bg-primary text-white font-medium text-[15px] hover:bg-primary/90 transition-colors"
+          >
+            Upgrade to Pro — $19/mo
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl text-gray-500 text-[14px] hover:text-gray-900 transition-colors"
+          >
+            Maybe later
+          </button>
+        </div>
+        <p className="text-[12px] text-gray-400 text-center mt-4">7-day refund if it's not for you.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── User Avatar Menu ───────────────────────────────── */
+function UserAvatarMenu({ user, onSignOut }: { user: { name: string | null; email: string; tier: string }; onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const initials = user.name
+    ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user.email[0].toUpperCase();
+  const firstName = user.name?.split(" ")[0] ?? user.email.split("@")[0];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#e4ddd0] transition-colors text-left"
+      >
+        <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-primary text-sm font-semibold">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-gray-900 truncate">{firstName}</p>
+          <p className="text-[11px] text-gray-500 truncate">{user.email}</p>
+        </div>
+      </button>
+
+      {open && (
+        <div
+          className="absolute bottom-full left-0 right-0 mb-2 rounded-xl shadow-lg py-1 z-50"
+          style={{ backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" }}
+        >
+          <div className="px-4 py-2.5 border-b mb-1" style={{ borderColor: "#e0d8cc" }}>
+            <p className="text-[13px] font-semibold text-gray-900">{user.name || firstName}</p>
+            <p className="text-[11px] text-gray-500">{user.email}</p>
+            <span className="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+              {user.tier}
+            </span>
+          </div>
+          {[
+            { label: "Account settings", path: "/settings" },
+            { label: "Billing", path: "/subscription" },
+            { label: "Storage", path: "/account#storage" },
+          ].map(({ label, path }) => (
+            <button
+              key={path}
+              onClick={() => { navigate(path); setOpen(false); }}
+              className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+            >
+              {label}
+            </button>
+          ))}
+          <div className="border-t mt-1" style={{ borderColor: "#e0d8cc" }}>
+            <button
+              onClick={() => { onSignOut(); setOpen(false); }}
+              className="w-full text-left px-4 py-2 text-[13px] text-gray-500 hover:bg-[#e4ddd0] transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Main App ──────────────────────────────────────── */
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
-  const [chatId, setChatId] = useState(0); // increment to reset
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem("mm_sidebar") !== "closed"; } catch { return true; }
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const { t } = useLanguage();
   const { searchWithContext } = useMedicalSearch();
-  const navigate = useNavigate();
-  const { tier, isSubscribed } = useSubscription();
+  const { user, signOut } = useAuth();
+  const { tier } = useSubscription();
+  const quota = useQuotaGuard(user?.id);
+
+  const hasMessages = messages.length > 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, thinking]);
 
-  const send = async (query: string) => {
+  const toggleSidebar = () => {
+    setSidebarOpen((o) => {
+      const next = !o;
+      try { localStorage.setItem("mm_sidebar", next ? "open" : "closed"); } catch (_) { /* storage unavailable */ }
+      return next;
+    });
+  };
+
+  const send = useCallback(async (query: string) => {
     if (!query.trim() || thinking) return;
+
+    // Quota gate
+    if (!quota.checkAndGate()) return;
+
     const q = query.trim();
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
 
-    const userMsg: Message = { content: q, type: "user", id: crypto.randomUUID() };
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages((prev) => [...prev, { id: crypto.randomUUID(), content: q, type: "user" }]);
     setThinking(true);
+    quota.recordQuestion();
 
     try {
-      const normalizedInput = q.toLowerCase();
       const isLocationSearch =
-        /\b(in|near|at|around)\b/.test(normalizedInput) ||
-        /\b(new york|los angeles|chicago|houston|miami|boston|atlanta|seattle|denver|dallas|phoenix|philadelphia)\b/i.test(normalizedInput);
+        /\b(in|near|at|around)\b/.test(q.toLowerCase()) ||
+        /\b(new york|los angeles|chicago|houston|miami|boston|atlanta|seattle|denver|dallas|phoenix|philadelphia)\b/i.test(q);
 
-      // Fire search in background for results (don't block chat)
       searchWithContext(q, isLocationSearch ? "location" : undefined).catch(() => {});
 
       const response = await aiService.getHealthAdvice(q);
       setMessages((prev) => [
         ...prev,
         {
+          id: crypto.randomUUID(),
           content: response.success && response.content ? response.content : "I ran into an issue. Please try again.",
           type: response.success ? "ai" : "error",
-          id: crypto.randomUUID(),
         },
       ]);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { content: "Something went wrong. Please try again.", type: "error", id: crypto.randomUUID() },
-      ]);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), content: "Something went wrong. Please try again.", type: "error" }]);
       toast.error("Connection error.");
     } finally {
       setThinking(false);
     }
-  };
+  }, [thinking, quota, searchWithContext]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -102,239 +209,221 @@ const Index = () => {
 
   const newChat = () => {
     setMessages([]);
-    setChatId((n) => n + 1);
     setInput("");
-    textareaRef.current?.focus();
+    setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
-  const hasMessages = messages.length > 0;
+  /* ── The input bar (shared — position changes based on hasMessages) ── */
+  const InputBar = (
+    <div
+      className="w-full max-w-2xl relative rounded-2xl border shadow-sm transition-all focus-within:shadow-md"
+      style={{ backgroundColor: "#fdf9f2", borderColor: "#e0d8cc" }}
+    >
+      <textarea
+        ref={textareaRef}
+        value={input}
+        onChange={handleChange}
+        onKeyDown={handleKey}
+        placeholder="Ask anything about medications, symptoms, or healthcare..."
+        rows={1}
+        disabled={thinking}
+        className="w-full resize-none bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 outline-none px-4 pt-4 pb-14 max-h-[200px] leading-relaxed"
+      />
+      <div className="absolute bottom-3 left-4 right-3 flex items-center justify-between">
+        <span className="text-[11px] text-gray-400">Shift+Enter for new line</span>
+        <button
+          onClick={() => send(input)}
+          disabled={!input.trim() || thinking}
+          className="h-8 w-8 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-25 hover:bg-primary/90 transition-all text-lg leading-none"
+          style={{ fontSize: "1.1rem" }}
+        >
+          {thinking ? (
+            <span className="flex gap-0.5 items-center">
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-white animate-bounce" style={{ animationDelay: "300ms" }} />
+            </span>
+          ) : "↑"}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}>
 
       {/* ── Sidebar ── */}
       <aside
-        className="hidden md:flex flex-col w-64 h-full flex-shrink-0 border-r"
-        style={{ backgroundColor: "#f0ebe2", borderColor: "#e0d8cc" }}
+        className="flex flex-col h-full flex-shrink-0 border-r transition-all duration-300 overflow-hidden"
+        style={{
+          backgroundColor: "#f0ebe2",
+          borderColor: "#e0d8cc",
+          width: sidebarOpen ? "15rem" : "3.25rem",
+          minWidth: sidebarOpen ? "15rem" : "3.25rem",
+        }}
       >
-        {/* Logo */}
-        <div className="px-5 pt-6 pb-4">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-semibold text-[15px] text-gray-900 tracking-tight">MedMed.AI</span>
-          </Link>
+        {/* Toggle button */}
+        <div className="flex items-center px-3 pt-5 pb-4 gap-3">
+          <button
+            onClick={toggleSidebar}
+            className="h-8 w-8 flex flex-col justify-center items-center gap-1.5 rounded-lg hover:bg-[#e4ddd0] transition-colors flex-shrink-0"
+            aria-label="Toggle sidebar"
+          >
+            <span className="block h-px w-4 bg-gray-600 rounded-full" />
+            <span className="block h-px w-4 bg-gray-600 rounded-full" />
+            <span className="block h-px w-4 bg-gray-600 rounded-full" />
+          </button>
+          {sidebarOpen && (
+            <Link to="/" className="text-[15px] font-semibold text-gray-900 tracking-tight whitespace-nowrap overflow-hidden">
+              MedMed.AI
+            </Link>
+          )}
         </div>
 
         {/* New Chat */}
-        <div className="px-3 mb-4">
+        <div className="px-2 mb-4">
           <button
             onClick={newChat}
-            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-[#e4ddd0] transition-colors"
+            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-700 hover:bg-[#e4ddd0] transition-colors whitespace-nowrap"
+            title="New conversation"
           >
-            <Plus className="h-4 w-4" />
-            New conversation
+            <span className="flex-shrink-0 text-lg leading-none font-light">+</span>
+            {sidebarOpen && <span>New conversation</span>}
           </button>
         </div>
 
-        <div className="px-3 mb-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1.5">Tools</p>
-        </div>
+        {sidebarOpen && (
+          <>
+            <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 px-4 mb-1.5">Tools</p>
+          </>
+        )}
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+        {/* Nav links — text only, no icons */}
+        <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
           {[
-            { to: "/symptom-checker", icon: Clipboard, label: "Symptom Checker" },
-            { to: "/pharmacy-finder", icon: Map, label: "Pharmacy Finder" },
-            { to: "/interaction-checker", icon: Activity, label: "Interaction Checker" },
-          ].map(({ to, icon: Icon, label }) => (
+            { to: "/symptom-checker", label: "Symptom Checker" },
+            { to: "/pharmacy-finder", label: "Pharmacy Finder" },
+            { to: "/interaction-checker", label: "Interaction Checker" },
+          ].map(({ to, label }) => (
             <Link
               key={to}
               to={to}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
+              title={label}
+              className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors whitespace-nowrap"
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
-              {label}
+              <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-gray-400" />
+              {sidebarOpen && label}
             </Link>
           ))}
 
-          <div className="pt-3 mt-3 border-t" style={{ borderColor: "#d8d0c0" }}>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1.5">Business</p>
-            {[
-              { to: "/sponsor-portal", label: "Sponsor Portal" },
-              { to: "/advertiser-enrollment", label: "Advertiser Access" },
-            ].map(({ to, label }) => (
-              <Link
-                key={to}
-                to={to}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
-              >
-                <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
-                {label}
-              </Link>
-            ))}
-          </div>
+          {sidebarOpen && (
+            <>
+              <div className="pt-3 mt-3 border-t" style={{ borderColor: "#d8d0c0" }}>
+                <p className="text-[10.5px] font-semibold uppercase tracking-widest text-gray-400 px-2 mb-1.5">Business</p>
+              </div>
+              {[
+                { to: "/sponsor-portal", label: "Sponsor Portal" },
+                { to: "/advertiser-enrollment", label: "Advertiser Access" },
+              ].map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="flex items-center gap-3 px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
+                >
+                  <span className="flex-shrink-0 h-1.5 w-1.5 rounded-full bg-gray-400" />
+                  {label}
+                </Link>
+              ))}
+            </>
+          )}
         </nav>
 
-        {/* Footer */}
-        <div className="mt-auto px-3 py-4 border-t space-y-0.5" style={{ borderColor: "#d8d0c0" }}>
-          {isSubscribed && (
-            <div className="px-3 py-2 mb-2 rounded-xl bg-primary/10 text-primary text-xs font-medium">
-              {tier.charAt(0).toUpperCase() + tier.slice(1)} Plan Active
+        {/* Bottom user zone */}
+        <div className="mt-auto px-2 py-4 border-t" style={{ borderColor: "#d8d0c0" }}>
+          {user ? (
+            sidebarOpen ? (
+              <UserAvatarMenu user={{ name: user.name, email: user.email, tier: user.tier }} onSignOut={signOut} />
+            ) : (
+              <div className="h-8 w-8 mx-auto rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold">
+                {(user.name?.[0] ?? user.email[0]).toUpperCase()}
+              </div>
+            )
+          ) : sidebarOpen ? (
+            <div className="space-y-0.5">
+              <Link to="/signin" className="block px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                Sign in
+              </Link>
+              <Link to="/signup" className="block px-2.5 py-2 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors">
+                Create account
+              </Link>
             </div>
-          )}
-          <Link
-            to="/signin"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
-          >
-            <LogIn className="h-4 w-4" />
-            Sign In
-          </Link>
-          <Link
-            to="/signup"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            Create Account
-          </Link>
-          <Link
-            to="/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] text-gray-600 hover:bg-[#e4ddd0] hover:text-gray-900 transition-colors"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </Link>
+          ) : null}
         </div>
       </aside>
 
-      {/* ── Main Chat Area ── */}
-      <main className="flex flex-col flex-1 h-full min-w-0">
+      {/* ── Main area ── */}
+      <main className="flex flex-col flex-1 h-full min-w-0 overflow-hidden">
 
-        {/* Scrollable messages */}
-        <div className="flex-1 overflow-y-auto">
-          {!hasMessages ? (
-            /* Welcome screen */
-            <div className="flex flex-col items-center justify-center min-h-full px-6 py-16">
-              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
-                <Sparkles className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-3xl font-semibold text-gray-900 mb-2 tracking-tight">
-                How can I help you?
-              </h1>
-              <p className="text-[15px] text-gray-500 mb-10 text-center max-w-md">
-                Ask about medications, symptoms, find pharmacies, or get healthcare information worldwide.
-              </p>
-
-              {/* Starter grid */}
-              <div className="grid grid-cols-2 gap-3 w-full max-w-xl">
-                {STARTERS.map(({ label, q }) => (
-                  <button
-                    key={label}
-                    onClick={() => send(q)}
-                    className="text-left px-4 py-3.5 rounded-xl border text-[13.5px] text-gray-700 hover:text-gray-900 transition-all"
-                    style={{ backgroundColor: "#fdf9f2", borderColor: "#e0d8cc" }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#f5ede0")}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#fdf9f2")}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            /* Message thread */
-            <div className="max-w-3xl mx-auto w-full px-6 py-8 space-y-8">
-              {messages.map((msg) => (
-                <div key={msg.id}>
-                  {msg.type === "user" ? (
-                    <div className="flex justify-end">
+        {!hasMessages ? (
+          /* ── Welcome: input centered ── */
+          <div className="flex flex-col items-center justify-center flex-1 px-6">
+            <h1 className="text-3xl font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
+            {InputBar}
+            <p className="text-[11px] text-gray-400 mt-3 text-center">
+              AI powered by Google Gemini · <Link to="/privacy" className="hover:text-gray-600">Privacy</Link> · <Link to="/terms" className="hover:text-gray-600">Terms</Link>
+            </p>
+          </div>
+        ) : (
+          /* ── Active chat: messages scroll, input pinned ── */
+          <>
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-2xl mx-auto w-full px-6 py-10 space-y-8">
+                {messages.map((msg) => (
+                  <div key={msg.id}>
+                    {msg.type === "user" ? (
+                      <div className="flex justify-end">
+                        <div
+                          className="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-sm text-[15px] leading-relaxed text-gray-900"
+                          style={{ backgroundColor: "#ede8de" }}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    ) : msg.type === "error" ? (
+                      <p className="text-[15px] text-red-500 leading-relaxed">{msg.content}</p>
+                    ) : (
                       <div
-                        className="max-w-[75%] px-4 py-3 rounded-2xl rounded-br-sm text-[15px] leading-relaxed text-gray-900"
-                        style={{ backgroundColor: "#ede8de" }}
-                      >
-                        {msg.content}
-                      </div>
-                    </div>
-                  ) : msg.type === "error" ? (
-                    <div className="flex gap-3 items-start">
-                      <div className="flex-shrink-0 h-7 w-7 mt-0.5 rounded-full bg-destructive/10 flex items-center justify-center">
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-                      </div>
-                      <p className="text-[15px] text-destructive leading-relaxed pt-0.5">{msg.content}</p>
-                    </div>
-                  ) : (
-                    <div className="flex gap-4 items-start">
-                      <div className="flex-shrink-0 h-7 w-7 mt-0.5 rounded-full bg-primary/10 border border-primary/10 flex items-center justify-center">
-                        <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      </div>
-                      <div
-                        className="flex-1 text-[15px] leading-[1.75] text-gray-800 min-w-0"
+                        className="text-[15px] leading-[1.8] text-gray-800"
                         dangerouslySetInnerHTML={{ __html: `<p>${renderMd(msg.content)}</p>` }}
                       />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Typing indicator */}
-              {thinking && (
-                <div className="flex gap-4 items-start">
-                  <div className="flex-shrink-0 h-7 w-7 mt-0.5 rounded-full bg-primary/10 border border-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    )}
                   </div>
-                  <div className="flex items-center gap-1.5 pt-2">
+                ))}
+
+                {thinking && (
+                  <div className="flex gap-1.5 items-center pt-1">
                     {[0, 160, 320].map((d) => (
-                      <span
-                        key={d}
-                        className="h-2 w-2 rounded-full bg-gray-400 animate-bounce"
-                        style={{ animationDelay: `${d}ms` }}
-                      />
+                      <span key={d} className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
                     ))}
                   </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* ── Input bar pinned to bottom ── */}
-        <div className="flex-shrink-0 px-4 pb-5 pt-3">
-          <div
-            className="max-w-3xl mx-auto rounded-2xl border shadow-sm transition-shadow focus-within:shadow-md relative"
-            style={{ backgroundColor: "#fdf9f2", borderColor: "#e0d8cc" }}
-          >
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleChange}
-              onKeyDown={handleKey}
-              placeholder="Ask anything about medications, symptoms, or healthcare..."
-              rows={1}
-              disabled={thinking}
-              className="w-full resize-none bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 outline-none px-4 pt-4 pb-14 max-h-[200px] leading-relaxed"
-            />
-            <div className="absolute bottom-3 left-4 right-3 flex items-center justify-between">
-              <span className="text-[11px] text-gray-400">Shift+Enter for new line</span>
-              <button
-                onClick={() => send(input)}
-                disabled={!input.trim() || thinking}
-                className="h-8 w-8 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-25 hover:bg-primary/90 transition-all"
-              >
-                {thinking
-                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                  : <ArrowUp className="h-4 w-4" />
-                }
-              </button>
+            {/* Input pinned to bottom */}
+            <div className="flex-shrink-0 flex justify-center px-6 pb-5 pt-3">
+              {InputBar}
             </div>
-          </div>
-          <p className="text-center text-[11px] text-gray-400 mt-2">
-            MedMed.AI provides information only — not medical advice. Always consult a healthcare professional.
-          </p>
-        </div>
+            <p className="text-center text-[11px] text-gray-400 pb-3">
+              AI powered by Google Gemini · <Link to="/privacy" className="hover:text-gray-600">Privacy</Link> · <Link to="/terms" className="hover:text-gray-600">Terms</Link>
+            </p>
+          </>
+        )}
       </main>
+
+      {/* Upgrade modal */}
+      {quota.showUpgradeModal && <UpgradeModal onClose={quota.dismissUpgradeModal} />}
     </div>
   );
 };

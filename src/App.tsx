@@ -32,6 +32,10 @@ import SignUp from "./pages/SignUp";
 import Layout from "./components/Layout";
 import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfService from "./pages/legal/TermsOfService";
+import RefundPolicy from "./pages/legal/RefundPolicy";
+import CookiePolicy from "./pages/legal/CookiePolicy";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -73,8 +77,10 @@ function App() {
                           <Route path="/user-portal" element={<Layout><UserPortal /></Layout>} />
 
                           {/* Info pages */}
-                          <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
-                          <Route path="/terms" element={<Layout><Terms /></Layout>} />
+                          <Route path="/privacy" element={<PrivacyPolicy />} />
+                          <Route path="/terms" element={<TermsOfService />} />
+                          <Route path="/refund-policy" element={<RefundPolicy />} />
+                          <Route path="/cookie-policy" element={<CookiePolicy />} />
                           <Route path="/settings" element={<Layout><Settings /></Layout>} />
 
                           {/* 404 */}
