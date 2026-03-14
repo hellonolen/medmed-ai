@@ -107,8 +107,8 @@ export default function Pricing() {
     { q: "Is MedMed.AI a replacement for my doctor?", a: "No. MedMed.AI provides general health information for educational purposes. Always consult a qualified healthcare professional before making any health decisions." },
     { q: "What can I use the camera feature for?", a: "Pro members can take a live photo of a visible concern — such as a skin rash, eye irritation, or wound — and receive a detailed description and educational context. You must take a new photo; no existing images can be uploaded." },
     { q: "How does the 45-second video feature work?", a: "Pro members can record a short video with audio. Our system analyzes your appearance and any visible physical characteristics, then provides helpful health-related observations. This is not a diagnosis." },
-    { q: "How is billing handled?", a: "Payments are processed securely through Whop. You can manage or cancel your plan at any time from your account. Annual billing is 15% less than monthly." },
-    { q: "Is my health data private?", a: "Yes. Your conversations and captures are stored securely in your account and are never shared or sold. See our Privacy Policy for details." },
+    { q: "How is billing handled?", a: "Payments are processed securely. You can manage or cancel your plan at any time from your account. Annual billing is 15% less than monthly. Your access continues through the end of your billing period after cancellation." },
+    { q: "Is my health data private?", a: "Yes. Your conversations and captures are stored securely in your account and are never shared or sold. For full details, visit our Policy Center." },
     { q: "What is the Interaction Checker?", a: "The Interaction Checker lets you list multiple medications and receive information about known drug interactions, their severity, and what precautions to take. Always verify with your pharmacist or physician." },
   ];
 
@@ -262,10 +262,8 @@ export default function Pricing() {
         </div>
 
         <p className="text-center text-[12px] text-gray-400 mt-8">
-          Payments handled securely by{" "}
-          <a href="https://whop.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Whop</a>.
-          {" "}Cancel anytime. Prices exclude applicable tax.{" "}
-          <Link to="/policy" className="underline hover:text-gray-600">Privacy & Terms</Link>.
+          Payments handled securely. Cancel anytime. Prices exclude applicable tax.{" "}
+          <Link to="/policy" className="underline hover:text-gray-600">Policy Center</Link>.
         </p>
       </div>
     </div>

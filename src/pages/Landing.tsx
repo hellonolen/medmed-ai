@@ -348,7 +348,7 @@ export default function Landing() {
               },
               {
                 q: "How does billing work?",
-                a: "Billing is handled securely through Whop. You can start on the free plan with no credit card. If you upgrade, you can choose monthly or annual billing. Annual billing on the Pro plan saves approximately 15% compared to monthly. You can cancel anytime — your access continues through the end of your billing period.",
+                a: "Billing is handled securely. You can start on the free trial with no credit card. If you upgrade, you can choose monthly or annual billing. Annual billing on the Pro plan saves approximately 15% compared to monthly. You can cancel anytime — your access continues through the end of your billing period.",
               },
               {
                 q: "What is the Max plan?",
@@ -434,6 +434,7 @@ export default function Landing() {
           </div>
           <div className="border-t pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[12px] text-gray-400" style={{ borderColor: "#e0d8cc" }}>
             <p>© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
+
             <div className="flex items-center gap-4">
               <Link to="/policy" className="hover:text-gray-700 transition-colors">Policy Center</Link>
               <Link to="/chat" className="hover:text-gray-700 transition-colors">Support</Link>
