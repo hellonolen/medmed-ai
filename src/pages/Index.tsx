@@ -5,6 +5,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { aiService } from "@/services/AIService";
 import { useMedicalSearch } from "@/contexts/MedicalSearchContext";
 import { useQuotaGuard } from "@/hooks/useQuotaGuard";
+import { useVoice } from "@/hooks/useVoice";
+import { bus, AGENT_EVENTS } from "@/lib/eventBus";
 import { toast } from "sonner";
 import { MediaCaptureModal } from "@/components/MediaCaptureModal";
 
@@ -280,6 +282,39 @@ const Index = () => {
   const { tier } = useSubscription();
   const quota = useQuotaGuard(user?.id);
 
+  // Voice I/O
+  const [voiceInterim, setVoiceInterim] = useState("");
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const { isListening, isSpeaking, supported: voiceSupported, ttsSupported, startListening, stopListening, speak, stopSpeaking } = useVoice({
+    autoSpeak: false, // we control TTS manually
+    onTranscript: (text, isFinal) => {
+      if (isFinal) {
+        setInput(text);
+        setVoiceInterim("");
+        setTimeout(() => send(text), 100);
+      } else {
+        setVoiceInterim(text);
+      }
+    },
+    onError: (e) => toast.error(`Mic: ${e}`),
+  });
+
+  // Subscribe to agent response events for TTS
+  useEffect(() => {
+    return bus.on<string>(AGENT_EVENTS.AGENT_RESPONSE, (text) => {
+      if (ttsEnabled && ttsSupported) speak(text);
+    });
+  }, [ttsEnabled, ttsSupported, speak]);
+
+  // Proactive messages from agent
+  const [proactiveBanner, setProactiveBanner] = useState<string | null>(null);
+  useEffect(() => {
+    return bus.on<{ id: string; text: string }>(AGENT_EVENTS.AGENT_PROACTIVE, ({ text }) => {
+      setProactiveBanner(text);
+      setTimeout(() => setProactiveBanner(null), 12000);
+    });
+  }, []);
+
   const hasMessages = messages.length > 0;
   const isPro = user?.tier === "premium" || user?.tier === "business";
   const cfg = MODE_CONFIG[mode];
@@ -321,11 +356,14 @@ const Index = () => {
         systemPrompt: cfg.systemPrompt,
       });
 
+      const content = response.success && response.content ? response.content : "I ran into an issue. Please try again.";
       setMessages((prev) => [...prev, {
         id: crypto.randomUUID(),
-        content: response.success && response.content ? response.content : "I ran into an issue. Please try again.",
+        content,
         type: response.success ? "ai" : "error",
       }]);
+      // Fire on bus so TTS can pick it up
+      bus.emit(AGENT_EVENTS.AGENT_RESPONSE, content);
     } catch {
       setMessages((prev) => [...prev, { id: crypto.randomUUID(), content: "Something went wrong. Please try again.", type: "error" }]);
       toast.error("Connection error.");
@@ -389,38 +427,71 @@ const Index = () => {
         autoFocus
       />
 
-      {/* Bottom row: + tools | camera | video  →→→  send */}
+          {/* Bottom row: + tools | camera | video | mic  →→→  TTS toggle | send */}
       <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between pointer-events-none">
         <div className="flex items-center gap-1 pointer-events-auto">
           <ToolPicker onSelect={activateMode} />
-          {/* Camera button */}
+          {/* Camera */}
           <button
             type="button"
-            onClick={() => isPro ? setMediaModal("image") : quota.showUpgradeModal || navigate("/pricing")}
-            title={isPro ? "Take a photo" : "Pro feature"}
-            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
-              isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"
-            }`}
+            onClick={() => isPro ? setMediaModal("image") : navigate("/pricing")}
+            title={isPro ? "Take a photo for Gemini to analyze" : "Pro feature"}
+            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
           </button>
-          {/* Video button */}
+          {/* Video */}
           <button
             type="button"
             onClick={() => isPro ? setMediaModal("video") : navigate("/pricing")}
             title={isPro ? "Record a video" : "Pro feature"}
-            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
-              isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"
-            }`}
+            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"}`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="23 7 16 12 23 17 23 7" />
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
             </svg>
           </button>
+          {/* Microphone — voice input */}
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={() => isListening ? stopListening() : startListening()}
+              title={isListening ? "Stop listening" : "Speak to MedMed.AI"}
+              className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+                isListening ? "bg-red-100 text-red-500 animate-pulse" : "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]"
+              }`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </button>
+          )}
+          {/* TTS toggle */}
+          {ttsSupported && (
+            <button
+              type="button"
+              onClick={() => { setTtsEnabled(e => !e); if (isSpeaking) stopSpeaking(); }}
+              title={ttsEnabled ? "Mute Gemini voice" : "Enable Gemini voice"}
+              className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+                ttsEnabled ? "bg-primary/10 text-primary" : "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]"
+              }`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+                {ttsEnabled ? (
+                  <><path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></>
+                ) : (
+                  <><path d="M11 5L6 9H2v6h4l5 4V5z" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></>
+                )}
+              </svg>
+            </button>
+          )}
         </div>
         <button
           onClick={() => send(input)}
@@ -441,6 +512,26 @@ const Index = () => {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}>
+
+      {/* ── Proactive agent banner ── */}
+      {proactiveBanner && (
+        <div
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4 px-4 py-3 rounded-2xl shadow-lg text-[13px] text-gray-800 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
+          style={{ backgroundColor: "#fdf9f2", border: "1px solid #d8d0c0" }}
+        >
+          <span className="text-base flex-shrink-0">🤖</span>
+          <span className="flex-1 leading-relaxed">{proactiveBanner}</span>
+          <button onClick={() => setProactiveBanner(null)} className="text-gray-400 hover:text-gray-700 flex-shrink-0 text-lg leading-none">&times;</button>
+        </div>
+      )}
+
+      {/* Voice listening indicator */}
+      {isListening && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-[12px] text-red-600 font-medium shadow-sm">
+          <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+          Listening{voiceInterim ? `: "${voiceInterim}"` : "…"}
+        </div>
+      )}
 
       {/* ── Sidebar ── */}
       <div
@@ -599,13 +690,12 @@ const Index = () => {
         )}
 
         {!hasMessages ? (
-          <div className="flex flex-col items-center justify-center flex-1 px-6">
+          <div className="flex flex-col items-center justify-center flex-1 px-6 pb-10">
             <h1 className="text-[2rem] font-semibold text-gray-900 mb-8 tracking-tight">How can I help you?</h1>
             {InputBox}
-          <p className="text-[11px] text-gray-400 mt-3 text-right max-w-2xl w-full">
-              <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
-              {" · "}
-              <Link to="/contact" className="hover:text-gray-600 transition-colors">Support</Link>
+            {/* Disclaimer — standalone, below input */}
+            <p className="text-[11.5px] text-gray-400 mt-3 text-center max-w-2xl w-full">
+              medmed.ai can make mistakes. Confirm your communications.
             </p>
           </div>
         ) : (
@@ -635,6 +725,7 @@ const Index = () => {
                 ))}
                 {thinking && (
                   <div className="flex gap-1.5 items-center pt-1">
+                    <span className="text-[12px] text-gray-400 mr-1">Thinking</span>
                     {[0, 160, 320].map((d) => (
                       <span key={d} className="h-2 w-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
                     ))}
@@ -643,16 +734,24 @@ const Index = () => {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-            <div className="flex-shrink-0 flex justify-center px-6 pb-4 pt-2">
+            <div className="flex-shrink-0 flex flex-col items-center px-6 pb-2 pt-2">
               {InputBox}
+              {/* Disclaimer — standalone, below input */}
+              <p className="text-[11.5px] text-gray-400 mt-2 text-center max-w-2xl w-full">
+                medmed.ai can make mistakes. Confirm your communications.
+              </p>
             </div>
-            <p className="text-right text-[11px] text-gray-400 pb-3 px-6">
-              <Link to="/policy" className="hover:text-gray-600">Policy Center</Link>
-              {" · "}
-              <Link to="/contact" className="hover:text-gray-600">Support</Link>
-            </p>
           </>
         )}
+
+        {/* ── Standalone footer — absolute bottom-right of main ── */}
+        <div className="absolute bottom-3 right-5 text-right pointer-events-none">
+          <p className="text-[11px] text-gray-400 pointer-events-auto">
+            <Link to="/policy" className="hover:text-gray-600 transition-colors">Policy Center</Link>
+            {" · "}
+            <Link to="/contact" className="hover:text-gray-600 transition-colors">Support</Link>
+          </p>
+        </div>
       </main>
 
       {quota.showUpgradeModal && <UpgradeModal onClose={quota.dismissUpgradeModal} />}
