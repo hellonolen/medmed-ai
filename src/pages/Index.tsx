@@ -6,6 +6,7 @@ import { aiService } from "@/services/AIService";
 import { useMedicalSearch } from "@/contexts/MedicalSearchContext";
 import { useQuotaGuard } from "@/hooks/useQuotaGuard";
 import { toast } from "sonner";
+import { MediaCaptureModal } from "@/components/MediaCaptureModal";
 
 /* ─── Types ─────────────────────────────────────────── */
 interface Message {
@@ -225,6 +226,7 @@ const Index = () => {
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [mode, setMode] = useState<Mode>("general");
+  const [mediaModal, setMediaModal] = useState<"image" | "video" | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try { return localStorage.getItem("mm_sidebar") !== "closed"; } catch (_) { return true; }
   });
@@ -347,10 +349,38 @@ const Index = () => {
         autoFocus
       />
 
-      {/* Bottom row: plus on left, send on right */}
+      {/* Bottom row: + tools | camera | video  →→→  send */}
       <div className="absolute bottom-3.5 left-4 right-4 flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto">
+        <div className="flex items-center gap-1 pointer-events-auto">
           <ToolPicker onSelect={activateMode} />
+          {/* Camera button */}
+          <button
+            type="button"
+            onClick={() => isPro ? setMediaModal("image") : quota.showUpgradeModal || navigate("/pricing")}
+            title={isPro ? "Take a photo" : "Pro feature"}
+            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+              isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </button>
+          {/* Video button */}
+          <button
+            type="button"
+            onClick={() => isPro ? setMediaModal("video") : navigate("/pricing")}
+            title={isPro ? "Record a video" : "Pro feature"}
+            className={`h-7 w-7 rounded-lg flex items-center justify-center transition-colors ${
+              isPro ? "text-gray-400 hover:text-gray-700 hover:bg-[#e4ddd0]" : "text-gray-300 cursor-not-allowed"
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="23 7 16 12 23 17 23 7" />
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            </svg>
+          </button>
         </div>
         <button
           onClick={() => send(input)}
@@ -551,6 +581,17 @@ const Index = () => {
       </main>
 
       {quota.showUpgradeModal && <UpgradeModal onClose={quota.dismissUpgradeModal} />}
+
+      {mediaModal && (
+        <MediaCaptureModal
+          type={mediaModal}
+          onClose={() => setMediaModal(null)}
+          onAnalysis={(text) => {
+            setMessages((prev) => [...prev, { id: crypto.randomUUID(), content: text, type: "ai" }]);
+            setMediaModal(null);
+          }}
+        />
+      )}
     </div>
   );
 };

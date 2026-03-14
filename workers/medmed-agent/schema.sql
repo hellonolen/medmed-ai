@@ -64,3 +64,18 @@ CREATE TABLE IF NOT EXISTS search_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_search_user ON search_history(user_id);
+
+-- ─── Media Captures (Pro: camera images & video recordings) ──────────────────
+
+CREATE TABLE IF NOT EXISTS media_captures (
+  id           TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id      TEXT NOT NULL,
+  type         TEXT NOT NULL CHECK (type IN ('image', 'video')),
+  r2_key       TEXT NOT NULL,
+  analysis     TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_media_user ON media_captures(user_id);
+

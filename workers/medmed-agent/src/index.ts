@@ -627,6 +627,110 @@ async function handleEmail(req: Request, env: Env): Promise<Response> {
   }
 }
 
+// ─── Media Upload & Analysis (Pro only) ──────────────────────────────────────
+
+async function handleMediaUpload(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!auth) return err('Unauthorized', 401, origin);
+
+  let userId: string, userTier: string;
+  try {
+    const payload = await verifyJWT(auth, env.JWT_SECRET);
+    if (!payload) return err('Unauthorized', 401, origin);
+    userId = payload.userId;
+    userTier = payload.tier || 'free';
+  } catch {
+    return err('Unauthorized', 401, origin);
+  }
+
+  if (userTier !== 'premium' && userTier !== 'business') {
+    return err('Pro membership required', 403, origin);
+  }
+
+  const contentType = req.headers.get('Content-Type') || 'application/octet-stream';
+  const isVideo = contentType.startsWith('video/');
+  const ext = isVideo ? 'webm' : 'jpg';
+  const key = `captures/${userId}/${Date.now()}.${ext}`;
+
+  const buffer = await req.arrayBuffer();
+  await env.MEDIA.put(key, buffer, { httpMetadata: { contentType } });
+
+  const id = crypto.randomUUID();
+  await env.DB.prepare(
+    `INSERT INTO media_captures (id, user_id, type, r2_key) VALUES (?, ?, ?, ?)`
+  ).bind(id, userId, isVideo ? 'video' : 'image', key).run();
+
+  return json({ id, key }, 201, origin);
+}
+
+async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const auth = req.headers.get('Authorization')?.replace('Bearer ', '');
+  if (!auth) return err('Unauthorized', 401, origin);
+
+  let userId: string, userTier: string;
+  try {
+    const payload = await verifyJWT(auth, env.JWT_SECRET);
+    userId = payload.userId;
+    userTier = payload.tier || 'free';
+  } catch {
+    return err('Unauthorized', 401, origin);
+  }
+
+  if (userTier !== 'premium' && userTier !== 'business') {
+    return err('Pro membership required', 403, origin);
+  }
+
+  const { id, type } = await req.json<{ id: string; type: 'image' | 'video' }>(); 
+
+  // Fetch capture record
+  const record = await env.DB.prepare(
+    `SELECT r2_key, analysis FROM media_captures WHERE id = ? AND user_id = ?`
+  ).bind(id, userId).first<{ r2_key: string; analysis: string | null }>();
+  if (!record) return err('Not found', 404, origin);
+
+  // Return cached analysis if available
+  if (record.analysis) return json({ analysis: record.analysis }, 200, origin);
+
+  // Fetch bytes from R2
+  const obj = await env.MEDIA.get(record.r2_key);
+  if (!obj) return err('Media not found in storage', 404, origin);
+  const buffer = await obj.arrayBuffer();
+  const b64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  const mimeType = type === 'video' ? 'video/webm' : 'image/jpeg';
+
+  const prompt = type === 'image'
+    ? 'You are a medical visual assistant. Analyze this image and describe what you observe in detail, focusing on any visible health-related features such as skin conditions, eye symptoms, or physical characteristics. Provide helpful educational context. Always note this is not a medical diagnosis.'
+    : 'You are a medical visual assistant. Watch this short video and describe what you observe about the person — their appearance, any visible symptoms or physical characteristics you notice. Provide helpful context. Always note this is not a medical diagnosis.';
+
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_GENAI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mimeType, data: b64 } },
+            { text: prompt },
+          ]
+        }]
+      }),
+    }
+  );
+
+  const geminiJson = await geminiRes.json<any>();
+  const analysis = geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text
+    ?? 'Analysis unavailable. Please try again.';
+
+  // Cache the analysis
+  await env.DB.prepare(`UPDATE media_captures SET analysis = ? WHERE id = ?`)
+    .bind(analysis, id).run();
+
+  return json({ analysis }, 200, origin);
+}
+
 // ─── Main Router ──────────────────────────────────────────────────────────────
 
 export default {
@@ -667,6 +771,8 @@ export default {
       // Misc
       if (path === '/api/user/tier'              && req.method === 'POST') return handleUpdateTier(req, env);
       if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
+      if (path === '/api/media/upload'           && req.method === 'POST') return handleMediaUpload(req, env);
+      if (path === '/api/media/analyze'          && req.method === 'POST') return handleMediaAnalyze(req, env);
       if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v2' });
 
       return err('Not found', 404, origin);
