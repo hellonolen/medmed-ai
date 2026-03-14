@@ -113,7 +113,7 @@ const Index = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gradient-to-b from-secondary to-white flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#faf8f4' }}>
         <header className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
             <Link to="/" className="flex items-center space-x-2">
