@@ -45,8 +45,8 @@ const SignUp = () => {
     try {
       const result = await signUp(email, password, name);
       if (result.success) {
-        toast.success('Welcome to MedMed.AI!');
-        navigate('/');
+        toast.success('Welcome to MedMed.AI! Your 3-day trial has started.');
+        navigate('/onboarding');
       } else {
         setError(result.error || 'Registration failed. Please try again.');
       }
@@ -90,9 +90,6 @@ const SignUp = () => {
     >
       <SiteNav />
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-      <Link to="/" className="text-[17px] font-semibold text-gray-900 mb-10 tracking-tight">
-        MedMed.AI
-      </Link>
 
       <div
         className="w-full max-w-sm rounded-2xl p-8"
@@ -122,9 +119,8 @@ const SignUp = () => {
             />
             <span className="text-[13px] text-gray-600 leading-snug">
               I agree to the{' '}
-              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
-              {' '}and{' '}
-              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+              <Link to="/policy" className="text-primary hover:underline">Policy Center</Link>
+              {' '}terms.
             </span>
           </label>
 

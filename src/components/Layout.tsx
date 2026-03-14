@@ -27,8 +27,8 @@ const Layout = ({ children, hideNav = false }: LayoutProps) => {
             </p>
             <div className="flex items-center gap-4 text-[12px] text-gray-500">
               <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
-              <Link to="/chat" className="hover:text-gray-900 transition-colors">Support</Link>
-              <Link to="/chat" className="hover:text-gray-900 transition-colors">Contact</Link>
+              <Link to="/contact" className="hover:text-gray-900 transition-colors">Support</Link>
+              <Link to="/contact" className="hover:text-gray-900 transition-colors">Contact</Link>
             </div>
           </div>
         </footer>
