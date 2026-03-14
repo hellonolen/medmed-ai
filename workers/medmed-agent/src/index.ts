@@ -805,6 +805,60 @@ async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
   return json({ analysis }, 200, origin);
 }
 
+// ─── /api/media/visual ─────────────────────────────────────────────────────────
+// Accepts base64 image directly (no R2 upload) and calls Gemini vision inline.
+// Used by the live camera/video capture modal.
+
+async function handleMediaVisual(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
+
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { base64, mimeType, systemPrompt } = body;
+  if (!base64) return err('base64 required', 400, origin);
+
+  const mime = mimeType || 'image/jpeg';
+  const prompt = systemPrompt || 'You are MedMed AI, a health information assistant. Analyze this image and describe what you observe, focusing on any health-relevant features. Provide educational context. Always note this is not a medical diagnosis and that the user should consult a healthcare professional for any medical concerns.';
+
+  try {
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GOOGLE_GENAI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mime, data: base64 } },
+              { text: prompt },
+            ]
+          }],
+          generationConfig: { maxOutputTokens: 1024, temperature: 0.4 },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const errBody = await geminiRes.text();
+      console.error('Gemini vision error:', errBody);
+      return err('Gemini vision failed', 502, origin);
+    }
+
+    const geminiJson = await geminiRes.json<any>();
+    const analysis = geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text
+      ?? 'Analysis unavailable. Please try again.';
+
+    // Increment question counter
+    await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`).run().catch(() => {});
+
+    return json({ analysis }, 200, origin);
+  } catch (e: any) {
+    console.error('Visual analysis error:', e);
+    return err('Visual analysis failed', 500, origin);
+  }
+}
+
 // ─── /api/profile ─────────────────────────────────────────────────────────────
 
 async function handleProfile(req: Request, env: Env): Promise<Response> {
@@ -1082,6 +1136,7 @@ export default {
       if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
       if (path === '/api/media/upload'           && req.method === 'POST') return handleMediaUpload(req, env);
       if (path === '/api/media/analyze'          && req.method === 'POST') return handleMediaAnalyze(req, env);
+      if (path === '/api/media/visual'           && req.method === 'POST') return handleMediaVisual(req, env);
       if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v3' });
 
       // Health Profile & Memory
