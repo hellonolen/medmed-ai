@@ -1,198 +1,145 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useToast } from '@/hooks/use-toast';
-import Layout from '@/components/Layout';
-import { UserPlus, Mail, Lock, User } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const SignUp = () => {
-  const { t } = useLanguage();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { signUp } = useAuth();
-
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const inputStyle = {
+    backgroundColor: '#f0ebe2',
+    border: '1px solid #d8d0c0',
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (password !== confirmPassword) {
-      toast({
-        variant: 'destructive',
-        title: t('signup.password_mismatch', "Passwords don't match"),
-        description: t('signup.password_mismatch_description', 'Please make sure both passwords match'),
-      });
+      setError("Passwords don't match.");
       return;
     }
-
-    if (!agreeToTerms) {
-      toast({
-        variant: 'destructive',
-        title: t('signup.terms_required', 'Terms agreement required'),
-        description: t('signup.terms_required_description', 'You must agree to the terms and conditions'),
-      });
+    if (!agreed) {
+      setError('Please agree to the terms to continue.');
       return;
     }
 
     setIsLoading(true);
-
     try {
       const result = await signUp(email, password, name);
       if (result.success) {
-        toast({
-          title: t('signup.success', 'Registration successful'),
-          description: t('signup.welcome', 'Welcome to MedMed.AI! Your account has been created.'),
-        });
-        navigate('/user-portal');
+        toast.success('Welcome to MedMed.AI!');
+        navigate('/');
       } else {
-        toast({
-          variant: 'destructive',
-          title: t('signup.error', 'Registration failed'),
-          description: result.error || t('signup.error_details', 'An error occurred during registration. Please try again.'),
-        });
+        setError(result.error || 'Registration failed. Please try again.');
       }
     } catch {
-      toast({
-        variant: 'destructive',
-        title: t('signup.error', 'Registration failed'),
-        description: t('signup.error_details', 'An error occurred during registration. Please try again.'),
-      });
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const Field = ({
+    id, label, type, value, onChange, placeholder, autoComplete,
+  }: {
+    id: string; label: string; type: string; value: string;
+    onChange: (v: string) => void; placeholder: string; autoComplete?: string;
+  }) => (
+    <div>
+      <label className="block text-[13px] font-medium text-gray-700 mb-1.5" htmlFor={id}>
+        {label}
+      </label>
+      <input
+        id={id}
+        type={type}
+        autoComplete={autoComplete}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full px-4 py-2.5 rounded-xl text-[14px] text-gray-900 placeholder:text-gray-400 outline-none transition-all"
+        style={inputStyle}
+        onFocus={(e) => (e.target.style.borderColor = 'var(--color-primary, #7c3aed)')}
+        onBlur={(e) => (e.target.style.borderColor = '#d8d0c0')}
+      />
+    </div>
+  );
+
   return (
-    <Layout hideNav>
-      <div className="flex-1 flex justify-center items-center py-8">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">
-              {t('signup.title', 'Create an account')}
-            </CardTitle>
-            <CardDescription className="text-center">
-              {t('signup.subtitle', 'Enter your information to create an account')}
-            </CardDescription>
-          </CardHeader>
-          <form onSubmit={handleSignUp}>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('signup.name', 'Name')}</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    className="pl-10"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('signup.email', 'Email')}</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">{t('signup.password', 'Password')}</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t('signup.confirm_password', 'Confirm Password')}</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={agreeToTerms}
-                  onCheckedChange={(checked) => {
-                    setAgreeToTerms(checked as boolean);
-                  }}
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {t('signup.agree_terms', 'I agree to the')}{' '}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    {t('signup.terms_link', 'terms and conditions')}
-                  </Link>
-                </label>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full" />
-                    {t('signup.creating_account', 'Creating account...')}
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    {t('signup.sign_up_button', 'Sign up')}
-                  </div>
-                )}
-              </Button>
-              <p className="text-center text-sm text-gray-500">
-                {t('signup.have_account', 'Already have an account?')}{' '}
-                <Link to="/signin" className="text-primary hover:underline">
-                  {t('signup.signin_link', 'Sign in')}
-                </Link>
-              </p>
-            </CardFooter>
-          </form>
-        </Card>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      style={{ backgroundColor: '#faf8f4', fontFamily: "'Inter', system-ui, sans-serif" }}
+    >
+      <Link to="/" className="text-[17px] font-semibold text-gray-900 mb-10 tracking-tight">
+        MedMed.AI
+      </Link>
+
+      <div
+        className="w-full max-w-sm rounded-2xl p-8"
+        style={{ backgroundColor: '#fdf9f2', border: '1px solid #e0d8cc' }}
+      >
+        <h1 className="text-[22px] font-bold text-gray-900 mb-1">Create your account</h1>
+        <p className="text-[14px] text-gray-500 mb-7">Free to start. Upgrade anytime.</p>
+
+        {error && (
+          <div className="mb-5 px-4 py-3 rounded-xl text-[13px] text-red-700 bg-red-50 border border-red-200">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSignUp} className="space-y-4">
+          <Field id="name" label="Full name" type="text" value={name} onChange={setName} placeholder="Jane Smith" autoComplete="name" />
+          <Field id="email" label="Email" type="email" value={email} onChange={setEmail} placeholder="you@example.com" autoComplete="email" />
+          <Field id="password" label="Password" type="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" autoComplete="new-password" />
+          <Field id="confirmPassword" label="Confirm password" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="••••••••" autoComplete="new-password" />
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span className="text-[13px] text-gray-600 leading-snug">
+              I agree to the{' '}
+              <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link to="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 mt-2"
+          >
+            {isLoading ? 'Creating account...' : 'Create account'}
+          </button>
+        </form>
+
+        <p className="text-center text-[13px] text-gray-500 mt-6">
+          Already have an account?{' '}
+          <Link to="/signin" className="text-primary hover:underline font-medium">
+            Sign in
+          </Link>
+        </p>
       </div>
-    </Layout>
+
+      <p className="text-[11px] text-gray-400 mt-6">
+        <Link to="/policy" className="hover:text-gray-600">Policy Center</Link>
+        {' · '}
+        <Link to="/" className="hover:text-gray-600">Support</Link>
+      </p>
+    </div>
   );
 };
 

@@ -1,23 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, ArrowRight, Search, AlertCircle, Loader2 } from "lucide-react";
 import { findMatchingSymptoms, medicalConditions } from "@/data/symptoms";
 import { toast } from "sonner";
 import { aiService } from "@/services/AIService";
 
-const commonSymptoms = [
-  "Headache", "Fever", "Cough", "Fatigue", "Nausea", 
-  "Dizziness", "Sore Throat", "Rash", "Back Pain", "Abdominal Pain",
-  "Chest Pain", "Shortness of Breath", "Joint Pain", "Muscle Pain",
-  "Diarrhea", "Constipation", "Blurred Vision", "Itching", "Swelling"
+const COMMON_SYMPTOMS = [
+  "Headache","Fever","Cough","Fatigue","Nausea",
+  "Dizziness","Sore Throat","Rash","Back Pain","Abdominal Pain",
+  "Chest Pain","Shortness of Breath","Joint Pain","Muscle Pain",
+  "Diarrhea","Constipation","Blurred Vision","Itching","Swelling",
 ];
 
-interface PossibleCondition {
+interface Condition {
   name: string;
-  probability: number; // 0-100
+  probability: number;
   description: string;
   symptoms: string[];
   specialists: string[];
@@ -25,355 +21,209 @@ interface PossibleCondition {
 
 const SymptomChecker = () => {
   const [step, setStep] = useState(1);
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const [customSymptom, setCustomSymptom] = useState("");
-  const [results, setResults] = useState<PossibleCondition[]>([]);
-  const [aiAnalysis, setAiAnalysis] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleSymptomToggle = (symptom: string) => {
-    if (selectedSymptoms.includes(symptom)) {
-      setSelectedSymptoms(symptoms => symptoms.filter(s => s !== symptom));
-    } else {
-      setSelectedSymptoms(symptoms => [...symptoms, symptom]);
-    }
-  };
-  
-  const addCustomSymptom = () => {
-    if (!customSymptom.trim()) return;
-    
-    if (selectedSymptoms.includes(customSymptom)) {
-      toast.error("This symptom is already added");
-      return;
-    }
-    
-    setSelectedSymptoms(symptoms => [...symptoms, customSymptom]);
-    setCustomSymptom("");
-  };
-  
-  const analyzeSymptoms = async () => {
-    if (selectedSymptoms.length === 0) {
-      toast.error("Please select at least one symptom");
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const conditionMatches: Record<string, { count: number, category: string, symptoms: string[], specialists: string[] }> = {};
-      
-      selectedSymptoms.forEach(symptom => {
-        const matchedSymptoms = findMatchingSymptoms(symptom);
-        
-        matchedSymptoms.forEach(match => {
-          match.relatedConditions.forEach(condition => {
-            const matchedCondition = medicalConditions.find(c => c.category === condition);
-            
-            if (matchedCondition) {
-              if (!conditionMatches[condition]) {
-                conditionMatches[condition] = { 
-                  count: 0, 
-                  category: condition,
-                  symptoms: matchedCondition.symptoms,
-                  specialists: matchedCondition.specialists
-                };
-              }
-              conditionMatches[condition].count += 1;
-            }
-          });
-        });
-      });
-      
-      const possibleConditions: PossibleCondition[] = Object.values(conditionMatches)
-        .map(match => {
-          const matchedSymptomsCount = match.count;
-          const totalCategorySymptoms = match.symptoms.length;
-          const selectedCount = selectedSymptoms.length;
-          
-          const probability = Math.min(
-            Math.round((matchedSymptomsCount / Math.max(selectedCount, 2)) * 100),
-            95
-          );
-          
-          return {
-            name: match.category,
-            probability,
-            description: `This condition typically involves ${match.symptoms.slice(0, 3).join(", ")}${match.symptoms.length > 3 ? ", and more" : ""}`,
-            symptoms: match.symptoms,
-            specialists: match.specialists
-          };
-        })
-        .sort((a, b) => b.probability - a.probability)
-        .slice(0, 5);
-      
-      setResults(possibleConditions);
-      
-      const systemPrompt = 
-        "You are a healthcare AI assistant providing analysis of symptoms. " +
-        "Based on the symptoms provided, suggest possible conditions, their likelihood, and when the person should seek medical attention. " +
-        "Keep responses concise (maximum 3 paragraphs) and always include appropriate medical disclaimers. " +
-        "Focus on educational information only and avoid definitive diagnosis language.";
-      
-      const symptomsList = selectedSymptoms.join(", ");
-      const aiResponse = await aiService.askAI({
-        query: `Please analyze these symptoms: ${symptomsList}. What might they indicate and what kind of specialist should I consider seeing?`,
-        systemPrompt
-      });
-      
-      if (aiResponse.success) {
-        setAiAnalysis(aiResponse.content);
-      } else {
-        console.error("AI analysis error:", aiResponse.content);
-        setAiAnalysis("AI analysis unavailable. Please rely on the standard symptom matching results below.");
-      }
-      
-      setStep(2);
-    } catch (error) {
-      console.error("Error in symptom analysis:", error);
-      toast.error("An error occurred during analysis. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const restartChecker = () => {
-    setSelectedSymptoms([]);
-    setResults([]);
-    setAiAnalysis("");
-    setStep(1);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [custom, setCustom] = useState("");
+  const [results, setResults] = useState<Condition[]>([]);
+  const [analysis, setAnalysis] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const toggle = (s: string) =>
+    setSelected((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+
+  const addCustom = () => {
+    if (!custom.trim()) return;
+    if (selected.includes(custom.trim())) { toast.error("Already added"); return; }
+    setSelected((p) => [...p, custom.trim()]);
+    setCustom("");
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary to-white">
-      <div className="container px-4 py-8 mx-auto">
-        <Link to="/">
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Home
-          </Button>
-        </Link>
-        
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-4">Symptom Checker</h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {step === 1 ? 
-              "Select the symptoms you're experiencing to get possible conditions" :
-              "Based on your symptoms, here are some possible conditions"
+  const analyze = async () => {
+    if (!selected.length) { toast.error("Select at least one symptom"); return; }
+    setLoading(true);
+    try {
+      const matches: Record<string, { count: number; symptoms: string[]; specialists: string[] }> = {};
+      selected.forEach((sym) => {
+        findMatchingSymptoms(sym).forEach((m) =>
+          m.relatedConditions.forEach((cond) => {
+            const mc = medicalConditions.find((c) => c.category === cond);
+            if (mc) {
+              if (!matches[cond]) matches[cond] = { count: 0, symptoms: mc.symptoms, specialists: mc.specialists };
+              matches[cond].count++;
             }
-          </p>
-        </div>
-        
-        {step === 1 ? (
-          <div className="max-w-3xl mx-auto">
-            <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg mb-8">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Selected Symptoms ({selectedSymptoms.length})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedSymptoms.length === 0 ? (
-                  <p className="text-gray-500 italic">No symptoms selected yet</p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedSymptoms.map((symptom, index) => (
-                      <div key={index} className="bg-secondary rounded-full px-3 py-1 flex items-center gap-1 text-sm">
-                        {symptom}
-                        <button
-                          onClick={() => handleSymptomToggle(symptom)}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-                <div className="mt-4 flex gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      placeholder="Add another symptom..."
-                      value={customSymptom}
-                      onChange={(e) => setCustomSymptom(e.target.value)}
-                      className="pl-9 pr-4 py-2 w-full rounded-lg border border-gray-200 text-sm"
-                      onKeyDown={(e) => e.key === 'Enter' && addCustomSymptom()}
-                    />
-                  </div>
-                  <Button onClick={addCustomSymptom} size="sm">Add</Button>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="backdrop-blur-md bg-card/90 border-0 shadow-lg mb-8">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold">Common Symptoms</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                  {commonSymptoms.map((symptom, index) => (
-                    <div 
-                      key={index} 
-                      className="flex items-center space-x-2"
-                    >
-                      <Checkbox 
-                        id={`symptom-${index}`} 
-                        checked={selectedSymptoms.includes(symptom)}
-                        onCheckedChange={() => handleSymptomToggle(symptom)}
-                      />
-                      <label
-                        htmlFor={`symptom-${index}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {symptom}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-            
-            <div className="text-center">
-              <Button 
-                onClick={analyzeSymptoms}
-                disabled={selectedSymptoms.length === 0 || isLoading}
-                className="px-6"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    Analyze Symptoms <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-8 flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-yellow-800 font-medium">Important Disclaimer</p>
-                <p className="text-yellow-700 text-sm">
-                  This symptom checker provides general information only and should not be used for diagnosis or treatment. 
-                  Always consult with a qualified healthcare provider for medical advice.
-                </p>
-              </div>
-            </div>
-            
-            {aiAnalysis && (
-              <Card className="backdrop-blur-md bg-primary/5 border-0 shadow-lg mb-8">
-                <CardHeader>
-                  <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">AI Analysis</span>
-                    AI-Enhanced Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose prose-sm max-w-none text-gray-700">
-                    {aiAnalysis.split('\n').map((paragraph, idx) => (
-                      <p key={idx}>{paragraph}</p>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-2">Your Symptoms:</h2>
-              <div className="flex flex-wrap gap-2">
-                {selectedSymptoms.map((symptom, index) => (
-                  <div key={index} className="bg-secondary rounded-full px-3 py-1 text-sm">
-                    {symptom}
-                  </div>
+          })
+        );
+      });
+
+      const conditions: Condition[] = Object.entries(matches)
+        .map(([name, m]) => ({
+          name,
+          probability: Math.min(Math.round((m.count / Math.max(selected.length, 2)) * 100), 95),
+          description: `Typically involves ${m.symptoms.slice(0, 3).join(", ")}${m.symptoms.length > 3 ? ", and more" : ""}`,
+          symptoms: m.symptoms,
+          specialists: m.specialists,
+        }))
+        .sort((a, b) => b.probability - a.probability)
+        .slice(0, 5);
+
+      setResults(conditions);
+
+      const res = await aiService.askAI({
+        query: `Analyze these symptoms: ${selected.join(", ")}. What might they indicate and what specialist should I see?`,
+        systemPrompt: "You are a healthcare information assistant. Give concise, balanced information (max 3 paragraphs). Always include a disclaimer that this is not medical advice.",
+      });
+      setAnalysis(res.success ? res.content : "");
+      setStep(2);
+    } catch {
+      toast.error("Analysis failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const restart = () => { setSelected([]); setResults([]); setAnalysis(""); setStep(1); };
+
+  const card = "rounded-2xl border p-5 mb-5";
+  const cardStyle = { backgroundColor: "#fdf9f2", borderColor: "#e0d8cc" };
+
+  return (
+    <div className="max-w-2xl mx-auto px-6 py-10 w-full">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Symptom Checker</h1>
+      <p className="text-[14px] text-gray-500 mb-8">
+        {step === 1 ? "Select your symptoms to see possible conditions." : "Based on your symptoms, here are possible conditions."}
+      </p>
+
+      {step === 1 ? (
+        <>
+          {/* Selected */}
+          <div className={card} style={cardStyle}>
+            <h2 className="text-[14px] font-semibold text-gray-700 mb-3">
+              Selected ({selected.length})
+            </h2>
+            {selected.length === 0 ? (
+              <p className="text-[13px] text-gray-400 italic">None selected yet</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {selected.map((s) => (
+                  <span key={s} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] text-gray-700" style={{ backgroundColor: "#e8e0d0" }}>
+                    {s}
+                    <button onClick={() => toggle(s)} className="text-gray-400 hover:text-gray-900 leading-none">&times;</button>
+                  </span>
                 ))}
               </div>
-            </div>
-            
-            <h2 className="text-xl font-semibold mb-4">Possible Conditions:</h2>
-            <div className="space-y-4 mb-8">
-              {results.length === 0 ? (
-                <Card className="border-dashed border-gray-300 p-6 text-center">
-                  <p className="text-gray-500">No matching conditions found for your symptoms.</p>
-                </Card>
-              ) : (
-                results.map((condition, index) => (
-                  <Card key={index} className="backdrop-blur-md bg-card/90 border-0 shadow-lg overflow-hidden">
-                    <div className="bg-gray-50 p-4 border-b">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-900">{condition.name}</h3>
-                        <div className="text-sm font-medium">
-                          {condition.probability >= 70 ? (
-                            <span className="text-red-600">High match</span>
-                          ) : condition.probability >= 40 ? (
-                            <span className="text-yellow-600">Moderate match</span>
-                          ) : (
-                            <span className="text-blue-600">Low match</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <p className="text-gray-700 mb-4">{condition.description}</p>
-                      
-                      <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2">Common Symptoms:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {condition.symptoms.slice(0, 6).map((symptom, i) => (
-                            <div 
-                              key={i} 
-                              className={`text-xs px-2 py-1 rounded ${
-                                selectedSymptoms.includes(symptom) 
-                                  ? "bg-primary/10 text-primary" 
-                                  : "bg-gray-100 text-gray-700"
-                              }`}
-                            >
-                              {symptom}
-                            </div>
-                          ))}
-                          {condition.symptoms.length > 6 && (
-                            <div className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
-                              +{condition.symptoms.length - 6} more
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-2">Recommended Specialists:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {condition.specialists.map((specialist, i) => (
-                            <div key={i} className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">
-                              {specialist}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-            
-            <div className="text-center">
-              <Button onClick={restartChecker} variant="outline" className="mr-3">
-                Start Over
-              </Button>
-              <Link to="/">
-                <Button>
-                  Search Medications
-                </Button>
-              </Link>
+            )}
+            <div className="flex gap-2 mt-3">
+              <input
+                type="text"
+                placeholder="Add custom symptom..."
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustom()}
+                className="flex-1 px-3 py-2 rounded-xl text-[13px] text-gray-900 placeholder:text-gray-400 outline-none"
+                style={{ backgroundColor: "#f0ebe2", border: "1px solid #d8d0c0" }}
+              />
+              <button onClick={addCustom} className="px-4 py-2 rounded-xl bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors">
+                Add
+              </button>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Common */}
+          <div className={card} style={cardStyle}>
+            <h2 className="text-[14px] font-semibold text-gray-700 mb-4">Common Symptoms</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {COMMON_SYMPTOMS.map((s) => (
+                <label key={s} className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(s)}
+                    onChange={() => toggle(s)}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  <span className="text-[13px] text-gray-700">{s}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={analyze}
+              disabled={!selected.length || loading}
+              className="px-8 py-3 rounded-xl bg-primary text-white text-[14px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40"
+            >
+              {loading ? "Analyzing..." : "Analyze Symptoms"}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Disclaimer */}
+          <div className="rounded-2xl p-4 mb-6 text-[13px] text-amber-800" style={{ backgroundColor: "#fffbe6", border: "1px solid #f0d060" }}>
+            <strong>Important:</strong> This tool provides general information only. It is not a diagnosis. Always consult a qualified healthcare professional.
+          </div>
+
+          {/* Analysis */}
+          {analysis && (
+            <div className={card} style={cardStyle}>
+              <h2 className="text-[14px] font-semibold text-gray-700 mb-3">Overview</h2>
+              <div className="text-[14px] text-gray-700 leading-relaxed space-y-2">
+                {analysis.split("\n").filter(Boolean).map((p, i) => <p key={i}>{p}</p>)}
+              </div>
+            </div>
+          )}
+
+          {/* Your symptoms */}
+          <div className="mb-5">
+            <p className="text-[13px] font-semibold text-gray-600 mb-2">Your symptoms:</p>
+            <div className="flex flex-wrap gap-2">
+              {selected.map((s) => (
+                <span key={s} className="px-3 py-1 rounded-full text-[12px] text-gray-700" style={{ backgroundColor: "#e8e0d0" }}>{s}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Results */}
+          <h2 className="text-[16px] font-bold text-gray-900 mb-4">Possible Conditions</h2>
+          <div className="space-y-4 mb-8">
+            {results.length === 0 ? (
+              <p className="text-[14px] text-gray-500">No matching conditions found.</p>
+            ) : results.map((c) => (
+              <div key={c.name} className={card} style={cardStyle}>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-[15px] font-semibold text-gray-900">{c.name}</h3>
+                  <span className={`text-[12px] font-medium px-2.5 py-0.5 rounded-full ${c.probability >= 70 ? "bg-red-100 text-red-700" : c.probability >= 40 ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"}`}>
+                    {c.probability >= 70 ? "High" : c.probability >= 40 ? "Moderate" : "Low"} match
+                  </span>
+                </div>
+                <p className="text-[13px] text-gray-600 mb-3">{c.description}</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {c.symptoms.slice(0, 6).map((s) => (
+                    <span key={s} className={`text-[11px] px-2 py-0.5 rounded ${selected.includes(s) ? "bg-primary/10 text-primary" : "bg-gray-100 text-gray-600"}`}>{s}</span>
+                  ))}
+                </div>
+                {c.specialists.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {c.specialists.map((sp) => (
+                      <span key={sp} className="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-blue-700">{sp}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={restart} className="px-6 py-2.5 rounded-xl text-[13px] font-medium text-gray-700 transition-colors" style={{ backgroundColor: "#e8e0d0" }}>
+              Start over
+            </button>
+            <Link to="/" className="px-6 py-2.5 rounded-xl bg-primary text-white text-[13px] font-medium hover:bg-primary/90 transition-colors">
+              Ask a question
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
 export default SymptomChecker;
-
