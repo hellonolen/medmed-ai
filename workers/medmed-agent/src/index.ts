@@ -13,23 +13,19 @@
 export interface Env {
   DB: D1Database;
   MEDIA: R2Bucket;
+  // AI — Gemini only for now
   GOOGLE_GENAI_API_KEY: string;
-  ANTHROPIC_API_KEY: string;
-  OPENAI_API_KEY: string;
-  GLM_API_KEY: string;
-  PERPLEXITY_API_KEY: string;
+  // Auth
   JWT_SECRET: string;
+  // Email
   POSTMARK_SERVER_TOKEN: string;
-  STRIPE_SECRET_KEY: string;
-  STRIPE_WEBHOOK_SECRET: string;
+  // Admin access control
   ADMIN_SECRET: string;
   WORKER_ENV: string;
-  // Admin access control
   OWNER_EMAIL: string;
   ADMIN_EMAILS: string;
-  // Stripe price IDs (kept for sponsor checkout)
-  STRIPE_BUSINESS_PRICE_ID: string;
   // Whop payment
+  WHOP_API_KEY: string;
   WHOP_CHECKOUT_URL: string;
   WHOP_WEBHOOK_SECRET: string;
 }
@@ -285,53 +281,13 @@ async function callPerplexity(apiKey: string, systemPrompt: string, userMessage:
 //
 // Video is ALWAYS handled by Gemini (vision only) — see handleMediaVisual.
 
+// Gemini-only for now — multi-provider routing wired in later when other keys are added
 async function conductorRoute(
-  apiKey: string,
-  query: string,
-  env: Env
-): Promise<{ model: 'gemini' | 'claude' | 'gpt' | 'glm' | 'perplexity'; reason: string }> {
-  const conductorPrompt = `You are the medmed.ai Conductor — an intelligent AI routing agent.
-Your ONLY job: analyze a health question and return JSON selecting the best AI model.
-
-Models and their strengths:
-- gemini: vision/image analysis, pharmacy lookup, quick medical facts, multimodal
-- claude: complex multi-step reasoning, differential diagnosis, deep clinical analysis
-- gpt: clear patient education, drug information, general health summaries
-- glm: Chinese/multilingual queries, traditional medicine, alternative health
-- perplexity: research questions, "what does the latest research say", evidence-based medicine, clinical guidelines, PubMed queries
-
-IMPORTANT:
-- If the query involves images or camera: always return gemini
-- If query mentions "research", "studies", "evidence", "guideline", "latest", "published": prefer perplexity
-- For complex diagnosis or reasoning: prefer claude
-- For patient-friendly explanations: prefer gpt
-
-Respond ONLY with valid JSON, no markdown:
-{"model":"gemini|claude|gpt|glm|perplexity","reason":"one sentence"}
-Fallback: return gemini if uncertain.`;
-
-  try {
-    const raw = await callGeminiWithModel(
-      apiKey,
-      'gemini-2.0-flash',
-      conductorPrompt,
-      `Route this query: "${query.slice(0, 600)}"`
-    );
-    // Strip markdown code fences if present
-    const clean = raw.trim().replace(/^```(?:json)?\n?|\n?```$/g, '').trim();
-    const parsed = JSON.parse(clean) as { model: string; reason: string };
-    const valid = ['gemini', 'claude', 'gpt', 'glm', 'perplexity'];
-    if (valid.includes(parsed.model)) {
-      const m = parsed.model;
-      // Fallback to gemini if provider key not configured
-      if (m === 'claude'     && !env.ANTHROPIC_API_KEY)  return { model: 'gemini', reason: 'Claude key not configured' };
-      if (m === 'gpt'        && !env.OPENAI_API_KEY)      return { model: 'gemini', reason: 'GPT key not configured' };
-      if (m === 'glm'        && !env.GLM_API_KEY)         return { model: 'gemini', reason: 'GLM key not configured' };
-      if (m === 'perplexity' && !env.PERPLEXITY_API_KEY) return { model: 'gemini', reason: 'Perplexity key not configured' };
-      return { model: m as 'gemini' | 'claude' | 'gpt' | 'glm' | 'perplexity', reason: parsed.reason };
-    }
-  } catch { /* fall through */ }
-  return { model: 'gemini', reason: 'default' };
+  _apiKey: string,
+  _query: string,
+  _env: Env
+): Promise<{ model: 'gemini'; reason: string }> {
+  return { model: 'gemini', reason: 'gemini-only' };
 }
 
 async function sendEmail(token: string, to: string, subject: string, html: string, text: string): Promise<void> {
@@ -388,31 +344,13 @@ async function handleAI(req: Request, env: Env): Promise<Response> {
     let raw = '';
     let providerLabel: string;
 
-    if (chosen === 'claude') {
-      const key = byoaKeys.anthropic || env.ANTHROPIC_API_KEY;
-      raw = await callClaude(key, prompt, query);
-      providerLabel = 'claude-3-7-sonnet';
-    } else if (chosen === 'gpt') {
-      const key = byoaKeys.openai || env.OPENAI_API_KEY;
-      raw = await callGPT(key, prompt, query);
-      providerLabel = 'gpt-4o';
-    } else if (chosen === 'glm') {
-      const key = byoaKeys.glm || env.GLM_API_KEY;
-      raw = await callGLM(key, prompt, query);
-      providerLabel = 'glm-4-flash';
-    } else if (chosen === 'perplexity') {
-      const key = byoaKeys.perplexity || env.PERPLEXITY_API_KEY;
-      raw = await callPerplexity(key, prompt, query);
-      providerLabel = 'perplexity-sonar-pro';
-    } else {
-      // Gemini — the platform foundation. Uses admin-selected Gemini model.
-      const modelRow = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`)
-        .first<{ value: string }>().catch(() => null);
-      const geminiModel = modelRow?.value || 'gemini-2.0-flash';
-      const key = byoaKeys.gemini || env.GOOGLE_GENAI_API_KEY;
-      raw = await callGeminiWithModel(key, geminiModel, prompt, query, history);
-      providerLabel = `gemini/${geminiModel}`;
-    }
+    // Gemini — the platform foundation
+    const modelRow = await env.DB.prepare(`SELECT value FROM global_settings WHERE key = 'active_model'`)
+      .first<{ value: string }>().catch(() => null);
+    const geminiModel = modelRow?.value || 'gemini-2.0-flash';
+    const key = byoaKeys.gemini || env.GOOGLE_GENAI_API_KEY;
+    raw = await callGeminiWithModel(key, geminiModel, prompt, query, history);
+    providerLabel = `gemini/${geminiModel}`;
 
     // ── Usage tracking ──
     await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`)
@@ -830,140 +768,23 @@ async function handleAdminVerify(req: Request, env: Env): Promise<Response> {
   return json({ success: true, token }, 200, origin);
 }
 
-// ─── /api/stripe/checkout ─────────────────────────────────────────────────────
+// ─── Stripe handlers removed — payments handled via Whop ──────────────────────
 
-async function handleStripeCheckout(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  if (!env.STRIPE_SECRET_KEY) return err('Stripe not configured', 503, origin);
-
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-  const { priceId, successUrl, cancelUrl, customerEmail, mode } = body;
-  if (!priceId) return err('priceId required', 400, origin);
-
-  try {
-    const params = new URLSearchParams({
-      'payment_method_types[]': 'card',
-      'mode': mode || 'subscription',
-      'line_items[0][price]': priceId,
-      'line_items[0][quantity]': '1',
-      'success_url': successUrl || 'https://medmed.ai/user-portal?session_id={CHECKOUT_SESSION_ID}',
-      'cancel_url': cancelUrl || 'https://medmed.ai/subscription',
-    });
-    if (customerEmail) params.set('customer_email', customerEmail);
-
-    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-    const session: any = await res.json();
-    if (!res.ok) return err(session.error?.message || 'Stripe error', 400, origin);
-    return json({ success: true, url: session.url, sessionId: session.id }, 200, origin);
-  } catch (e: any) {
-    return err('Stripe checkout failed', 500, origin);
-  }
+async function handleStripeCheckout(_req: Request, env: Env): Promise<Response> {
+  const origin = _req.headers.get('Origin') || '*';
+  return err('Stripe not in use. Payments are handled via Whop.', 503, origin);
 }
 
-// ─── /api/stripe/sponsor-checkout ─────────────────────────────────────────────
-
-async function handleSponsorStripeCheckout(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  if (!env.STRIPE_SECRET_KEY) return err('Stripe not configured', 503, origin);
-
-  let body: any;
-  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-  const { amount, companyName, packageName, weeks, customerEmail, successUrl, cancelUrl } = body;
-  if (!amount || !companyName) return err('amount and companyName required', 400, origin);
-
-  try {
-    const params = new URLSearchParams({
-      'payment_method_types[]': 'card',
-      'mode': 'payment',
-      'line_items[0][price_data][currency]': 'usd',
-      'line_items[0][price_data][unit_amount]': String(Math.round(amount * 100)),
-      'line_items[0][price_data][product_data][name]': `${packageName} Ad Package (${weeks} week${weeks > 1 ? 's' : ''})`,
-      'line_items[0][price_data][product_data][description]': `MedMed.AI sponsor advertising for ${companyName}`,
-      'line_items[0][quantity]': '1',
-      'success_url': successUrl || 'https://medmed.ai/sponsor-portal?session_id={CHECKOUT_SESSION_ID}',
-      'cancel_url': cancelUrl || 'https://medmed.ai/advertiser-enrollment',
-    });
-    if (customerEmail) params.set('customer_email', customerEmail);
-
-    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${env.STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-    const session: any = await res.json();
-    if (!res.ok) return err(session.error?.message || 'Stripe error', 400, origin);
-    return json({ success: true, url: session.url, sessionId: session.id }, 200, origin);
-  } catch {
-    return err('Stripe checkout failed', 500, origin);
-  }
+async function handleSponsorStripeCheckout(_req: Request, env: Env): Promise<Response> {
+  const origin = _req.headers.get('Origin') || '*';
+  return err('Stripe not in use. Payments are handled via Whop.', 503, origin);
 }
 
-// ─── /api/stripe/webhook ──────────────────────────────────────────────────────
-
-async function handleStripeWebhook(req: Request, env: Env): Promise<Response> {
-  const origin = req.headers.get('Origin') || '*';
-  const sig = req.headers.get('stripe-signature');
-  if (!sig || !env.STRIPE_WEBHOOK_SECRET) return err('Webhook signature required', 400, origin);
-
-  const body = await req.text();
-
-  // Verify Stripe signature using HMAC-SHA256
-  try {
-    const parts = sig.split(',').map(p => p.trim());
-    const tPart = parts.find(p => p.startsWith('t='));
-    const v1Part = parts.find(p => p.startsWith('v1='));
-    if (!tPart || !v1Part) return err('Invalid signature format', 400, origin);
-    const t = tPart.slice(2);
-    const v1 = v1Part.slice(3);
-    const signedPayload = `${t}.${body}`;
-    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(env.STRIPE_WEBHOOK_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-    const sig2 = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
-    const expected = Array.from(new Uint8Array(sig2)).map(b => b.toString(16).padStart(2, '0')).join('');
-    if (expected !== v1) return err('Signature mismatch', 400, origin);
-  } catch {
-    return err('Webhook verification failed', 400, origin);
-  }
-
-  const event = JSON.parse(body);
-
-  try {
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const email = session.customer_email || session.customer_details?.email;
-      const metadata = session.metadata || {};
-
-      if (session.mode === 'subscription') {
-        // User subscription payment
-        const priceId = session.line_items?.data?.[0]?.price?.id;
-        // Map price IDs to tiers - update these with your actual Stripe price IDs
-        let tier = 'premium';
-        if (priceId === env.STRIPE_BUSINESS_PRICE_ID) tier = 'business';
-        if (email) {
-          await env.DB.prepare(`UPDATE users SET tier = ? WHERE email = ?`).bind(tier, email.toLowerCase()).run();
-        }
-      } else if (session.mode === 'payment') {
-        // Sponsor one-time payment — mark as waitlisted pending review
-        if (email) {
-          await env.DB.prepare(`UPDATE sponsors SET is_on_waitlist = 1 WHERE email = ?`).bind(email.toLowerCase()).run();
-        }
-      }
-    } else if (event.type === 'customer.subscription.deleted') {
-      const sub = event.data.object;
-      if (sub.customer_email) {
-        await env.DB.prepare(`UPDATE users SET tier = 'free' WHERE email = ?`).bind(sub.customer_email.toLowerCase()).run();
-      }
-    }
-  } catch (e: any) {
-    console.error('Webhook processing error:', e);
-  }
-
-  return json({ received: true }, 200, origin);
+async function handleStripeWebhook(_req: Request, env: Env): Promise<Response> {
+  const origin = _req.headers.get('Origin') || '*';
+  return err('Stripe not in use. Use /api/whop/webhook instead.', 503, origin);
 }
+
 
 // ─── /api/user/tier ───────────────────────────────────────────────────────────
 
