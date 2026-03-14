@@ -1484,6 +1484,7 @@ export default {
     try {
       // AI & Search
       if (path === '/api/ai'                     && req.method === 'POST') return handleAI(req, env);
+      if (path === '/api/ai/visual'              && req.method === 'POST') return handleMediaVisual(req, env);
       if (path === '/api/search'                 && req.method === 'POST') return handleSearch(req, env);
 
       // Whop webhook
