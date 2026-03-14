@@ -1,7 +1,9 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Index from "./pages/Index";
+import Landing from "./pages/Landing";
+import { useAuth } from './contexts/AuthContext';
 import Subscription from "./pages/Subscription";
 import SymptomChecker from "./pages/SymptomChecker";
 import PharmacyFinder from "./pages/PharmacyFinder";
@@ -42,6 +44,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
+// Root: show Landing to guests, redirect signed-in users to /chat
+function Root() {
+  const { user } = useAuth();
+  return user ? <Navigate to="/chat" replace /> : <Landing />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -55,8 +63,9 @@ function App() {
                     <SponsorProvider>
                       <Router>
                         <Routes>
-                          {/* Main pages */}
-                          <Route path="/" element={<Index />} />
+                          {/* Root & Chat */}
+                          <Route path="/" element={<Root />} />
+                          <Route path="/chat" element={<Index />} />
                           <Route path="/search" element={<Layout><Search /></Layout>} />
                           <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
                           <Route path="/symptom-checker" element={<Layout><SymptomChecker /></Layout>} />
