@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { SiteNav } from "@/components/SiteNav";
 
@@ -125,6 +125,14 @@ function FeatureRow({ title, body, screen, flip = false }: { title: string; body
 /* ─── Landing page ─────────────────────────── */
 export default function Landing() {
   const card = { backgroundColor: "#fdf9f2", border: "1px solid #e0d8cc" };
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("https://medmed-agent.hellonolen.workers.dev/api/stats")
+      .then(r => r.json() as Promise<{ totalQuestions: number }>)
+      .then(d => { if (d.totalQuestions > 0) setLiveCount(d.totalQuestions); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#faf8f4", fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -137,7 +145,7 @@ export default function Landing() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] text-gray-600 mb-6" style={{ backgroundColor: "#ede8de" }}>
               <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-              Now available for everyone
+              {liveCount ? `${liveCount.toLocaleString()} questions answered` : "Now available for everyone"}
             </div>
             <h1 className="text-5xl lg:text-[58px] font-bold text-gray-900 leading-[1.1] tracking-tight mb-5">
               Health information,<br />powered by conversation.

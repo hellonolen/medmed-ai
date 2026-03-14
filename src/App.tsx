@@ -42,6 +42,11 @@ import PolicyCenter from "./pages/PolicyCenter";
 import Pricing from "./pages/Pricing";
 import Contact from "./pages/Contact";
 import Onboarding from "./pages/Onboarding";
+import HealthProfile from "./pages/HealthProfile";
+import MedicationTracker from "./pages/MedicationTracker";
+import SymptomJournal from "./pages/SymptomJournal";
+import ConversationHistory from "./pages/ConversationHistory";
+import ReferralPage from "./pages/ReferralPage";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -99,6 +104,13 @@ function App() {
                           <Route path="/contact" element={<Contact />} />
                           <Route path="/onboarding" element={<Onboarding />} />
                           <Route path="/settings" element={<Layout><Settings /></Layout>} />
+
+                          {/* Health tools */}
+                          <Route path="/health-profile" element={<Layout><HealthProfile /></Layout>} />
+                          <Route path="/medications" element={<Layout><MedicationTracker /></Layout>} />
+                          <Route path="/journal" element={<Layout><SymptomJournal /></Layout>} />
+                          <Route path="/history" element={<Layout><ConversationHistory /></Layout>} />
+                          <Route path="/referral" element={<Layout><ReferralPage /></Layout>} />
 
                           {/* 404 */}
                           <Route path="*" element={<Layout><NotFound /></Layout>} />

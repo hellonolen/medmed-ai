@@ -104,12 +104,47 @@ function getAuthToken(req: Request): string | null {
 
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
-const MEDICAL_SYSTEM_PROMPT = `You are MedMed AI, an intelligent healthcare assistant.
-Help users with: medication info, pharmacy/Med Spa discovery, symptom analysis, drug interactions, specialist referrals, health education.
-RULES: Include medical disclaimers. Never diagnose. Always recommend consulting a healthcare professional.
+// ─── Build personalized system prompt with user health profile ────────────────
+
+async function buildPersonalizedPrompt(db: D1Database, userId: string | null): Promise<string> {
+  const base = `You are MedMed AI, an intelligent health information assistant.
+Help users with: medication info, pharmacy discovery, symptom context, drug interactions, and general health education.
+RULES: Always include appropriate educational disclaimers. Never diagnose. Recommend consulting a healthcare professional for personal medical decisions.
 For location-based searches return structured JSON:
 \`\`\`json
-{"results":[{"name":"...","details":"...","price":"...","type":"Medication|Pharmacy|Med Spa|Specialist","source":"...","phone":"...","address":"..."}],"answer":"...","disclaimer":"..."}
+{"results":[{"name":"...","details":"...","price":"...","type":"Medication|Pharmacy|Specialist","source":"...","phone":"...","address":"..."}],"answer":"...","disclaimer":"..."}
+\`\`\``;
+
+  if (!userId) return base;
+
+  try {
+    const profile = await db.prepare(`SELECT * FROM health_profiles WHERE user_id = ?`).bind(userId).first<any>();
+    if (!profile) return base;
+
+    const parts: string[] = [];
+    if (profile.age || profile.sex) parts.push(`Age: ${profile.age || 'unknown'}, Sex: ${profile.sex || 'unknown'}`);
+    if (profile.weight_lbs) parts.push(`Weight: ${profile.weight_lbs} lbs`);
+    const conditions = JSON.parse(profile.conditions || '[]');
+    const allergies = JSON.parse(profile.allergies || '[]');
+    const meds = JSON.parse(profile.current_meds || '[]');
+    if (conditions.length) parts.push(`Known conditions: ${conditions.join(', ')}`);
+    if (allergies.length) parts.push(`Allergies: ${allergies.join(', ')}`);
+    if (meds.length) parts.push(`Current medications: ${meds.join(', ')}`);
+    if (profile.notes) parts.push(`Notes: ${profile.notes}`);
+
+    if (!parts.length) return base;
+    return `${base}\n\n--- USER HEALTH PROFILE (use this context to personalize responses) ---\n${parts.join('\n')}\n--- END PROFILE ---`;
+  } catch {
+    return base;
+  }
+}
+
+const MEDICAL_SYSTEM_PROMPT = `You are MedMed AI, an intelligent health information assistant.
+Help users with: medication info, pharmacy discovery, symptom context, drug interactions, and general health education.
+RULES: Always include appropriate educational disclaimers. Never diagnose. Recommend consulting a healthcare professional for personal medical decisions.
+For location-based searches return structured JSON:
+\`\`\`json
+{"results":[{"name":"...","details":"...","price":"...","type":"Medication|Pharmacy|Specialist","source":"...","phone":"...","address":"..."}],"answer":"...","disclaimer":"..."}
 \`\`\``;
 
 async function callGemini(apiKey: string, systemPrompt: string, userMessage: string, history: any[] = []): Promise<string> {
@@ -147,13 +182,16 @@ async function handleAI(req: Request, env: Env): Promise<Response> {
   const origin = req.headers.get('Origin') || '*';
   let body: any;
   try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-  const { query, systemPrompt, history, searchType } = body;
+  const { query, systemPrompt, history, searchType, userId } = body;
   if (!query) return err('query required', 400, origin);
   if (!env.GOOGLE_GENAI_API_KEY) return err('AI not configured', 503, origin);
   try {
-    let prompt = systemPrompt || MEDICAL_SYSTEM_PROMPT;
+    // Build personalized prompt from health profile if userId provided
+    let prompt = systemPrompt || (userId ? await buildPersonalizedPrompt(env.DB, userId) : MEDICAL_SYSTEM_PROMPT);
     if (searchType === 'location') prompt += '\n\nReturn structured JSON with nearby providers including realistic addresses and phone numbers.';
     const raw = await callGemini(env.GOOGLE_GENAI_API_KEY, prompt, query, history || []);
+    // Increment global question counter
+    await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_questions'`).run().catch(() => {});
     const jsonMatch = raw.match(/```json\n?([\s\S]*?)\n?```/);
     if (jsonMatch) {
       try {
@@ -195,17 +233,53 @@ async function handleSignup(req: Request, env: Env): Promise<Response> {
   const origin = req.headers.get('Origin') || '*';
   let body: any;
   try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
-  const { email, password, name } = body;
+  const { email, password, name, referralCode } = body;
   if (!email || !password) return err('email and password required', 400, origin);
   if (password.length < 8) return err('Password must be at least 8 characters', 400, origin);
   try {
     const passwordHash = await hashPassword(password);
     const userId = crypto.randomUUID();
     const now = new Date().toISOString();
-    await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, tier, created_at) VALUES (?, ?, ?, ?, 'free', ?)`)
-      .bind(userId, email.toLowerCase(), name || null, passwordHash, now).run();
-    const token = await createJWT({ sub: userId, email, tier: 'free', role: 'user' }, env.JWT_SECRET);
-    return json({ token, user: { id: userId, email, name: name || null, tier: 'free', memberSince: now } }, 201, origin);
+    // 3-day trial
+    const trialExpires = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    // Unique referral code for this user
+    const myReferralCode = `${(name || email).split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8)}-${crypto.randomUUID().split('-')[0]}`;
+
+    // Check referral code
+    let referredBy: string | null = null;
+    if (referralCode) {
+      const referrer = await env.DB.prepare(`SELECT id FROM users WHERE referral_code = ?`).bind(referralCode).first<any>();
+      if (referrer) referredBy = referrer.id;
+    }
+
+    await env.DB.prepare(`INSERT INTO users (id, email, name, password_hash, tier, trial_expires_at, referral_code, referred_by, created_at) VALUES (?, ?, ?, ?, 'free', ?, ?, ?, ?)`)
+      .bind(userId, email.toLowerCase(), name || null, passwordHash, trialExpires, myReferralCode, referredBy, now).run();
+
+    // Create empty health profile
+    await env.DB.prepare(`INSERT INTO health_profiles (user_id) VALUES (?)`).bind(userId).run();
+
+    // Update global user count
+    await env.DB.prepare(`UPDATE global_stats SET value = value + 1 WHERE key = 'total_users'`).run().catch(() => {});
+
+    // If referred, record referral and grant bonus to referrer
+    if (referredBy) {
+      await env.DB.prepare(`INSERT INTO referrals (referrer_id, referred_email, referred_id) VALUES (?, ?, ?)`)
+        .bind(referredBy, email.toLowerCase(), userId).run();
+      // Extend referrer's trial/plan by 30 days
+      await env.DB.prepare(`UPDATE users SET plan_expires_at = CASE WHEN plan_expires_at IS NULL THEN datetime(trial_expires_at, '+30 days') ELSE datetime(plan_expires_at, '+30 days') END WHERE id = ?`)
+        .bind(referredBy).run();
+    }
+
+    // Welcome email — Day 0
+    const firstName = (name || email).split(' ')[0].split('@')[0];
+    await sendEmail(env.POSTMARK_SERVER_TOKEN, email,
+      `Welcome to MedMed.AI — your 3-day trial has started`,
+      `<h2>You're in, ${firstName}.</h2><p>Your 3-day full trial is now active. Here's what to try first:</p><ul><li>Open the <a href="https://medmed.ai/chat">chat</a> and ask about any medication or symptom</li><li>Try the Interaction Checker from the + menu</li><li>Check the Pharmacy Finder</li></ul><p>Your trial ends on ${new Date(trialExpires).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}. <a href="https://medmed.ai/pricing">See plans</a> to continue access.</p>`,
+      `Welcome to MedMed.AI. Your 3-day trial is active. Visit https://medmed.ai/chat to get started.`
+    ).catch(() => {});
+
+    const token = await createJWT({ sub: userId, email, tier: 'free', role: 'user', trialExpires }, env.JWT_SECRET);
+    return json({ token, user: { id: userId, email, name: name || null, tier: 'free', trialExpires, referralCode: myReferralCode, memberSince: now } }, 201, origin);
   } catch (e: any) {
     if (e.message?.includes('UNIQUE')) return err('Email already registered', 409, origin);
     return err('Registration failed', 500, origin);
@@ -731,6 +805,241 @@ async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
   return json({ analysis }, 200, origin);
 }
 
+// ─── /api/profile ─────────────────────────────────────────────────────────────
+
+async function handleProfile(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  if (req.method === 'GET') {
+    const profile = await env.DB.prepare(`SELECT * FROM health_profiles WHERE user_id = ?`).bind(userId).first<any>();
+    if (!profile) return json({ profile: null }, 200, origin);
+    return json({ profile: { ...profile, conditions: JSON.parse(profile.conditions || '[]'), allergies: JSON.parse(profile.allergies || '[]'), current_meds: JSON.parse(profile.current_meds || '[]') } }, 200, origin);
+  }
+
+  if (req.method === 'PUT' || req.method === 'POST') {
+    let body: any;
+    try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+    const { age, sex, weight_lbs, height_in, conditions, allergies, current_meds, notes } = body;
+    const now = new Date().toISOString();
+    await env.DB.prepare(`INSERT INTO health_profiles (user_id, age, sex, weight_lbs, height_in, conditions, allergies, current_meds, notes, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET age=excluded.age, sex=excluded.sex, weight_lbs=excluded.weight_lbs, height_in=excluded.height_in, conditions=excluded.conditions, allergies=excluded.allergies, current_meds=excluded.current_meds, notes=excluded.notes, updated_at=excluded.updated_at`)
+      .bind(userId, age || null, sex || null, weight_lbs || null, height_in || null,
+        JSON.stringify(conditions || []), JSON.stringify(allergies || []), JSON.stringify(current_meds || []),
+        notes || null, now).run();
+    return json({ success: true }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/medications ─────────────────────────────────────────────────────────
+
+async function handleMedications(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  if (req.method === 'GET') {
+    const { results } = await env.DB.prepare(`SELECT * FROM medications WHERE user_id = ? AND active = 1 ORDER BY created_at DESC`).bind(userId).all<any>();
+    return json({ medications: results }, 200, origin);
+  }
+
+  if (req.method === 'POST') {
+    let body: any;
+    try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+    const { name, dosage, frequency, time_of_day, notes } = body;
+    if (!name) return err('name required', 400, origin);
+    const id = crypto.randomUUID();
+    await env.DB.prepare(`INSERT INTO medications (id, user_id, name, dosage, frequency, time_of_day, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, userId, name, dosage || null, frequency || null, time_of_day || null, notes || null).run();
+    return json({ id, success: true }, 201, origin);
+  }
+
+  if (req.method === 'DELETE') {
+    const url = new URL(req.url);
+    const medId = url.searchParams.get('id');
+    if (!medId) return err('id required', 400, origin);
+    await env.DB.prepare(`UPDATE medications SET active = 0 WHERE id = ? AND user_id = ?`).bind(medId, userId).run();
+    return json({ success: true }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/medications/log ─────────────────────────────────────────────────────
+
+async function handleMedLog(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  if (req.method === 'POST') {
+    let body: any;
+    try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+    const { medication_id } = body;
+    if (!medication_id) return err('medication_id required', 400, origin);
+    await env.DB.prepare(`INSERT INTO medication_logs (user_id, medication_id) VALUES (?, ?)`).bind(userId, medication_id).run();
+    return json({ success: true }, 201, origin);
+  }
+
+  if (req.method === 'GET') {
+    const { results } = await env.DB.prepare(`SELECT ml.*, m.name FROM medication_logs ml JOIN medications m ON ml.medication_id = m.id WHERE ml.user_id = ? ORDER BY ml.taken_at DESC LIMIT 60`).bind(userId).all<any>();
+    return json({ logs: results }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/conversations ────────────────────────────────────────────────────────
+
+async function handleConversations(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+  const url = new URL(req.url);
+  const convId = url.searchParams.get('id');
+
+  if (req.method === 'GET') {
+    if (convId) {
+      // Fetch messages for a conversation
+      const conv = await env.DB.prepare(`SELECT * FROM conversations WHERE id = ? AND user_id = ?`).bind(convId, userId).first<any>();
+      if (!conv) return err('Not found', 404, origin);
+      const { results: messages } = await env.DB.prepare(`SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at ASC`).bind(convId).all<any>();
+      return json({ conversation: conv, messages }, 200, origin);
+    }
+    // List conversations
+    const { results } = await env.DB.prepare(`SELECT * FROM conversations WHERE user_id = ? ORDER BY updated_at DESC LIMIT 50`).bind(userId).all<any>();
+    return json({ conversations: results }, 200, origin);
+  }
+
+  if (req.method === 'POST') {
+    let body: any;
+    try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+    const { title, messages: msgs } = body;
+    if (!msgs || !Array.isArray(msgs)) return err('messages array required', 400, origin);
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+    await env.DB.prepare(`INSERT INTO conversations (id, user_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`)
+      .bind(id, userId, title || msgs[0]?.content?.slice(0, 60) || 'Conversation', now, now).run();
+    // Batch insert messages
+    for (const m of msgs) {
+      await env.DB.prepare(`INSERT INTO messages (conversation_id, user_id, role, content) VALUES (?, ?, ?, ?)`)
+        .bind(id, userId, m.role, m.content).run();
+    }
+    return json({ id, success: true }, 201, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/journal ──────────────────────────────────────────────────────────────
+
+async function handleJournal(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  if (req.method === 'GET') {
+    const { results } = await env.DB.prepare(`SELECT * FROM symptom_logs WHERE user_id = ? ORDER BY logged_at DESC LIMIT 90`).bind(userId).all<any>();
+    return json({ logs: results.map((r: any) => ({ ...r, symptoms: JSON.parse(r.symptoms || '[]') })) }, 200, origin);
+  }
+
+  if (req.method === 'POST') {
+    let body: any;
+    try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+    const { symptoms, severity, notes } = body;
+    if (!symptoms || !Array.isArray(symptoms)) return err('symptoms array required', 400, origin);
+    await env.DB.prepare(`INSERT INTO symptom_logs (user_id, symptoms, severity, notes) VALUES (?, ?, ?, ?)`)
+      .bind(userId, JSON.stringify(symptoms), severity || null, notes || null).run();
+    return json({ success: true }, 201, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/referral ─────────────────────────────────────────────────────────────
+
+async function handleReferral(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  if (req.method === 'GET') {
+    const user = await env.DB.prepare(`SELECT referral_code, plan_expires_at FROM users WHERE id = ?`).bind(userId).first<any>();
+    const { results: referrals } = await env.DB.prepare(`SELECT referred_email, converted, granted_at, created_at FROM referrals WHERE referrer_id = ? ORDER BY created_at DESC`).bind(userId).all<any>();
+    return json({ referralCode: user?.referral_code, planExpiresAt: user?.plan_expires_at, referrals }, 200, origin);
+  }
+
+  return err('Method not allowed', 405, origin);
+}
+
+// ─── /api/stats ───────────────────────────────────────────────────────────────
+
+async function handleStats(_req: Request, env: Env): Promise<Response> {
+  const origin = _req.headers.get('Origin') || '*';
+  try {
+    const [questions, users] = await Promise.all([
+      env.DB.prepare(`SELECT value FROM global_stats WHERE key = 'total_questions'`).first<any>(),
+      env.DB.prepare(`SELECT value FROM global_stats WHERE key = 'total_users'`).first<any>(),
+    ]);
+    return json({ totalQuestions: questions?.value || 0, totalUsers: users?.value || 0 }, 200, origin);
+  } catch {
+    return json({ totalQuestions: 0, totalUsers: 0 }, 200, origin);
+  }
+}
+
+// ─── /api/auth/profile (update name/password) ─────────────────────────────────
+
+async function handleAuthProfile(req: Request, env: Env): Promise<Response> {
+  const origin = req.headers.get('Origin') || '*';
+  const token = getAuthToken(req);
+  if (!token) return err('Unauthorized', 401, origin);
+  const payload = await verifyJWT(token, env.JWT_SECRET);
+  if (!payload) return err('Unauthorized', 401, origin);
+  const userId = payload.sub as string;
+
+  let body: any;
+  try { body = await req.json(); } catch { return err('Invalid JSON', 400, origin); }
+  const { name, currentPassword, newPassword } = body;
+
+  if (name) {
+    await env.DB.prepare(`UPDATE users SET name = ? WHERE id = ?`).bind(name, userId).run();
+  }
+
+  if (currentPassword && newPassword) {
+    if (newPassword.length < 8) return err('Password must be at least 8 characters', 400, origin);
+    const user = await env.DB.prepare(`SELECT password_hash FROM users WHERE id = ?`).bind(userId).first<any>();
+    if (!user) return err('User not found', 404, origin);
+    const valid = await verifyPassword(currentPassword, user.password_hash);
+    if (!valid) return err('Current password is incorrect', 401, origin);
+    const newHash = await hashPassword(newPassword);
+    await env.DB.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).bind(newHash, userId).run();
+  }
+
+  return json({ success: true }, 200, origin);
+}
+
 // ─── Main Router ──────────────────────────────────────────────────────────────
 
 export default {
@@ -773,7 +1082,27 @@ export default {
       if (path === '/api/email'                  && req.method === 'POST') return handleEmail(req, env);
       if (path === '/api/media/upload'           && req.method === 'POST') return handleMediaUpload(req, env);
       if (path === '/api/media/analyze'          && req.method === 'POST') return handleMediaAnalyze(req, env);
-      if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v2' });
+      if (path === '/health') return json({ status: 'ok', env: env.WORKER_ENV, version: 'v3' });
+
+      // Health Profile & Memory
+      if (path === '/api/profile'          && (req.method === 'GET' || req.method === 'POST' || req.method === 'PUT')) return handleProfile(req, env);
+      if (path === '/api/auth/profile'     && req.method === 'POST') return handleAuthProfile(req, env);
+
+      // Medication Tracker
+      if (path === '/api/medications'      && (req.method === 'GET' || req.method === 'POST' || req.method === 'DELETE')) return handleMedications(req, env);
+      if (path === '/api/medications/log'  && (req.method === 'GET' || req.method === 'POST')) return handleMedLog(req, env);
+
+      // Conversation History
+      if (path === '/api/conversations'    && (req.method === 'GET' || req.method === 'POST')) return handleConversations(req, env);
+
+      // Symptom Journal
+      if (path === '/api/journal'          && (req.method === 'GET' || req.method === 'POST')) return handleJournal(req, env);
+
+      // Referrals
+      if (path === '/api/referral'         && req.method === 'GET') return handleReferral(req, env);
+
+      // Global stats (live counter)
+      if (path === '/api/stats'            && req.method === 'GET') return handleStats(req, env);
 
       return err('Not found', 404, origin);
     } catch (e: any) {
