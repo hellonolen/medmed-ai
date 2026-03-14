@@ -24,6 +24,11 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET: string;
   ADMIN_SECRET: string;
   WORKER_ENV: string;
+  // Admin access control
+  OWNER_EMAIL: string;    // hellonolen@gmail.com
+  ADMIN_EMAILS: string;   // comma-separated admin emails
+  // Stripe price IDs
+  STRIPE_BUSINESS_PRICE_ID: string;
 }
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -1050,8 +1055,9 @@ async function handleMediaAnalyze(req: Request, env: Env): Promise<Response> {
   let userId: string, userTier: string;
   try {
     const payload = await verifyJWT(auth, env.JWT_SECRET);
-    userId = payload.userId;
-    userTier = payload.tier || 'free';
+    if (!payload) return err('Unauthorized', 401, origin);
+    userId = payload.userId as string;
+    userTier = (payload.tier as string) || 'free';
   } catch {
     return err('Unauthorized', 401, origin);
   }
