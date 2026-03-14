@@ -4,11 +4,17 @@ compatibility_date = "2024-01-01"
 
 [vars]
 WORKER_ENV = "production"
+BASE_URL = "https://medmed.ai"
 
 # Secrets (set via: wrangler secret put KEY)
 # GOOGLE_GENAI_API_KEY
 # JWT_SECRET
 # POSTMARK_SERVER_TOKEN
+# WHOP_API_KEY
+# WHOP_WEBHOOK_SECRET
+# ADMIN_SECRET
+# ADMIN_EMAILS
+# OWNER_EMAIL
 
 [[d1_databases]]
 binding = "DB"

@@ -33,6 +33,8 @@ interface User {
   name: string | null;
   tier: string;
   role: string;
+  plan: string;
+  trial_ends_at: number | null;
   created_at: string;
 }
 
@@ -278,21 +280,32 @@ const OwnerDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Users ({users.length})</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => exportCSV(users, ['ID', 'Email', 'Name', 'Tier', 'Role', 'Joined'], 'users.csv')}>
+            <Button variant="outline" size="sm" onClick={() => exportCSV(users, ['ID','Email','Name','Plan','Role','Trial Ends','Joined'], 'users.csv')}>
               <Download className="h-4 w-4 mr-1" /> Export
             </Button>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {isLoading ? <p className="text-gray-500 text-sm">Loading...</p> : users.length === 0 ? <p className="text-gray-500 text-sm italic">No users yet.</p> : users.map(u => (
-                <div key={u.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{u.email}</p>
-                    <p className="text-sm text-gray-500">{u.name || 'No name'} · Joined {new Date(u.created_at).toLocaleDateString()}</p>
+              {isLoading ? <p className="text-gray-500 text-sm">Loading...</p> : users.length === 0 ? <p className="text-gray-500 text-sm italic">No users yet.</p> : users.map(u => {
+                const now = Math.floor(Date.now() / 1000);
+                const trialSecs = u.trial_ends_at ? u.trial_ends_at - now : null;
+                const trialDays = trialSecs !== null ? Math.ceil(trialSecs / 86400) : null;
+                const trialLabel = trialDays === null ? null : trialDays <= 0 ? 'Trial ended' : `${trialDays}d left`;
+                const trialColor = trialDays !== null && trialDays <= 0 ? 'text-red-500' : trialDays !== null && trialDays <= 2 ? 'text-amber-500 font-semibold' : 'text-gray-400';
+                return (
+                  <div key={u.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium text-sm">{u.email}</p>
+                      <p className="text-xs text-gray-500">{u.name || 'No name'} · Joined {new Date(u.created_at).toLocaleDateString()}</p>
+                      {trialLabel && <p className={`text-xs mt-0.5 ${trialColor}`}>{trialLabel}</p>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {u.role === 'admin' && <Badge variant="secondary" className="text-xs">admin</Badge>}
+                      <Badge variant={u.plan === 'free' || !u.plan ? 'outline' : 'default'} className="capitalize text-xs">{u.plan || u.tier}</Badge>
+                    </div>
                   </div>
-                  <Badge variant={u.tier === 'free' ? 'outline' : 'default'} className="capitalize">{u.tier}</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

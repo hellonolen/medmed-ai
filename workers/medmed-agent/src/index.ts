@@ -19,6 +19,8 @@ export interface Env {
   JWT_SECRET: string;
   // Email
   POSTMARK_SERVER_TOKEN: string;
+  // URL base for magic links (e.g. https://medmed.ai)
+  BASE_URL: string;
   // Admin access control
   ADMIN_SECRET: string;
   WORKER_ENV: string;
@@ -747,8 +749,9 @@ async function handleAdminUsers(req: Request, env: Env): Promise<Response> {
 
   try {
     const { results } = await env.DB.prepare(
-      `SELECT id, email, name, tier, role, created_at FROM users ORDER BY created_at DESC LIMIT 100`
-    ).all<any>();
+      `SELECT id, email, name, tier, role, plan, trial_ends_at, created_at
+       FROM users ORDER BY created_at DESC LIMIT 200`
+    ).all<{ id:string; email:string; name:string|null; tier:string; role:string; plan:string; trial_ends_at:number|null; created_at:string }>();
     return json({ success: true, users: results }, 200, origin);
   } catch {
     return err('Failed to fetch users', 500, origin);
@@ -1304,7 +1307,7 @@ async function handleWhopWebhook(req: Request, env: Env): Promise<Response> {
   await env.DB.prepare(`DELETE FROM magic_links WHERE user_id = ?`).bind(userId).run();
   await env.DB.prepare(`INSERT INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`).bind(token, userId, expiresAt).run();
 
-  const welcomeLink = `https://medmed.pages.dev/auth/verify?token=${token}`;
+  const welcomeLink = `${env.BASE_URL || 'https://medmed.ai'}/auth/verify?token=${token}`;
   if (env.POSTMARK_SERVER_TOKEN) {
     await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
@@ -1441,7 +1444,7 @@ async function handleRegisterWithTrial(req: Request, env: Env): Promise<Response
     `INSERT OR REPLACE INTO magic_links (token, user_id, expires_at, used) VALUES (?, ?, ?, 0)`
   ).bind(token, userId, expiresAt).run();
 
-  const welcomeLink = `https://medmed.pages.dev/auth/verify?token=${token}`;
+  const welcomeLink = `${env.BASE_URL || 'https://medmed.ai'}/auth/verify?token=${token}`;
   if (env.POSTMARK_SERVER_TOKEN) {
     await fetch('https://api.postmarkapp.com/email', {
       method: 'POST',
