@@ -5,8 +5,8 @@ export function SiteNav() {
   const { user } = useAuth();
   const { pathname } = useLocation();
 
-  const active = (p: string) =>
-    pathname === p ? "text-gray-900 font-semibold" : "text-gray-500 hover:text-gray-900";
+  const linkCls = (p: string) =>
+    `text-[13.5px] transition-colors ${pathname === p ? "text-gray-900 font-semibold" : "text-gray-500 hover:text-gray-900"}`;
 
   return (
     <header
@@ -14,41 +14,30 @@ export function SiteNav() {
       style={{ backgroundColor: "#faf8f4", borderColor: "#e0d8cc" }}
     >
       {/* Logo */}
-      <Link to="/" className="text-[17px] font-bold text-gray-900 tracking-tight">
+      <Link to="/" className="text-[17px] font-bold text-gray-900 tracking-tight flex-shrink-0">
         MedMed.AI
       </Link>
 
       {/* Center nav */}
-      <nav className="hidden md:flex items-center gap-6">
-        <Link to="/pricing" className={`text-[13.5px] transition-colors ${active("/pricing")}`}>
-          Pricing
-        </Link>
-        <Link to="/policy" className={`text-[13.5px] transition-colors ${active("/policy")}`}>
-          Policy Center
-        </Link>
+      <nav className="hidden md:flex items-center gap-7">
+        <Link to="/#about" className={linkCls("/#about")}>About</Link>
+        <Link to="/#how-it-works" className={linkCls("/#how-it-works")}>How It Works</Link>
+        <Link to="/#faq" className={linkCls("/#faq")}>FAQ</Link>
+        <Link to="/pricing" className={linkCls("/pricing")}>Pricing</Link>
       </nav>
 
-      {/* Right CTA */}
-      <div className="flex items-center gap-2">
+      {/* Right CTAs */}
+      <div className="flex items-center gap-2 flex-shrink-0">
         {user ? (
-          <Link
-            to="/chat"
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
-          >
+          <Link to="/chat" className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors">
             Open chat
           </Link>
         ) : (
           <>
-            <Link
-              to="/signin"
-              className="px-4 py-2 rounded-xl text-[13px] text-gray-600 hover:bg-[#e4ddd0] transition-colors"
-            >
+            <Link to="/signin" className="px-4 py-2 rounded-xl text-[13px] text-gray-600 hover:bg-[#e4ddd0] transition-colors">
               Sign in
             </Link>
-            <Link
-              to="/pricing"
-              className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors"
-            >
+            <Link to="/pricing" className="px-4 py-2 rounded-xl text-[13px] font-semibold text-white bg-primary hover:bg-primary/90 transition-colors">
               Get started
             </Link>
           </>

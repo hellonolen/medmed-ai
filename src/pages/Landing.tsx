@@ -158,6 +158,7 @@ export default function Landing() {
       </div>
 
       {/* ── HOW IT WORKS ── */}
+      <div id="how-it-works" />
       <Section>
         <div className="text-center mb-14">
           <h2 className="text-[36px] font-bold text-gray-900 tracking-tight mb-3">How it works</h2>
@@ -232,6 +233,7 @@ export default function Landing() {
       </Section>
 
       {/* ── TOOLS GRID ── */}
+      <div id="about" />
       <Section>
         <div className="text-center mb-14">
           <h2 className="text-[36px] font-bold text-gray-900 tracking-tight mb-3">Everything you need in one place</h2>
@@ -325,9 +327,13 @@ export default function Landing() {
               <Link to="/policy" className="hover:text-gray-900 transition-colors">Policy Center</Link>
             </div>
           </div>
-          <div className="border-t pt-5 flex flex-col sm:flex-row justify-between items-center gap-2 text-[12px] text-gray-400" style={{ borderColor: "#e0d8cc" }}>
+          <div className="border-t pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 text-[12px] text-gray-400" style={{ borderColor: "#e0d8cc" }}>
             <p>© {new Date().getFullYear()} MedMed.AI. For informational purposes only — not medical advice.</p>
-            <p>Payments by <a href="https://whop.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Whop</a>.</p>
+            <div className="flex items-center gap-4">
+              <Link to="/policy" className="hover:text-gray-700 transition-colors">Policy Center</Link>
+              <Link to="/chat" className="hover:text-gray-700 transition-colors">Support</Link>
+              <Link to="/chat" className="hover:text-gray-700 transition-colors">Contact</Link>
+            </div>
           </div>
         </div>
       </footer>
